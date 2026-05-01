@@ -1,0 +1,361 @@
+"""Command-pattern undo/redo stack for PySheet."""
+
+from __future__ import annotations
+
+import copy
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any
+
+from pysheet.model.cell import Cell, CellFormat
+from pysheet.model.range import CellRange
+
+if TYPE_CHECKING:
+    from pysheet.model.sheet import Sheet
+
+_MAX_UNDO = 1000
+
+
+# ---------------------------------------------------------------------------
+# Abstract base
+# ---------------------------------------------------------------------------
+
+class Command(ABC):
+    description: str = ""
+
+    @abstractmethod
+    def execute(self) -> None: ...
+
+    @abstractmethod
+    def undo(self) -> None: ...
+
+
+# ---------------------------------------------------------------------------
+# Snapshot helpers
+# ---------------------------------------------------------------------------
+
+def _snapshot_cell(sheet: Sheet, row: int, col: int) -> Cell | None:
+    """Return a deep-enough copy of the cell, or None if it doesn't exist."""
+    existing = sheet.get_cell(row, col)
+    if existing is None:
+        return None
+    return existing.copy()
+
+
+def _restore_cell(sheet: Sheet, row: int, col: int, snap: Cell | None) -> None:
+    """Put the cell back (or clear it) from a snapshot."""
+    if snap is None:
+        sheet.clear_cell(row, col)
+    else:
+        cell = sheet.set_cell_value(row, col, snap.value, snap.formula, record_history=False)
+        cell.display = snap.display
+        cell.fmt = snap.fmt.copy()
+        cell.locked = snap.locked
+        cell.comment = snap.comment
+
+
+# ---------------------------------------------------------------------------
+# Concrete commands
+# ---------------------------------------------------------------------------
+
+class SetCellCommand(Command):
+    description = "set cell"
+
+    def __init__(
+        self,
+        sheet: Sheet,
+        row: int,
+        col: int,
+        new_value: Any,
+        new_formula: str | None = None,
+    ) -> None:
+        self._sheet = sheet
+        self._row = row
+        self._col = col
+        self._new_value = new_value
+        self._new_formula = new_formula
+        self._old_snap: Cell | None = None
+
+    def execute(self) -> None:
+        self._old_snap = _snapshot_cell(self._sheet, self._row, self._col)
+        self._sheet.set_cell_value(self._row, self._col, self._new_value, self._new_formula)
+
+    def undo(self) -> None:
+        _restore_cell(self._sheet, self._row, self._col, self._old_snap)
+
+
+class ClearCellCommand(Command):
+    description = "clear cell"
+
+    def __init__(self, sheet: Sheet, row: int, col: int) -> None:
+        self._sheet = sheet
+        self._row = row
+        self._col = col
+        self._old_snap: Cell | None = None
+
+    def execute(self) -> None:
+        self._old_snap = _snapshot_cell(self._sheet, self._row, self._col)
+        self._sheet.clear_cell(self._row, self._col)
+
+    def undo(self) -> None:
+        _restore_cell(self._sheet, self._row, self._col, self._old_snap)
+
+
+class DeleteRangeCommand(Command):
+    description = "delete range"
+
+    def __init__(self, sheet: Sheet, cell_range: CellRange) -> None:
+        self._sheet = sheet
+        self._range = cell_range
+        self._snaps: dict[tuple[int, int], Cell | None] = {}
+
+    def execute(self) -> None:
+        for r, c in self._range.iter_cells():
+            self._snaps[(r, c)] = _snapshot_cell(self._sheet, r, c)
+            self._sheet.clear_cell(r, c)
+
+    def undo(self) -> None:
+        for (r, c), snap in self._snaps.items():
+            _restore_cell(self._sheet, r, c, snap)
+
+
+class InsertRowCommand(Command):
+    description = "insert row"
+
+    def __init__(self, sheet: Sheet, row: int) -> None:
+        self._sheet = sheet
+        self._row = row
+
+    def execute(self) -> None:
+        self._sheet.insert_row(self._row)
+
+    def undo(self) -> None:
+        self._sheet.delete_row(self._row)
+
+
+class DeleteRowCommand(Command):
+    description = "delete row"
+
+    def __init__(self, sheet: Sheet, row: int) -> None:
+        self._sheet = sheet
+        self._row = row
+        self._deleted: dict[int, Cell] = {}
+
+    def execute(self) -> None:
+        self._deleted = self._sheet.delete_row(self._row)
+
+    def undo(self) -> None:
+        self._sheet.insert_row(self._row)
+        for col, cell in self._deleted.items():
+            restored = self._sheet.set_cell_value(
+                self._row, col, cell.value, cell.formula, record_history=False
+            )
+            restored.display = cell.display
+            restored.fmt = cell.fmt.copy()
+            restored.locked = cell.locked
+            restored.comment = cell.comment
+
+
+class InsertColCommand(Command):
+    description = "insert column"
+
+    def __init__(self, sheet: Sheet, col: int) -> None:
+        self._sheet = sheet
+        self._col = col
+
+    def execute(self) -> None:
+        self._sheet.insert_col(self._col)
+
+    def undo(self) -> None:
+        self._sheet.delete_col(self._col)
+
+
+class DeleteColCommand(Command):
+    description = "delete column"
+
+    def __init__(self, sheet: Sheet, col: int) -> None:
+        self._sheet = sheet
+        self._col = col
+        self._deleted: dict[int, Cell] = {}
+
+    def execute(self) -> None:
+        self._deleted = self._sheet.delete_col(self._col)
+
+    def undo(self) -> None:
+        self._sheet.insert_col(self._col)
+        for row, cell in self._deleted.items():
+            restored = self._sheet.set_cell_value(
+                row, self._col, cell.value, cell.formula, record_history=False
+            )
+            restored.display = cell.display
+            restored.fmt = cell.fmt.copy()
+            restored.locked = cell.locked
+            restored.comment = cell.comment
+
+
+class PasteCommand(Command):
+    description = "paste"
+
+    def __init__(
+        self,
+        sheet: Sheet,
+        base_row: int,
+        base_col: int,
+        data: list[list[Any]],
+    ) -> None:
+        self._sheet = sheet
+        self._base_row = base_row
+        self._base_col = base_col
+        self._data = data
+        self._snaps: dict[tuple[int, int], Cell | None] = {}
+
+    def execute(self) -> None:
+        for dr, row_data in enumerate(self._data):
+            for dc, value in enumerate(row_data):
+                r = self._base_row + dr
+                c = self._base_col + dc
+                self._snaps[(r, c)] = _snapshot_cell(self._sheet, r, c)
+                self._sheet.set_cell_value(r, c, value)
+
+    def undo(self) -> None:
+        for (r, c), snap in self._snaps.items():
+            _restore_cell(self._sheet, r, c, snap)
+
+
+class LockCommand(Command):
+    description = "lock cell"
+
+    def __init__(self, sheet: Sheet, row: int, col: int, locked: bool) -> None:
+        self._sheet = sheet
+        self._row = row
+        self._col = col
+        self._locked = locked
+        self._old_locked: bool = False
+
+    def execute(self) -> None:
+        cell = self._sheet.get_cell(self._row, self._col)
+        if cell is None:
+            cell = self._sheet.set_cell_value(self._row, self._col, None)
+        self._old_locked = cell.locked
+        cell.locked = self._locked
+
+    def undo(self) -> None:
+        cell = self._sheet.get_cell(self._row, self._col)
+        if cell is not None:
+            cell.locked = self._old_locked
+
+
+class FormatCommand(Command):
+    description = "format cell"
+
+    def __init__(self, sheet: Sheet, row: int, col: int, **new_fmt_kwargs: Any) -> None:
+        self._sheet = sheet
+        self._row = row
+        self._col = col
+        self._new_fmt_kwargs = new_fmt_kwargs
+        self._old_fmt: CellFormat | None = None
+
+    def execute(self) -> None:
+        existing = self._sheet.get_cell(self._row, self._col)
+        if existing is None:
+            # Create cell so it has a format to modify
+            existing = self._sheet.set_cell_value(self._row, self._col, None)
+        self._old_fmt = copy.deepcopy(existing.fmt)
+        for key, val in self._new_fmt_kwargs.items():
+            setattr(existing.fmt, key, val)
+
+    def undo(self) -> None:
+        existing = self._sheet.get_cell(self._row, self._col)
+        if existing is not None and self._old_fmt is not None:
+            existing.fmt = copy.deepcopy(self._old_fmt)
+
+
+class SortCommand(Command):
+    description = "sort sheet"
+
+    def __init__(self, sheet: "Sheet", col: int, ascending: bool) -> None:
+        self._sheet = sheet
+        self._col = col
+        self._ascending = ascending
+        self._snapshot: dict[tuple[int, int], Cell] = {}
+
+    def execute(self) -> None:
+        self._snapshot = {k: v.copy() for k, v in self._sheet.cells.items()}
+        self._sheet.sort_by_col(self._col, self._ascending)
+
+    def undo(self) -> None:
+        self._sheet.cells.clear()
+        for (r, c), cell_copy in self._snapshot.items():
+            self._sheet.cells[(r, c)] = cell_copy
+        self._sheet._recalculate_extents()
+        self._sheet.sort_state = None
+
+
+class CompositeCommand(Command):
+    description = "composite"
+
+    def __init__(self, commands: list[Command]) -> None:
+        self._commands = commands
+
+    def execute(self) -> None:
+        for cmd in self._commands:
+            cmd.execute()
+
+    def undo(self) -> None:
+        for cmd in reversed(self._commands):
+            cmd.undo()
+
+
+# ---------------------------------------------------------------------------
+# Undo stack
+# ---------------------------------------------------------------------------
+
+class UndoStack:
+    """Manages the undo/redo history for a sheet."""
+
+    def __init__(self, max_size: int = _MAX_UNDO) -> None:
+        self._max_size = max_size
+        self._undo: list[Command] = []
+        self._redo: list[Command] = []
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    @property
+    def can_undo(self) -> bool:
+        return bool(self._undo)
+
+    @property
+    def can_redo(self) -> bool:
+        return bool(self._redo)
+
+    def push(self, cmd: Command) -> None:
+        """Execute *cmd* and push it onto the undo stack, clearing redo history."""
+        cmd.execute()
+        self._redo.clear()
+        self._undo.append(cmd)
+        if len(self._undo) > self._max_size:
+            self._undo.pop(0)
+
+    def undo(self) -> bool:
+        """Undo the most recent command. Returns True if something was undone."""
+        if not self._undo:
+            return False
+        cmd = self._undo.pop()
+        cmd.undo()
+        self._redo.append(cmd)
+        return True
+
+    def redo(self) -> bool:
+        """Re-apply the most recently undone command. Returns True if something was redone."""
+        if not self._redo:
+            return False
+        cmd = self._redo.pop()
+        cmd.execute()
+        self._undo.append(cmd)
+        return True
+
+    def clear(self) -> None:
+        """Discard all undo and redo history."""
+        self._undo.clear()
+        self._redo.clear()
