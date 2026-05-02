@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from pysheet.model.cell import Cell, CellFormat
@@ -13,6 +14,13 @@ if TYPE_CHECKING:
     from pysheet.model.sheet import Sheet
 
 _MAX_UNDO = 1000
+
+
+@dataclass
+class YankedCell:
+    """Register entry that preserves both a cell's formula and its value."""
+    value: Any
+    formula: str | None
 
 
 # ---------------------------------------------------------------------------
@@ -229,11 +237,14 @@ class PasteCommand(Command):
 
     def execute(self) -> None:
         for dr, row_data in enumerate(self._data):
-            for dc, value in enumerate(row_data):
+            for dc, entry in enumerate(row_data):
                 r = self._base_row + dr
                 c = self._base_col + dc
                 self._snaps[(r, c)] = _snapshot_cell(self._sheet, r, c)
-                self._sheet.set_cell_value(r, c, value)
+                if isinstance(entry, YankedCell):
+                    self._sheet.set_cell_value(r, c, entry.value, entry.formula)
+                else:
+                    self._sheet.set_cell_value(r, c, entry)
 
     def undo(self) -> None:
         for (r, c), snap in self._snaps.items():

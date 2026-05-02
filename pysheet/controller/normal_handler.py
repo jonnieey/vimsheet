@@ -201,7 +201,9 @@ class NormalHandler:
 
             # Yank chords
             case "yy":
-                self._yank_cell();           app._key_buffer = ""; return
+                self._yank_cell(formula=True);  app._key_buffer = ""; return
+            case "YY":
+                self._yank_cell(formula=False); app._key_buffer = ""; return
             case "dd":
                 self._cut_row();             app._key_buffer = ""; return
 
@@ -238,7 +240,7 @@ class NormalHandler:
                 app.exit();                  return
 
             # Pending prefixes (no standalone action for these)
-            case "g" | "f" | "i" | "d" | "y" | "r" | "z" | "Z" | "m" | "'" | "@" | '"' | "q":
+            case "g" | "f" | "i" | "d" | "y" | "Y" | "r" | "z" | "Z" | "m" | "'" | "@" | '"' | "q":
                 app._key_buffer = buf
                 return
 
@@ -457,19 +459,26 @@ class NormalHandler:
             app.workbook.modified = True
             app.grid.refresh_grid()
 
-    def _yank_cell(self) -> None:
+    def _yank_cell(self, formula: bool = True) -> None:
+        from pysheet.model.undo import YankedCell
         app = self._app
         cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
-        val = [[cell.value if cell else None]]
+        if cell and cell.formula and formula:
+            entry: Any = YankedCell(value=cell.value, formula=cell.formula)
+            note = "formula"
+        else:
+            entry = cell.value if cell else None
+            note = "value"
+        data = [[entry]]
         reg = app._pending_register
         if reg == "+":
-            self._to_clipboard(val)
+            self._to_clipboard([[cell.value if cell else None]])
         elif reg:
-            app._registers[reg] = val
-            app.status_bar.show_message(f'Yanked → "{reg}')
+            app._registers[reg] = data
+            app.status_bar.show_message(f'Yanked {note} → "{reg}')
         else:
-            app._default_register = val
-            app.status_bar.show_message("Yanked")
+            app._default_register = data
+            app.status_bar.show_message(f"Yanked {note}")
         app._pending_register = ""
 
     def _cut_row(self) -> None:
