@@ -19,7 +19,7 @@ def _is_error(v: Any) -> bool:
 def _truthy(v: Any) -> bool:
     if isinstance(v, bool):
         return v
-    if isinstance(v, (int, float)):
+    if isinstance(v, int | float):
         return v != 0
     if isinstance(v, str):
         return v.upper() not in ("FALSE", "0", "")
@@ -103,7 +103,7 @@ def fn_isblank(cell: Any) -> Any:
 
 @register("ISNUMBER")
 def fn_isnumber(cell: Any) -> Any:
-    return isinstance(cell, (int, float)) and not isinstance(cell, bool)
+    return isinstance(cell, int | float) and not isinstance(cell, bool)
 
 
 @register("ISTEXT")

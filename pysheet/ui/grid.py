@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from rich.segment import Segment
+from rich.style import Style
 from textual.geometry import Size
 from textual.message import Message
 from textual.reactive import reactive
 from textual.scroll_view import ScrollView
 from textual.strip import Strip
-from rich.segment import Segment
-from rich.style import Style
 
 from pysheet.controller.mode import Mode
 from pysheet.model.range import CellRange, col_index_to_letters
@@ -49,6 +49,7 @@ class GridWidget(ScrollView):
 
     class CursorMoved(Message):
         """Emitted whenever the cursor row/col changes."""
+
         def __init__(self, row: int, col: int) -> None:
             super().__init__()
             self.row = row
@@ -64,7 +65,7 @@ class GridWidget(ScrollView):
     visual_anchor_row: reactive[int] = reactive(0)
     visual_anchor_col: reactive[int] = reactive(0)
 
-    def __init__(self, workbook: "Workbook", **kwargs: Any) -> None:
+    def __init__(self, workbook: Workbook, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.workbook = workbook
 
@@ -180,6 +181,7 @@ class GridWidget(ScrollView):
             # Slightly dimmer background for frozen cells (not cursor, not selected)
             if freeze_cols > 0 and col < freeze_cols and not is_cursor_row:
                 from pysheet.model.cell import Cell as _CT
+
                 if not isinstance(cell, _CT) or (cell.fmt.bg_color is None):
                     style = style + Style(bgcolor="grey11")
             if len(text) > cw - 1:
@@ -203,6 +205,7 @@ class GridWidget(ScrollView):
 
     def _cell_style(self, row: int, col: int, cell: object) -> Style:
         from pysheet.model.cell import Cell as CellType
+
         is_cursor = row == self.cursor_row and col == self.cursor_col
         in_visual = self._in_visual_selection(row, col)
 
@@ -234,8 +237,11 @@ class GridWidget(ScrollView):
                 fg = "red"
 
         style = Style(
-            bold=bold or None, italic=italic or None,
-            underline=underline or None, color=fg, bgcolor=bg,
+            bold=bold or None,
+            italic=italic or None,
+            underline=underline or None,
+            color=fg,
+            bgcolor=bg,
         )
         if bg is None and row % 2 == 1:
             style = style + Style(bgcolor="grey19")
@@ -364,7 +370,9 @@ class GridWidget(ScrollView):
         self.move_cursor(self.cursor_row + max(1, (self.size.height - 2) // 2), self.cursor_col)
 
     def half_page_up(self) -> None:
-        self.move_cursor(max(0, self.cursor_row - max(1, (self.size.height - 2) // 2)), self.cursor_col)
+        self.move_cursor(
+            max(0, self.cursor_row - max(1, (self.size.height - 2) // 2)), self.cursor_col
+        )
 
     def go_to_visible_top(self) -> None:
         self.move_cursor(int(self.scroll_offset.y), self.cursor_col)
@@ -428,9 +436,14 @@ class GridWidget(ScrollView):
     # Reactive watchers
     # -----------------------------------------------------------------------
 
-    def watch_cursor_row(self, _v: int) -> None: self.refresh()
-    def watch_cursor_col(self, _v: int) -> None: self.refresh()
-    def watch_mode(self, _v: Mode) -> None: self.refresh()
+    def watch_cursor_row(self, _v: int) -> None:
+        self.refresh()
+
+    def watch_cursor_col(self, _v: int) -> None:
+        self.refresh()
+
+    def watch_mode(self, _v: Mode) -> None:
+        self.refresh()
 
     def refresh_grid(self) -> None:
         self.refresh()

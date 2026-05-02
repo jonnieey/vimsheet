@@ -24,7 +24,7 @@ def _nums(values: list[Any]) -> list[float]:
             continue
         if isinstance(v, bool):
             result.append(1.0 if v else 0.0)
-        elif isinstance(v, (int, float)):
+        elif isinstance(v, int | float):
             result.append(float(v))
     return result
 
@@ -47,6 +47,7 @@ def _flat(args: list[Any]) -> list[Any]:
 # ---------------------------------------------------------------------------
 # Aggregation
 # ---------------------------------------------------------------------------
+
 
 @register("SUM")
 def fn_sum(*args: Any) -> Any:
@@ -169,7 +170,7 @@ def fn_sumif(range_val: Any, criteria: Any, sum_range: Any = None) -> Any:
     for i, v in enumerate(flat):
         if _criteria_match(v, criteria):
             sv = sums[i] if i < len(sums) else None
-            if isinstance(sv, (int, float)):
+            if isinstance(sv, int | float):
                 total += float(sv)
     return total
 
@@ -187,7 +188,7 @@ def fn_averageif(range_val: Any, criteria: Any, avg_range: Any = None) -> Any:
     for i, v in enumerate(flat):
         if _criteria_match(v, criteria):
             sv = avgs[i] if i < len(avgs) else None
-            if isinstance(sv, (int, float)):
+            if isinstance(sv, int | float):
                 nums.append(float(sv))
     if not nums:
         return DIV0
@@ -202,18 +203,26 @@ def fn_subtotal(func_num: Any, range_val: Any) -> Any:
     except (TypeError, ValueError):
         return TYPE_ERR
     match fn:
-        case 1:  return sum(nums) / len(nums) if nums else DIV0
-        case 2:  return len(nums)
-        case 3:  return len(nums)
-        case 4:  return max(nums) if nums else NA
-        case 5:  return min(nums) if nums else NA
-        case 9:  return sum(nums)
-        case _:  return ERR
+        case 1:
+            return sum(nums) / len(nums) if nums else DIV0
+        case 2:
+            return len(nums)
+        case 3:
+            return len(nums)
+        case 4:
+            return max(nums) if nums else NA
+        case 5:
+            return min(nums) if nums else NA
+        case 9:
+            return sum(nums)
+        case _:
+            return ERR
 
 
 # ---------------------------------------------------------------------------
 # Math
 # ---------------------------------------------------------------------------
+
 
 @register("ABS")
 def fn_abs(n: Any) -> Any:
@@ -497,29 +506,46 @@ def fn_rtd(rad: Any) -> Any:
 # Internal helper
 # ---------------------------------------------------------------------------
 
+
 def _criteria_match(value: Any, criteria: Any) -> bool:
     """Return True if *value* satisfies *criteria* (Excel-style)."""
     if isinstance(criteria, str):
         import re
-        for prefix, op in ((">=", "ge"), ("<=", "le"), ("<>", "ne"),
-                            (">", "gt"), ("<", "lt"), ("=", "eq")):
+
+        for prefix, op in (
+            (">=", "ge"),
+            ("<=", "le"),
+            ("<>", "ne"),
+            (">", "gt"),
+            ("<", "lt"),
+            ("=", "eq"),
+        ):
             if criteria.startswith(prefix):
-                rhs = criteria[len(prefix):]
+                rhs = criteria[len(prefix) :]
                 try:
                     fv, frhs = float(value), float(rhs)  # type: ignore[arg-type]
                     match op:
-                        case "ge": return fv >= frhs
-                        case "le": return fv <= frhs
-                        case "ne": return fv != frhs
-                        case "gt": return fv > frhs
-                        case "lt": return fv < frhs
-                        case "eq": return fv == frhs
+                        case "ge":
+                            return fv >= frhs
+                        case "le":
+                            return fv <= frhs
+                        case "ne":
+                            return fv != frhs
+                        case "gt":
+                            return fv > frhs
+                        case "lt":
+                            return fv < frhs
+                        case "eq":
+                            return fv == frhs
                 except (TypeError, ValueError):
                     sv = str(value).lower()
                     match op:
-                        case "ne": return sv != rhs.lower()
-                        case "eq": return sv == rhs.lower()
-                        case _: return False
+                        case "ne":
+                            return sv != rhs.lower()
+                        case "eq":
+                            return sv == rhs.lower()
+                        case _:
+                            return False
         # Wildcard / plain text match
         pattern = re.escape(criteria).replace(r"\*", ".*").replace(r"\?", ".")
         return bool(re.fullmatch(pattern, str(value), re.IGNORECASE))

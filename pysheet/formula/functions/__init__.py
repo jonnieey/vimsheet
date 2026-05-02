@@ -7,4 +7,4 @@ from pysheet.formula.functions import (  # noqa: F401
     math_funcs,
     text_funcs,
 )
-from pysheet.formula.functions.registry import get, all_names  # noqa: F401
+from pysheet.formula.functions.registry import all_names, get  # noqa: F401

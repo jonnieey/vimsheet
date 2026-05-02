@@ -43,19 +43,19 @@ def fn_trim(s: Any) -> Any:
 
 @register("LEFT")
 def fn_left(s: Any, n: Any = 1) -> Any:
-    return str(s)[:int(n)] if s is not None else ""
+    return str(s)[: int(n)] if s is not None else ""
 
 
 @register("RIGHT")
 def fn_right(s: Any, n: Any = 1) -> Any:
-    return str(s)[-int(n):] if s is not None else ""
+    return str(s)[-int(n) :] if s is not None else ""
 
 
 @register("MID")
 def fn_mid(s: Any, start: Any, n: Any) -> Any:
     try:
         st = int(start) - 1  # 1-based
-        return str(s)[st: st + int(n)] if s is not None else ""
+        return str(s)[st : st + int(n)] if s is not None else ""
     except (TypeError, ValueError):
         return TYPE_ERR
 
@@ -74,7 +74,7 @@ def fn_replace(s: Any, start: Any, n: Any, new: Any) -> Any:
     try:
         sv = str(s) if s is not None else ""
         st = int(start) - 1
-        return sv[:st] + str(new) + sv[st + int(n):]
+        return sv[:st] + str(new) + sv[st + int(n) :]
     except (TypeError, ValueError):
         return TYPE_ERR
 
@@ -95,7 +95,7 @@ def fn_substitute(s: Any, old: Any, new: Any, occurrence: Any = None) -> Any:
                 break
             count += 1
             if count == n:
-                return sv[:found] + nv + sv[found + len(ov):]
+                return sv[:found] + nv + sv[found + len(ov) :]
             idx = found + len(ov)
         return sv
     except (TypeError, ValueError):

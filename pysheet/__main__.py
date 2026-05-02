@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from pysheet.model.workbook import Workbook
+
 
 def _setup_logging() -> None:
     """Configure logging to write to the user config directory."""
@@ -113,7 +115,6 @@ def _run_tui(args: argparse.Namespace, config_overrides: dict[str, str]) -> None
     """Launch the interactive Textual application."""
     from pysheet.app import PySheetApp
     from pysheet.model.config import Config
-    from pysheet.model.workbook import Workbook
 
     # Load config and apply --set overrides
     config = Config.load(Config.default_path())
@@ -148,10 +149,10 @@ def _run_tui(args: argparse.Namespace, config_overrides: dict[str, str]) -> None
     app.run()
 
 
-def _load_file(filepath: Path) -> "Workbook":
+def _load_file(filepath: Path) -> Workbook:
     """Load a workbook from *filepath* using the appropriate I/O adapter."""
-    from pysheet.model.workbook import Workbook
     from pysheet.io.registry import get_adapter
+    from pysheet.model.workbook import Workbook
 
     try:
         adapter = get_adapter(filepath)
@@ -194,6 +195,7 @@ def _run_pipeline(args: argparse.Namespace, config_overrides: dict[str, str]) ->
     if args.output:
         out_path = Path(args.output)
         from pysheet.io.registry import get_adapter
+
         try:
             adapter = get_adapter(out_path)
             adapter.write(engine.workbook, out_path)
@@ -235,6 +237,7 @@ def _run_diff(file_a: str, file_b: str) -> None:
             vb = cb.display if cb else ""
             if va != vb:
                 from pysheet.model.range import rowcol_to_a1
+
                 addr = rowcol_to_a1(r, c)
                 status = "CHANGED" if va and vb else ("ADDED" if not va else "REMOVED")
                 print(f"{addr:>4}  {va:<{col_w}}  {vb:<{col_w}}  {status}")
@@ -249,8 +252,8 @@ def _start_watch_mode(filepath: Path, app: Any) -> None:
     """Start file-watch mode using watchdog if available."""
     log = logging.getLogger(__name__)
     try:
-        from watchdog.observers import Observer
         from watchdog.events import FileSystemEventHandler
+        from watchdog.observers import Observer
 
         class _Reload(FileSystemEventHandler):
             def __init__(self, path: Path) -> None:
@@ -260,7 +263,6 @@ def _start_watch_mode(filepath: Path, app: Any) -> None:
             def on_modified(self, event: Any) -> None:
                 if Path(event.src_path).resolve() != self._path.resolve():
                     return
-                import time
                 mtime = self._path.stat().st_mtime
                 if mtime == self._last_mtime:
                     return

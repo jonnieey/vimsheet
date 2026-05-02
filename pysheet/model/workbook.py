@@ -101,7 +101,7 @@ class Workbook:
     # -----------------------------------------------------------------------
 
     @classmethod
-    def blank(cls, sheet_name: str = "Sheet1") -> "Workbook":
+    def blank(cls, sheet_name: str = "Sheet1") -> Workbook:
         """Create a new blank workbook with one empty sheet."""
         wb = cls()
         sheet = Sheet(name=sheet_name)

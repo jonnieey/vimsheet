@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
@@ -12,9 +12,9 @@ class Config:
     """Application-level runtime configuration."""
 
     autosave: bool = False
-    autosave_interval: int = 300        # seconds
+    autosave_interval: int = 300  # seconds
     default_col_width: int = 10
-    theme: str = "default"              # "default" | "dark" | "light"
+    theme: str = "default"  # "default" | "dark" | "light"
     show_grid_lines: bool = True
     show_row_headers: bool = True
     show_col_headers: bool = True
@@ -22,8 +22,8 @@ class Config:
     status_bar_visible: bool = True
     max_undo: int = 1000
     scroll_speed: int = 3
-    tab_size: int = 1                   # how many cols tab moves
-    enter_moves: str = "down"           # "down" | "right" | "none"
+    tab_size: int = 1  # how many cols tab moves
+    enter_moves: str = "down"  # "down" | "right" | "none"
     decimal_separator: str = "."
     thousands_separator: str = ","
 
@@ -32,7 +32,7 @@ class Config:
     # ------------------------------------------------------------------
 
     @classmethod
-    def load(cls, path: Path) -> "Config":
+    def load(cls, path: Path) -> Config:
         """Read configuration from a JSON file, using defaults for missing keys."""
         try:
             text = path.read_text(encoding="utf-8")

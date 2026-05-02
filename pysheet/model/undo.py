@@ -19,6 +19,7 @@ _MAX_UNDO = 1000
 @dataclass
 class YankedCell:
     """Register entry that preserves both a cell's formula and its value."""
+
     value: Any
     formula: str | None
 
@@ -27,19 +28,23 @@ class YankedCell:
 # Abstract base
 # ---------------------------------------------------------------------------
 
+
 class Command(ABC):
     description: str = ""
 
     @abstractmethod
-    def execute(self) -> None: ...
+    def execute(self) -> None:
+        ...
 
     @abstractmethod
-    def undo(self) -> None: ...
+    def undo(self) -> None:
+        ...
 
 
 # ---------------------------------------------------------------------------
 # Snapshot helpers
 # ---------------------------------------------------------------------------
+
 
 def _snapshot_cell(sheet: Sheet, row: int, col: int) -> Cell | None:
     """Return a deep-enough copy of the cell, or None if it doesn't exist."""
@@ -64,6 +69,7 @@ def _restore_cell(sheet: Sheet, row: int, col: int, snap: Cell | None) -> None:
 # ---------------------------------------------------------------------------
 # Concrete commands
 # ---------------------------------------------------------------------------
+
 
 class SetCellCommand(Command):
     description = "set cell"
@@ -302,7 +308,7 @@ class FormatCommand(Command):
 class SortCommand(Command):
     description = "sort sheet"
 
-    def __init__(self, sheet: "Sheet", col: int, ascending: bool) -> None:
+    def __init__(self, sheet: Sheet, col: int, ascending: bool) -> None:
         self._sheet = sheet
         self._col = col
         self._ascending = ascending
@@ -338,6 +344,7 @@ class CompositeCommand(Command):
 # ---------------------------------------------------------------------------
 # Undo stack
 # ---------------------------------------------------------------------------
+
 
 class UndoStack:
     """Manages the undo/redo history for a sheet."""

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual.widget import Widget
@@ -10,12 +12,12 @@ from textual.widgets import Static
 from pysheet.controller.mode import Mode
 
 _MODE_COLORS = {
-    Mode.NORMAL:       "bright_green",
-    Mode.INSERT:       "yellow",
-    Mode.EDIT:         "red",
-    Mode.COMMAND:      "cyan",
-    Mode.VISUAL:       "magenta",
-    Mode.VISUAL_LINE:  "magenta",
+    Mode.NORMAL: "bright_green",
+    Mode.INSERT: "yellow",
+    Mode.EDIT: "red",
+    Mode.COMMAND: "cyan",
+    Mode.VISUAL: "magenta",
+    Mode.VISUAL_LINE: "magenta",
     Mode.VISUAL_BLOCK: "magenta",
 }
 
@@ -46,18 +48,28 @@ class FormulaBar(Widget):
         yield Static("", id="fbar-content")
 
     # Redraw on any reactive change
-    def watch_cell_address(self, _v: str) -> None: self._redraw()
-    def watch_formula_text(self, _v: str) -> None: self._redraw()
-    def watch_mode(self, _v: Mode) -> None: self._redraw()
-    def watch_is_modified(self, _v: bool) -> None: self._redraw()
-    def watch_is_locked(self, _v: bool) -> None: self._redraw()
+    def watch_cell_address(self, _v: str) -> None:
+        self._redraw()
+
+    def watch_formula_text(self, _v: str) -> None:
+        self._redraw()
+
+    def watch_mode(self, _v: Mode) -> None:
+        self._redraw()
+
+    def watch_is_modified(self, _v: bool) -> None:
+        self._redraw()
+
+    def watch_is_locked(self, _v: bool) -> None:
+        self._redraw()
 
     def _redraw(self) -> None:
         """Rebuild the single-line content string."""
         from rich.text import Text
-        addr  = self.cell_address.ljust(6)
-        lock  = " 🔒" if self.is_locked else ""
-        dirty = " ●"  if self.is_modified else ""
+
+        addr = self.cell_address.ljust(6)
+        lock = " 🔒" if self.is_locked else ""
+        dirty = " ●" if self.is_modified else ""
         mode_label = self.mode.label()
         color = _MODE_COLORS.get(self.mode, "white")
 
@@ -65,14 +77,12 @@ class FormulaBar(Widget):
         t.append(f" {addr} ", style="bold yellow on default")
         t.append("│ ", style="dim")
         t.append(self.formula_text or "", style="white")
-        t.append(lock,  style="dim")
+        t.append(lock, style="dim")
         t.append(dirty, style="red")
         t.append(" │ ", style="dim")
         t.append(f" {mode_label} ", style=f"bold {color}")
-        try:
-            self.query_one("#fbar-content", Static).update(t)
-        except Exception:
-            pass  # not yet mounted
+        with contextlib.suppress(Exception):
+            self.query_one("#fbar-content", Static).update(t)  # not yet mounted
 
     def update_cell(self, address: str, formula_or_value: str, locked: bool = False) -> None:
         """Convenience: update address and content together."""

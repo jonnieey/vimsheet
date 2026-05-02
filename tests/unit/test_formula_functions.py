@@ -2,8 +2,6 @@
 
 import datetime
 
-import pytest
-
 from pysheet.formula.evaluator import Evaluator
 from pysheet.model.sheet import Sheet
 
@@ -13,6 +11,7 @@ def ev(formula: str, **cells) -> object:
     sheet = Sheet(name="t")
     for addr, val in cells.items():
         from pysheet.model.range import a1_to_rowcol
+
         r, c = a1_to_rowcol(addr)
         sheet.set_cell_value(r, c, val)
     evaluator = Evaluator(sheet)
@@ -22,6 +21,7 @@ def ev(formula: str, **cells) -> object:
 # ---------------------------------------------------------------------------
 # Math functions
 # ---------------------------------------------------------------------------
+
 
 class TestMathFunctions:
     def test_sum(self):
@@ -93,6 +93,7 @@ class TestMathFunctions:
 
     def test_pi(self):
         import math
+
         result = ev("=PI()")
         assert abs(result - math.pi) < 1e-9
 
@@ -119,6 +120,7 @@ class TestMathFunctions:
 # ---------------------------------------------------------------------------
 # Text functions
 # ---------------------------------------------------------------------------
+
 
 class TestTextFunctions:
     def test_len(self):
@@ -167,6 +169,7 @@ class TestTextFunctions:
 # ---------------------------------------------------------------------------
 # Logic functions
 # ---------------------------------------------------------------------------
+
 
 class TestLogicFunctions:
     def test_if_true(self):
@@ -226,6 +229,7 @@ class TestLogicFunctions:
 # Lookup functions
 # ---------------------------------------------------------------------------
 
+
 class TestLookupFunctions:
     def _make_table(self) -> Sheet:
         sheet = Sheet(name="t")
@@ -282,6 +286,7 @@ class TestLookupFunctions:
 # ---------------------------------------------------------------------------
 # Date functions
 # ---------------------------------------------------------------------------
+
 
 class TestDateFunctions:
     def test_today_is_date(self):

@@ -3,18 +3,15 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Iterator
-
 
 # ---------------------------------------------------------------------------
 # A1 ↔ (row, col) conversion  (0-based row and col)
 # ---------------------------------------------------------------------------
 
 _COL_RE = re.compile(r"^\$?([A-Za-z]{1,3})\$?(\d+)$")
-_RANGE_RE = re.compile(
-    r"^\$?([A-Za-z]{1,3})\$?(\d+):\$?([A-Za-z]{1,3})\$?(\d+)$"
-)
+_RANGE_RE = re.compile(r"^\$?([A-Za-z]{1,3})\$?(\d+):\$?([A-Za-z]{1,3})\$?(\d+)$")
 
 
 def col_letters_to_index(letters: str) -> int:
@@ -86,6 +83,7 @@ def rowcol_to_a1(row: int, col: int) -> str:
 # Range parsing
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class CellRange:
     """A rectangular range identified by its top-left and bottom-right corners (0-based)."""
@@ -103,7 +101,7 @@ class CellRange:
             )
 
     @classmethod
-    def from_a1(cls, range_str: str) -> "CellRange":
+    def from_a1(cls, range_str: str) -> CellRange:
         """Parse an A1:B5 range string.
 
         Also accepts single-cell addresses like "A1".
@@ -150,10 +148,7 @@ class CellRange:
 
     def contains(self, row: int, col: int) -> bool:
         """Return True if (row, col) is inside this range."""
-        return (
-            self.start_row <= row <= self.end_row
-            and self.start_col <= col <= self.end_col
-        )
+        return self.start_row <= row <= self.end_row and self.start_col <= col <= self.end_col
 
     def __repr__(self) -> str:
         return f"CellRange({self.to_a1()!r})"
@@ -162,6 +157,7 @@ class CellRange:
 # ---------------------------------------------------------------------------
 # Named range registry
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class NamedRangeRegistry:

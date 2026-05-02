@@ -100,4 +100,3 @@ class HelpScreen(VimModalScreen):
     def compose(self) -> ComposeResult:
         with VerticalScroll():
             yield Static(_HELP_TEXT, markup=True)
-

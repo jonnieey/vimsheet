@@ -3,9 +3,20 @@
 from __future__ import annotations
 
 from pysheet.formula.ast_nodes import (
-    BinaryNode, BoolNode, CellRefNode, ColRangeRefNode, Expr,
-    FuncCallNode, NameNode, NumberNode, PercentNode,
-    RangeRefNode, SheetCellRefNode, SheetRangeRefNode, StringNode, UnaryNode,
+    BinaryNode,
+    BoolNode,
+    CellRefNode,
+    ColRangeRefNode,
+    Expr,
+    FuncCallNode,
+    NameNode,
+    NumberNode,
+    PercentNode,
+    RangeRefNode,
+    SheetCellRefNode,
+    SheetRangeRefNode,
+    StringNode,
+    UnaryNode,
 )
 from pysheet.formula.tokens import TT, Token
 
@@ -203,5 +214,6 @@ def parse_formula(source: str) -> Expr:
     Raises ParseError on syntax errors.
     """
     from pysheet.formula.tokenizer import tokenize
+
     tokens = tokenize(source)
     return Parser(tokens).parse()

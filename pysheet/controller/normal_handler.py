@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from pysheet.controller.mode import Mode
-from pysheet.model.range import CellRange, rowcol_to_a1
+from pysheet.model.range import CellRange
 
 if TYPE_CHECKING:
     from pysheet.app import PySheetApp
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class NormalHandler:
     """Handles all key events while in Normal mode."""
 
-    def __init__(self, app: "PySheetApp") -> None:
+    def __init__(self, app: PySheetApp) -> None:
         self._app = app
 
     def handle(self, key: str) -> None:  # noqa: C901
@@ -165,55 +165,99 @@ class NormalHandler:
 
             # Format chords
             case "fb":
-                self._toggle_fmt("bold");    app._key_buffer = ""; return
+                self._toggle_fmt("bold")
+                app._key_buffer = ""
+                return
             case "fi":
-                self._toggle_fmt("italic");  app._key_buffer = ""; return
+                self._toggle_fmt("italic")
+                app._key_buffer = ""
+                return
             case "fu":
-                self._toggle_fmt("underline"); app._key_buffer = ""; return
+                self._toggle_fmt("underline")
+                app._key_buffer = ""
+                return
             case "fl":
-                self._set_align("left");     app._key_buffer = ""; return
+                self._set_align("left")
+                app._key_buffer = ""
+                return
             case "fr":
-                self._set_align("right");    app._key_buffer = ""; return
+                self._set_align("right")
+                app._key_buffer = ""
+                return
             case "fc":
-                self._set_align("center");   app._key_buffer = ""; return
+                self._set_align("center")
+                app._key_buffer = ""
+                return
 
             # Row / col operations
             case "ir":
-                self._insert_row_above();    app._key_buffer = ""; return
+                self._insert_row_above()
+                app._key_buffer = ""
+                return
             case "iR":
-                self._insert_row_below();    app._key_buffer = ""; return
+                self._insert_row_below()
+                app._key_buffer = ""
+                return
             case "ic":
-                self._insert_col_left();     app._key_buffer = ""; return
+                self._insert_col_left()
+                app._key_buffer = ""
+                return
             case "iC":
-                self._insert_col_right();    app._key_buffer = ""; return
+                self._insert_col_right()
+                app._key_buffer = ""
+                return
             case "dr":
-                self._delete_row();          app._key_buffer = ""; return
+                self._delete_row()
+                app._key_buffer = ""
+                return
             case "dc":
-                self._delete_col();          app._key_buffer = ""; return
+                self._delete_col()
+                app._key_buffer = ""
+                return
             case "hr":
-                self._hide_row();            app._key_buffer = ""; return
+                self._hide_row()
+                app._key_buffer = ""
+                return
             case "hc":
-                self._hide_col();            app._key_buffer = ""; return
+                self._hide_col()
+                app._key_buffer = ""
+                return
             case "sr":
-                self._show_row();            app._key_buffer = ""; return
+                self._show_row()
+                app._key_buffer = ""
+                return
             case "sc":
-                self._show_col();            app._key_buffer = ""; return
+                self._show_col()
+                app._key_buffer = ""
+                return
 
             # Yank chords
             case "yy":
-                self._yank_cell(formula=True);  app._key_buffer = ""; return
+                self._yank_cell(formula=True)
+                app._key_buffer = ""
+                return
             case "YY":
-                self._yank_cell(formula=False); app._key_buffer = ""; return
+                self._yank_cell(formula=False)
+                app._key_buffer = ""
+                return
             case "dd":
-                self._cut_row();             app._key_buffer = ""; return
+                self._cut_row()
+                app._key_buffer = ""
+                return
 
             # Cell-state chords
             case "rl":
-                self._lock_cell(True);       app._key_buffer = ""; return
+                self._lock_cell(True)
+                app._key_buffer = ""
+                return
             case "ru":
-                self._lock_cell(False);      app._key_buffer = ""; return
+                self._lock_cell(False)
+                app._key_buffer = ""
+                return
             case "rv":
-                self._valueize_cell();       app._key_buffer = ""; return
+                self._valueize_cell()
+                app._key_buffer = ""
+                return
 
             # r{char} — replace char under cursor with next typed char
             case s if len(s) == 2 and s[0] == "r" and s[1] not in ("l", "u", "v"):
@@ -223,21 +267,34 @@ class NormalHandler:
 
             # Fold / group
             case "zc":
-                app._fold_group("close"); app._key_buffer = ""; return
+                app._fold_group("close")
+                app._key_buffer = ""
+                return
             case "zo":
-                app._fold_group("open"); app._key_buffer = ""; return
+                app._fold_group("open")
+                app._key_buffer = ""
+                return
             case "za":
-                app._fold_group("toggle"); app._key_buffer = ""; return
+                app._fold_group("toggle")
+                app._key_buffer = ""
+                return
             case "zR":
-                app._fold_group("open_all"); app._key_buffer = ""; return
+                app._fold_group("open_all")
+                app._key_buffer = ""
+                return
             case "zM":
-                app._fold_group("close_all"); app._key_buffer = ""; return
+                app._fold_group("close_all")
+                app._key_buffer = ""
+                return
 
             # ZZ / ZQ
             case "ZZ":
-                app._save_and_quit();        app._key_buffer = ""; return
+                app._save_and_quit()
+                app._key_buffer = ""
+                return
             case "ZQ":
-                app.exit();                  return
+                app.exit()
+                return
 
             # Pending prefixes (no standalone action for these)
             case "g" | "f" | "i" | "d" | "y" | "Y" | "r" | "z" | "Z" | "m" | "'" | "@" | '"' | "q":
@@ -246,7 +303,6 @@ class NormalHandler:
 
         # Unrecognised chord → single-key dispatch
         app._key_buffer = ""
-
 
         match key:
             # ---- Navigation ------------------------------------------------
@@ -369,6 +425,7 @@ class NormalHandler:
                 if cell and cell.history:
                     _, prev_val = cell.history[-1]
                     from pysheet.model.undo import SetCellCommand
+
                     cmd = SetCellCommand(app.workbook.active_sheet, r, c, prev_val)
                     app.undo_stack.push(cmd)
                     app.workbook.modified = True
@@ -438,6 +495,7 @@ class NormalHandler:
 
     def _clear_cell(self) -> None:
         from pysheet.model.undo import ClearCellCommand
+
         app = self._app
         r, c = app.cursor_row, app.cursor_col
         cmd = ClearCellCommand(app.workbook.active_sheet, r, c)
@@ -449,6 +507,7 @@ class NormalHandler:
 
     def _delete_to_row_end(self) -> None:
         from pysheet.model.undo import DeleteRangeCommand
+
         app = self._app
         sheet = app.workbook.active_sheet
         r, c = app.cursor_row, app.cursor_col
@@ -461,6 +520,7 @@ class NormalHandler:
 
     def _yank_cell(self, formula: bool = True) -> None:
         from pysheet.model.undo import YankedCell
+
         app = self._app
         cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
         if cell and cell.formula and formula:
@@ -484,6 +544,7 @@ class NormalHandler:
     def _cut_row(self) -> None:
         """dd — yank current row and delete it."""
         from pysheet.model.undo import DeleteRowCommand
+
         app = self._app
         r = app.cursor_row
         sheet = app.workbook.active_sheet
@@ -500,6 +561,7 @@ class NormalHandler:
 
     def _paste(self, after: bool = True) -> None:
         from pysheet.model.undo import PasteCommand
+
         app = self._app
         reg = app._pending_register
         if reg == "+":
@@ -521,6 +583,7 @@ class NormalHandler:
 
     def _toggle_fmt(self, attr: str) -> None:
         from pysheet.model.undo import FormatCommand
+
         app = self._app
         r, c = app.cursor_row, app.cursor_col
         cell = app.workbook.active_sheet.get_cell(r, c)
@@ -531,6 +594,7 @@ class NormalHandler:
 
     def _set_align(self, align: str) -> None:
         from pysheet.model.undo import FormatCommand
+
         app = self._app
         r, c = app.cursor_row, app.cursor_col
         cmd = FormatCommand(app.workbook.active_sheet, r, c, align=align)
@@ -539,6 +603,7 @@ class NormalHandler:
 
     def _lock_cell(self, locked: bool) -> None:
         from pysheet.model.undo import LockCommand
+
         app = self._app
         r, c = app.cursor_row, app.cursor_col
         cmd = LockCommand(app.workbook.active_sheet, r, c, locked=locked)
@@ -556,6 +621,7 @@ class NormalHandler:
     def _replace_char(self, char: str) -> None:
         """r{char} — replace single character under cursor in cell content."""
         from pysheet.model.undo import SetCellCommand
+
         app = self._app
         r, c = app.cursor_row, app.cursor_col
         cell = app.workbook.active_sheet.get_cell(r, c)
@@ -569,6 +635,7 @@ class NormalHandler:
 
     def _insert_row_above(self) -> None:
         from pysheet.model.undo import InsertRowCommand
+
         app = self._app
         cmd = InsertRowCommand(app.workbook.active_sheet, app.cursor_row)
         app.undo_stack.push(cmd)
@@ -577,6 +644,7 @@ class NormalHandler:
 
     def _insert_row_below(self) -> None:
         from pysheet.model.undo import InsertRowCommand
+
         app = self._app
         cmd = InsertRowCommand(app.workbook.active_sheet, app.cursor_row + 1)
         app.undo_stack.push(cmd)
@@ -585,6 +653,7 @@ class NormalHandler:
 
     def _insert_col_left(self) -> None:
         from pysheet.model.undo import InsertColCommand
+
         app = self._app
         cmd = InsertColCommand(app.workbook.active_sheet, app.cursor_col)
         app.undo_stack.push(cmd)
@@ -593,6 +662,7 @@ class NormalHandler:
 
     def _insert_col_right(self) -> None:
         from pysheet.model.undo import InsertColCommand
+
         app = self._app
         cmd = InsertColCommand(app.workbook.active_sheet, app.cursor_col + 1)
         app.undo_stack.push(cmd)
@@ -601,6 +671,7 @@ class NormalHandler:
 
     def _delete_row(self) -> None:
         from pysheet.model.undo import DeleteRowCommand
+
         app = self._app
         cmd = DeleteRowCommand(app.workbook.active_sheet, app.cursor_row)
         app.undo_stack.push(cmd)
@@ -609,6 +680,7 @@ class NormalHandler:
 
     def _delete_col(self) -> None:
         from pysheet.model.undo import DeleteColCommand
+
         app = self._app
         cmd = DeleteColCommand(app.workbook.active_sheet, app.cursor_col)
         app.undo_stack.push(cmd)
@@ -637,6 +709,7 @@ class NormalHandler:
 
     def _goto_address(self, addr: str) -> None:
         from pysheet.model.range import a1_to_rowcol
+
         app = self._app
         try:
             r, c = a1_to_rowcol(addr.strip().upper())
@@ -648,9 +721,14 @@ class NormalHandler:
         """Write a 2-D list of values to the system clipboard as TSV."""
         try:
             import subprocess
+
             tsv = "\n".join("\t".join(str(v) if v is not None else "" for v in row) for row in data)
             # Try xclip / xsel / pbcopy
-            for cmd in (["xclip", "-selection", "clipboard"], ["xsel", "--input", "--clipboard"], ["pbcopy"]):
+            for cmd in (
+                ["xclip", "-selection", "clipboard"],
+                ["xsel", "--input", "--clipboard"],
+                ["pbcopy"],
+            ):
                 try:
                     subprocess.run(cmd, input=tsv.encode(), check=True, timeout=2)
                     self._app.status_bar.show_message("Yanked to clipboard")
@@ -665,12 +743,20 @@ class NormalHandler:
         """Read TSV from system clipboard."""
         try:
             import subprocess
-            for cmd in (["xclip", "-selection", "clipboard", "-o"], ["xsel", "--output", "--clipboard"], ["pbpaste"]):
+
+            for cmd in (
+                ["xclip", "-selection", "clipboard", "-o"],
+                ["xsel", "--output", "--clipboard"],
+                ["pbpaste"],
+            ):
                 try:
                     result = subprocess.run(cmd, capture_output=True, check=True, timeout=2)
                     tsv = result.stdout.decode(errors="replace")
                     from pysheet.io.csv_adapter import _coerce as csv_coerce
-                    return [[csv_coerce(cell) for cell in row.split("\t")] for row in tsv.splitlines()]
+
+                    return [
+                        [csv_coerce(cell) for cell in row.split("\t")] for row in tsv.splitlines()
+                    ]
                 except (FileNotFoundError, subprocess.SubprocessError):
                     continue
         except Exception:

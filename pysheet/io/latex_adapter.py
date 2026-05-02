@@ -32,10 +32,18 @@ class LaTeXAdapter(FormatAdapter):
                 cell = sheet.get_cell(r, c)
                 val = cell.display if cell else ""
                 # Escape LaTeX special characters
-                for ch, repl in [("&", r"\&"), ("%", r"\%"), ("$", r"\$"),
-                                  ("#", r"\#"), ("_", r"\_"), ("{", r"\{"),
-                                  ("}", r"\}"), ("~", r"\textasciitilde{}"),
-                                  ("^", r"\textasciicircum{}"), ("\\", r"\textbackslash{}")]:
+                for ch, repl in [
+                    ("&", r"\&"),
+                    ("%", r"\%"),
+                    ("$", r"\$"),
+                    ("#", r"\#"),
+                    ("_", r"\_"),
+                    ("{", r"\{"),
+                    ("}", r"\}"),
+                    ("~", r"\textasciitilde{}"),
+                    ("^", r"\textasciicircum{}"),
+                    ("\\", r"\textbackslash{}"),
+                ]:
                     val = val.replace(ch, repl)
                 row_data.append(val)
             grid.append(row_data)

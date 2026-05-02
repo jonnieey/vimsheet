@@ -5,16 +5,17 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-
 _REGISTRY: dict[str, Callable[..., Any]] = {}
 
 
 def register(*names: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator: register a function under one or more uppercase names."""
+
     def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
         for name in names:
             _REGISTRY[name.upper()] = fn
         return fn
+
     return decorator
 
 
@@ -51,6 +52,7 @@ def register_script_function(name: str, script_path: str) -> None:
 
     def _script_fn(*args: Any, _source_ranges: list | None = None, _sheet: Any = None) -> Any:
         import sys as _sys
+
         from pysheet.model.range import CellRange, a1_to_rowcol
 
         # Build flat list of (address, value) pairs preserving source cell addresses
@@ -90,9 +92,9 @@ def register_script_function(name: str, script_path: str) -> None:
         rows_data = [{"_row": i + 1, k[0]: v} for i, (k, v) in enumerate(cell_pairs)]
         # Use actual column from address
         rows_data = []
-        for i, (addr, val) in enumerate(cell_pairs):
-            col_letter = ''.join(c for c in addr if c.isalpha())
-            row_num = int(''.join(c for c in addr if c.isdigit()))
+        for _, (addr, val) in enumerate(cell_pairs):
+            col_letter = "".join(c for c in addr if c.isalpha())
+            row_num = int("".join(c for c in addr if c.isdigit()))
             rows_data.append({"_row": row_num, col_letter: val})
 
         payload = json.dumps({"rows": rows_data})

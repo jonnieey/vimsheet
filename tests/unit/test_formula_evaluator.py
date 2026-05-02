@@ -1,9 +1,12 @@
 """Unit tests for pysheet.formula.evaluator.Evaluator."""
 
-import pytest
 
 from pysheet.formula.evaluator import (
-    CIRC, DIV0, ERR, NAME, REF, TYPE_ERR, Evaluator,
+    CIRC,
+    DIV0,
+    NAME,
+    TYPE_ERR,
+    Evaluator,
 )
 from pysheet.model.sheet import Sheet
 
@@ -16,6 +19,7 @@ def make_sheet(**cells) -> Sheet:
     sheet = Sheet(name="test")
     for addr, val in cells.items():
         from pysheet.model.range import a1_to_rowcol
+
         r, c = a1_to_rowcol(addr)
         if isinstance(val, str) and val.startswith("="):
             sheet.set_cell_value(r, c, val, formula=val)
@@ -27,6 +31,7 @@ def make_sheet(**cells) -> Sheet:
 # ---------------------------------------------------------------------------
 # Literal evaluation
 # ---------------------------------------------------------------------------
+
 
 class TestLiterals:
     def test_number(self):
@@ -69,6 +74,7 @@ class TestLiterals:
 # Cell references
 # ---------------------------------------------------------------------------
 
+
 class TestCellRefs:
     def test_value_cell(self):
         sheet = make_sheet(A1=10)
@@ -95,6 +101,7 @@ class TestCellRefs:
 # ---------------------------------------------------------------------------
 # Binary operations
 # ---------------------------------------------------------------------------
+
 
 class TestBinaryOps:
     def test_add(self):
@@ -162,6 +169,7 @@ class TestBinaryOps:
 # Error propagation
 # ---------------------------------------------------------------------------
 
+
 class TestErrors:
     def test_div0_propagates(self):
         sheet = make_sheet(A1=0)
@@ -185,14 +193,16 @@ class TestErrors:
 # Circular reference detection
 # ---------------------------------------------------------------------------
 
+
 class TestCircular:
     def test_self_reference(self):
         sheet = Sheet(name="t")
         from pysheet.model.range import a1_to_rowcol
+
         r, c = a1_to_rowcol("A1")
-        sheet.cells[(r, c)] = __import__(
-            "pysheet.model.cell", fromlist=["Cell"]
-        ).Cell(row=r, col=c, formula="=A1")
+        sheet.cells[(r, c)] = __import__("pysheet.model.cell", fromlist=["Cell"]).Cell(
+            row=r, col=c, formula="=A1"
+        )
         ev = Evaluator(sheet)
         result = ev.eval_formula("=A1")
         assert result == CIRC
@@ -202,12 +212,14 @@ class TestCircular:
 # Dependency collection
 # ---------------------------------------------------------------------------
 
+
 class TestCollectDeps:
     def test_single_ref(self):
         sheet = Sheet(name="t")
         ev = Evaluator(sheet)
         deps = ev.collect_deps("=A1")
         from pysheet.model.range import a1_to_rowcol
+
         assert a1_to_rowcol("A1") in deps
 
     def test_range_ref(self):
@@ -215,6 +227,7 @@ class TestCollectDeps:
         ev = Evaluator(sheet)
         deps = ev.collect_deps("=SUM(A1:A3)")
         from pysheet.model.range import a1_to_rowcol
+
         assert a1_to_rowcol("A1") in deps
         assert a1_to_rowcol("A2") in deps
         assert a1_to_rowcol("A3") in deps
@@ -234,10 +247,11 @@ class TestCollectDeps:
 # Sheet-level auto-recalculation
 # ---------------------------------------------------------------------------
 
+
 class TestSheetRecalc:
     def test_formula_evaluates_on_set(self):
         sheet = Sheet(name="t")
-        sheet.set_cell_value(0, 0, 10)           # A1 = 10
+        sheet.set_cell_value(0, 0, 10)  # A1 = 10
         sheet.set_cell_value(0, 1, None, formula="=A1*2")  # B1 = =A1*2
         b1 = sheet.get_cell(0, 1)
         assert b1.value == 20.0
@@ -252,10 +266,10 @@ class TestSheetRecalc:
 
     def test_chain_recalculates(self):
         sheet = Sheet(name="t")
-        sheet.set_cell_value(0, 0, 1)            # A1=1
-        sheet.set_cell_value(0, 1, None, formula="=A1+1")   # B1=A1+1
-        sheet.set_cell_value(0, 2, None, formula="=B1+1")   # C1=B1+1
-        sheet.set_cell_value(0, 0, 10)           # change A1
+        sheet.set_cell_value(0, 0, 1)  # A1=1
+        sheet.set_cell_value(0, 1, None, formula="=A1+1")  # B1=A1+1
+        sheet.set_cell_value(0, 2, None, formula="=B1+1")  # C1=B1+1
+        sheet.set_cell_value(0, 0, 10)  # change A1
         assert sheet.get_cell(0, 1).value == 11.0
         assert sheet.get_cell(0, 2).value == 12.0
 

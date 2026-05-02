@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 class InsertHandler:
     """Handles all key events while in Insert mode."""
 
-    def __init__(self, app: "PySheetApp") -> None:
+    def __init__(self, app: PySheetApp) -> None:
         self._app = app
 
     def handle(self, key: str) -> None:
@@ -45,7 +45,7 @@ class InsertHandler:
                     app._insert_cursor = pos - 1
             case "delete":
                 if pos < len(buf):
-                    app._insert_buffer = buf[:pos] + buf[pos + 1:]
+                    app._insert_buffer = buf[:pos] + buf[pos + 1 :]
             case "left" | "ctrl+b":
                 app._insert_cursor = max(0, pos - 1)
             case "right" | "ctrl+f":
@@ -58,12 +58,11 @@ class InsertHandler:
                 # Delete word before cursor
                 before = buf[:pos]
                 stripped = before.rstrip()
-                cut = stripped.rstrip(r"A-Za-z0-9_")
                 # Find start of last word
                 i = len(stripped) - 1
                 while i >= 0 and (stripped[i].isalnum() or stripped[i] == "_"):
                     i -= 1
-                new_before = stripped[:i + 1]
+                new_before = stripped[: i + 1]
                 app._insert_buffer = new_before + buf[pos:]
                 app._insert_cursor = len(new_before)
             case "ctrl+u":
@@ -85,6 +84,7 @@ class InsertHandler:
             return
         # Extract the partial function name being typed (after last non-word char)
         import re
+
         partial = re.search(r"([A-Za-z]+)$", buf)
         if not partial:
             return
@@ -93,6 +93,7 @@ class InsertHandler:
             return
         try:
             from pysheet.formula.functions.registry import all_names
+
             matches = sorted(n for n in all_names() if n.startswith(token))[:6]
             if matches:
                 app.status_bar.show_message("  ".join(matches))
@@ -106,6 +107,7 @@ class InsertHandler:
         r, c = app.cursor_row, app.cursor_col
 
         from pysheet.model.undo import SetCellCommand
+
         if raw.startswith("="):
             cmd = SetCellCommand(sheet, r, c, raw, new_formula=raw)
         else:

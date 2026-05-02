@@ -60,7 +60,8 @@ class ValidationRule:
                 return value in self.choices or str(value) in [str(c) for c in self.choices]
             case "date":
                 import datetime
-                return isinstance(value, (datetime.date, datetime.datetime))
+
+                return isinstance(value, datetime.date | datetime.datetime)
             case _:
                 return True
 

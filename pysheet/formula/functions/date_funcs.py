@@ -71,21 +71,21 @@ def fn_day(date: Any) -> Any:
 
 @register("HOUR")
 def fn_hour(dt: Any) -> Any:
-    if isinstance(dt, (datetime.datetime, datetime.time)):
+    if isinstance(dt, datetime.datetime | datetime.time):
         return dt.hour
     return TYPE_ERR
 
 
 @register("MINUTE")
 def fn_minute(dt: Any) -> Any:
-    if isinstance(dt, (datetime.datetime, datetime.time)):
+    if isinstance(dt, datetime.datetime | datetime.time):
         return dt.minute
     return TYPE_ERR
 
 
 @register("SECOND")
 def fn_second(dt: Any) -> Any:
-    if isinstance(dt, (datetime.datetime, datetime.time)):
+    if isinstance(dt, datetime.datetime | datetime.time):
         return dt.second
     return TYPE_ERR
 
@@ -116,6 +116,7 @@ def fn_edate(date: Any, months: Any) -> Any:
         y = d.year + (m - 1) // 12
         m = (m - 1) % 12 + 1
         import calendar
+
         day = min(d.day, calendar.monthrange(y, m)[1])
         return datetime.date(y, m, day)
     except (TypeError, ValueError):
@@ -128,8 +129,10 @@ def fn_eomonth(date: Any, months: Any) -> Any:
     if isinstance(result, str):
         return result
     import calendar
-    return datetime.date(result.year, result.month,
-                         calendar.monthrange(result.year, result.month)[1])
+
+    return datetime.date(
+        result.year, result.month, calendar.monthrange(result.year, result.month)[1]
+    )
 
 
 @register("WEEKDAY")

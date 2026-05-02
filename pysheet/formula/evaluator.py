@@ -2,12 +2,23 @@
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pysheet.formula.ast_nodes import (
-    BinaryNode, BoolNode, CellRefNode, ColRangeRefNode, Expr,
-    FuncCallNode, NameNode, NumberNode, PercentNode,
-    RangeRefNode, SheetCellRefNode, SheetRangeRefNode, StringNode, UnaryNode,
+    BinaryNode,
+    BoolNode,
+    CellRefNode,
+    ColRangeRefNode,
+    Expr,
+    FuncCallNode,
+    NameNode,
+    NumberNode,
+    PercentNode,
+    RangeRefNode,
+    SheetCellRefNode,
+    SheetRangeRefNode,
+    StringNode,
+    UnaryNode,
 )
 from pysheet.formula.dependency import DependencyGraph
 from pysheet.model.range import CellRange, a1_to_rowcol
@@ -16,22 +27,23 @@ if TYPE_CHECKING:
     from pysheet.model.sheet import Sheet
 
 # Error sentinels
-ERR   = "#ERR"
-DIV0  = "#DIV/0"
-REF   = "#REF"
-NAME  = "#NAME"
-CIRC  = "#CIRC"
+ERR = "#ERR"
+DIV0 = "#DIV/0"
+REF = "#REF"
+NAME = "#NAME"
+CIRC = "#CIRC"
 TYPE_ERR = "#TYPE"
-NA    = "#N/A"
+NA = "#N/A"
 
 _ERRORS = {ERR, DIV0, REF, NAME, CIRC, TYPE_ERR, NA}
 
 # Sheet context for script functions that need to write back results
-_current_sheet: "Sheet | None" = None
+_current_sheet: Sheet | None = None
 
 
 class EvalError(Exception):
     """Internal error raised during evaluation; converted to a sentinel string."""
+
     def __init__(self, sentinel: str) -> None:
         self.sentinel = sentinel
 
@@ -45,7 +57,7 @@ class Evaluator:
         result = ev.eval_formula("=SUM(A1:A5)")
     """
 
-    def __init__(self, sheet: "Sheet", workbook: "Any | None" = None) -> None:
+    def __init__(self, sheet: Sheet, workbook: Any | None = None) -> None:
         self._sheet = sheet
         self._workbook = workbook
         self._call_stack: set[tuple[int, int]] = set()  # cycle detection
@@ -65,6 +77,7 @@ class Evaluator:
             return formula
         try:
             from pysheet.formula.parser import parse_formula
+
             ast = parse_formula(formula[1:])
             return self._eval(ast, row, col)
         except EvalError as e:
@@ -80,6 +93,7 @@ class Evaluator:
             return set()
         try:
             from pysheet.formula.parser import parse_formula
+
             ast = parse_formula(formula[1:])
             deps: set[tuple[int, int]] = set()
             self._collect(ast, deps)
@@ -160,29 +174,41 @@ class Evaluator:
 
         match op:
             case "+":
-                try: return float(lv) + float(rv)
-                except (TypeError, ValueError): return TYPE_ERR
+                try:
+                    return float(lv) + float(rv)
+                except (TypeError, ValueError):
+                    return TYPE_ERR
             case "-":
-                try: return float(lv) - float(rv)
-                except (TypeError, ValueError): return TYPE_ERR
+                try:
+                    return float(lv) - float(rv)
+                except (TypeError, ValueError):
+                    return TYPE_ERR
             case "*":
-                try: return float(lv) * float(rv)
-                except (TypeError, ValueError): return TYPE_ERR
+                try:
+                    return float(lv) * float(rv)
+                except (TypeError, ValueError):
+                    return TYPE_ERR
             case "/":
                 try:
                     r = float(rv)
-                    if r == 0: return DIV0
+                    if r == 0:
+                        return DIV0
                     return float(lv) / r
-                except (TypeError, ValueError): return TYPE_ERR
+                except (TypeError, ValueError):
+                    return TYPE_ERR
             case "^":
-                try: return float(lv) ** float(rv)
-                except (TypeError, ValueError): return TYPE_ERR
+                try:
+                    return float(lv) ** float(rv)
+                except (TypeError, ValueError):
+                    return TYPE_ERR
             case "%":
                 try:
                     r = float(rv)
-                    if r == 0: return DIV0
+                    if r == 0:
+                        return DIV0
                     return float(lv) % r
-                except (TypeError, ValueError): return TYPE_ERR
+                except (TypeError, ValueError):
+                    return TYPE_ERR
             case "&":
                 return str(lv if lv is not None else "") + str(rv if rv is not None else "")
             case "=":
@@ -190,22 +216,29 @@ class Evaluator:
             case "<>":
                 return lv != rv
             case "<":
-                try: return float(lv) < float(rv)
-                except (TypeError, ValueError): return str(lv) < str(rv)
+                try:
+                    return float(lv) < float(rv)
+                except (TypeError, ValueError):
+                    return str(lv) < str(rv)
             case ">":
-                try: return float(lv) > float(rv)
-                except (TypeError, ValueError): return str(lv) > str(rv)
+                try:
+                    return float(lv) > float(rv)
+                except (TypeError, ValueError):
+                    return str(lv) > str(rv)
             case "<=":
-                try: return float(lv) <= float(rv)
-                except (TypeError, ValueError): return str(lv) <= str(rv)
+                try:
+                    return float(lv) <= float(rv)
+                except (TypeError, ValueError):
+                    return str(lv) <= str(rv)
             case ">=":
-                try: return float(lv) >= float(rv)
-                except (TypeError, ValueError): return str(lv) >= str(rv)
+                try:
+                    return float(lv) >= float(rv)
+                except (TypeError, ValueError):
+                    return str(lv) >= str(rv)
             case _:
                 return ERR
 
     def _eval_func(self, name: str, arg_nodes: list[Expr], row: int, col: int) -> Any:
-        import pysheet.formula.functions  # ensure registry populated
         from pysheet.formula.functions.registry import get as registry_get
 
         fn = registry_get(name)
@@ -223,12 +256,11 @@ class Evaluator:
 
         # For script functions that write back: pass source range info
         if getattr(fn, "_is_script_func", False) and arg_nodes:
-            from pysheet.formula.ast_nodes import RangeRefNode, CellRefNode
+            from pysheet.formula.ast_nodes import CellRefNode, RangeRefNode
+
             source_ranges = []
             for node in arg_nodes:
-                if isinstance(node, RangeRefNode):
-                    source_ranges.append(node.ref)
-                elif isinstance(node, CellRefNode):
+                if isinstance(node, RangeRefNode | CellRefNode):
                     source_ranges.append(node.ref)
             try:
                 return fn(*args, _source_ranges=source_ranges, _sheet=self._sheet)
@@ -286,7 +318,6 @@ class Evaluator:
 
     def _col_range_values(self, ref: str) -> list[list[Any]]:
         """Return all values for a whole-column reference (A$, A$:B$, A:B)."""
-        import re
         # Normalise: strip $ and split into one or two column letters
         clean = ref.replace("$", "").upper()
         parts = clean.split(":")
@@ -308,7 +339,7 @@ class Evaluator:
     # Dependency collection
     # -----------------------------------------------------------------------
 
-    def _get_sheet(self, name: str) -> "Any | None":
+    def _get_sheet(self, name: str) -> Any | None:
         """Look up a sheet by name via the workbook, case-insensitively."""
         if self._workbook is None:
             return None
@@ -317,7 +348,7 @@ class Evaluator:
                 return sheet
         return None
 
-    def _cross_sheet_cell(self, sheet_name: str, ref: str) -> "Any":
+    def _cross_sheet_cell(self, sheet_name: str, ref: str) -> Any:
         sheet = self._get_sheet(sheet_name)
         if sheet is None:
             raise EvalError(REF)
@@ -330,7 +361,7 @@ class Evaluator:
             return ev2.eval_formula(cell.formula, r, c)
         return cell.value
 
-    def _cross_sheet_range(self, sheet_name: str, ref: str) -> "list[list[Any]]":
+    def _cross_sheet_range(self, sheet_name: str, ref: str) -> list[list[Any]]:
         sheet = self._get_sheet(sheet_name)
         if sheet is None:
             raise EvalError(REF)
@@ -379,7 +410,8 @@ class Evaluator:
 # Sheet-level recalculation
 # ---------------------------------------------------------------------------
 
-def recalculate(sheet: "Sheet", graph: DependencyGraph) -> None:
+
+def recalculate(sheet: Sheet, graph: DependencyGraph) -> None:
     """Recalculate all formula cells in *sheet* using *graph* for ordering.
 
     Updates each cell's ``value`` and ``display`` in topological order.

@@ -81,11 +81,11 @@ async def test_multiple_sequential_undos(app_with_data: PySheetApp) -> None:
         sheet = app_with_data.workbook.active_sheet
 
         # Clear three cells
-        await pilot.press("x")   # clears (0,0)
+        await pilot.press("x")  # clears (0,0)
         await pilot.press("j")
-        await pilot.press("x")   # clears (1,0)
+        await pilot.press("x")  # clears (1,0)
         await pilot.press("j")
-        await pilot.press("x")   # clears (2,0)
+        await pilot.press("x")  # clears (2,0)
         await pilot.pause()
 
         assert sheet.get_cell(0, 0) is None

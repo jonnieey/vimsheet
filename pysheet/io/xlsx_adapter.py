@@ -21,8 +21,10 @@ class XLSXAdapter(FormatAdapter):
     def read(self, path: Path, **opts: object) -> Workbook:
         try:
             import openpyxl
-        except ImportError:
-            raise RuntimeError("openpyxl is required for .xlsx support: pip install openpyxl")
+        except ImportError as err:
+            raise RuntimeError(
+                "openpyxl is required for .xlsx support: pip install openpyxl"
+            ) from err
 
         wb_xl = openpyxl.load_workbook(str(path), data_only=False)
         wb = Workbook()
@@ -44,6 +46,7 @@ class XLSXAdapter(FormatAdapter):
             # Column widths
             for col_letter, col_dim in ws.column_dimensions.items():
                 from openpyxl.utils import column_index_from_string
+
                 c_idx = column_index_from_string(col_letter) - 1
                 if col_dim.width:
                     sheet.set_col_width(c_idx, int(col_dim.width))
@@ -54,8 +57,10 @@ class XLSXAdapter(FormatAdapter):
     def write(self, workbook: Workbook, path: Path, **opts: object) -> None:
         try:
             import openpyxl
-        except ImportError:
-            raise RuntimeError("openpyxl is required for .xlsx support: pip install openpyxl")
+        except ImportError as err:
+            raise RuntimeError(
+                "openpyxl is required for .xlsx support: pip install openpyxl"
+            ) from err
 
         wb_xl = openpyxl.Workbook()
         wb_xl.remove(wb_xl.active)  # remove default sheet
@@ -68,7 +73,8 @@ class XLSXAdapter(FormatAdapter):
                 else:
                     xl_cell.value = cell.value
                 # Apply formatting
-                from openpyxl.styles import Font, Alignment, PatternFill
+                from openpyxl.styles import Alignment, Font, PatternFill
+
                 font_kwargs: dict[str, Any] = {}
                 if cell.fmt.bold:
                     font_kwargs["bold"] = True
@@ -87,5 +93,6 @@ class XLSXAdapter(FormatAdapter):
             # Column widths
             for col_idx, width in sheet.col_widths.items():
                 from openpyxl.utils import get_column_letter
+
                 ws.column_dimensions[get_column_letter(col_idx + 1)].width = width
         wb_xl.save(str(path))

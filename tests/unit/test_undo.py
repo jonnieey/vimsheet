@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
-from pysheet.model.cell import CellFormat
 from pysheet.model.range import CellRange
 from pysheet.model.sheet import Sheet
 from pysheet.model.undo import (
@@ -21,10 +18,10 @@ from pysheet.model.undo import (
     UndoStack,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_sheet(name: str = "Sheet1") -> Sheet:
     return Sheet(name=name)
@@ -33,6 +30,7 @@ def make_sheet(name: str = "Sheet1") -> Sheet:
 # ---------------------------------------------------------------------------
 # SetCellCommand
 # ---------------------------------------------------------------------------
+
 
 class TestSetCellCommand:
     def test_execute_sets_value(self) -> None:
@@ -69,7 +67,7 @@ class TestSetCellCommand:
 
     def test_undo_restores_formula(self) -> None:
         sheet = make_sheet()
-        sheet.set_cell_value(1, 0, 5)          # A2 = 5
+        sheet.set_cell_value(1, 0, 5)  # A2 = 5
         sheet.set_cell_value(0, 0, None, formula="=A2")  # A1 = =A2 → evaluates to 5
         cmd = SetCellCommand(sheet, 0, 0, None, new_formula="=B2")
         cmd.execute()
@@ -83,6 +81,7 @@ class TestSetCellCommand:
 # ---------------------------------------------------------------------------
 # ClearCellCommand
 # ---------------------------------------------------------------------------
+
 
 class TestClearCellCommand:
     def test_execute_clears_cell(self) -> None:
@@ -121,6 +120,7 @@ class TestClearCellCommand:
 # DeleteRangeCommand
 # ---------------------------------------------------------------------------
 
+
 class TestDeleteRangeCommand:
     def test_execute_clears_range(self) -> None:
         sheet = make_sheet()
@@ -149,6 +149,7 @@ class TestDeleteRangeCommand:
 # InsertRowCommand
 # ---------------------------------------------------------------------------
 
+
 class TestInsertRowCommand:
     def test_execute_shifts_rows_down(self) -> None:
         sheet = make_sheet()
@@ -174,6 +175,7 @@ class TestInsertRowCommand:
 # ---------------------------------------------------------------------------
 # DeleteRowCommand
 # ---------------------------------------------------------------------------
+
 
 class TestDeleteRowCommand:
     def test_execute_removes_row(self) -> None:
@@ -205,6 +207,7 @@ class TestDeleteRowCommand:
 # InsertColCommand
 # ---------------------------------------------------------------------------
 
+
 class TestInsertColCommand:
     def test_execute_shifts_cols_right(self) -> None:
         sheet = make_sheet()
@@ -229,6 +232,7 @@ class TestInsertColCommand:
 # ---------------------------------------------------------------------------
 # DeleteColCommand
 # ---------------------------------------------------------------------------
+
 
 class TestDeleteColCommand:
     def test_execute_removes_col(self) -> None:
@@ -258,6 +262,7 @@ class TestDeleteColCommand:
 # ---------------------------------------------------------------------------
 # PasteCommand
 # ---------------------------------------------------------------------------
+
 
 class TestPasteCommand:
     def test_execute_pastes_data(self) -> None:
@@ -293,6 +298,7 @@ class TestPasteCommand:
 # FormatCommand
 # ---------------------------------------------------------------------------
 
+
 class TestFormatCommand:
     def test_execute_changes_format(self) -> None:
         sheet = make_sheet()
@@ -326,6 +332,7 @@ class TestFormatCommand:
 # ---------------------------------------------------------------------------
 # CompositeCommand
 # ---------------------------------------------------------------------------
+
 
 class TestCompositeCommand:
     def test_execute_runs_all_commands(self) -> None:
@@ -379,6 +386,7 @@ class TestCompositeCommand:
 # ---------------------------------------------------------------------------
 # UndoStack
 # ---------------------------------------------------------------------------
+
 
 class TestUndoStack:
     def test_push_executes_command(self) -> None:

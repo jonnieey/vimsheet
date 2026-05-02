@@ -13,22 +13,20 @@ from pysheet.formula.tokens import TT, Token
 _SHEET_RANGE_PAT = re.compile(
     r"([A-Za-z_][A-Za-z0-9_ .]*)!(\$?[A-Za-z]{1,3}\$?\d+:\$?[A-Za-z]{1,3}\$?\d+)"
 )
-_SHEET_CELL_PAT  = re.compile(
-    r"([A-Za-z_][A-Za-z0-9_ .]*)!(\$?[A-Za-z]{1,3}\$?\d+)"
-)
+_SHEET_CELL_PAT = re.compile(r"([A-Za-z_][A-Za-z0-9_ .]*)!(\$?[A-Za-z]{1,3}\$?\d+)")
 # Whole-column: A$:B$  or  A$  or  A:B  (letters only, no row digits)
 _COL_RANGE_PAT = re.compile(
-    r"[A-Za-z]{1,3}\$:[A-Za-z]{1,3}\$"          # A$:B$
-    r"|[A-Za-z]{1,3}(?<!\d):[A-Za-z]{1,3}(?!\d)" # A:B  (no surrounding digits)
-    r"|[A-Za-z]{1,3}\$(?![\d\$])"                 # A$   (single column)
+    r"[A-Za-z]{1,3}\$:[A-Za-z]{1,3}\$"  # A$:B$
+    r"|[A-Za-z]{1,3}(?<!\d):[A-Za-z]{1,3}(?!\d)"  # A:B  (no surrounding digits)
+    r"|[A-Za-z]{1,3}\$(?![\d\$])"  # A$   (single column)
 )
-_RANGE_PAT  = re.compile(r"\$?[A-Za-z]{1,3}\$?\d+:\$?[A-Za-z]{1,3}\$?\d+")
-_CELL_PAT   = re.compile(r"\$?[A-Za-z]{1,3}\$?\d+")
-_NAME_PAT   = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*")
+_RANGE_PAT = re.compile(r"\$?[A-Za-z]{1,3}\$?\d+:\$?[A-Za-z]{1,3}\$?\d+")
+_CELL_PAT = re.compile(r"\$?[A-Za-z]{1,3}\$?\d+")
+_NAME_PAT = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*")
 _NUMBER_PAT = re.compile(r"\d+\.?\d*([eE][+-]?\d+)?|\.\d+([eE][+-]?\d+)?")
 _STRING_PAT = re.compile(r'"(?:[^"\\]|\\.)*"')
-_OP_PAT     = re.compile(r"<>|<=|>=|[+\-*/^%&<>=|]")
-_WS_PAT     = re.compile(r"\s+")
+_OP_PAT = re.compile(r"<>|<=|>=|[+\-*/^%&<>=|]")
+_WS_PAT = re.compile(r"\s+")
 
 
 class TokenizeError(ValueError):
@@ -55,13 +53,21 @@ def tokenize(source: str) -> list[Token]:
 
         # Single-char punctuation
         if ch == "(":
-            tokens.append(Token(TT.LPAREN, "(", i)); i += 1; continue
+            tokens.append(Token(TT.LPAREN, "(", i))
+            i += 1
+            continue
         if ch == ")":
-            tokens.append(Token(TT.RPAREN, ")", i)); i += 1; continue
+            tokens.append(Token(TT.RPAREN, ")", i))
+            i += 1
+            continue
         if ch == ",":
-            tokens.append(Token(TT.COMMA, ",", i)); i += 1; continue
+            tokens.append(Token(TT.COMMA, ",", i))
+            i += 1
+            continue
         if ch == "@":
-            tokens.append(Token(TT.AT, "@", i)); i += 1; continue
+            tokens.append(Token(TT.AT, "@", i))
+            i += 1
+            continue
 
         # String literal
         m = _STRING_PAT.match(source, i)

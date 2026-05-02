@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from rich.style import Style
 from rich.text import Text
-
 from textual.events import Click
 from textual.message import Message
 from textual.widget import Widget

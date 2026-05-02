@@ -16,7 +16,9 @@ class CSVAdapter(FormatAdapter):
 
     supported_extensions = [".csv", ".tsv", ".txt"]
 
-    def read(self, path: Path, delimiter: str = ",", encoding: str = "utf-8", **opts: object) -> Workbook:
+    def read(
+        self, path: Path, delimiter: str = ",", encoding: str = "utf-8", **opts: object
+    ) -> Workbook:
         """Parse *path* as CSV and return a Workbook with one sheet."""
         wb = Workbook()
         sheet = Sheet(name=path.stem or "Sheet1")
@@ -32,7 +34,14 @@ class CSVAdapter(FormatAdapter):
         wb.filepath = path
         return wb
 
-    def write(self, workbook: Workbook, path: Path, delimiter: str = ",", encoding: str = "utf-8", **opts: object) -> None:
+    def write(
+        self,
+        workbook: Workbook,
+        path: Path,
+        delimiter: str = ",",
+        encoding: str = "utf-8",
+        **opts: object,
+    ) -> None:
         """Write the active sheet to *path* as CSV."""
         sheet = workbook.active_sheet
         if not sheet.cells:

@@ -12,18 +12,18 @@ class VimModalScreen(ModalScreen[None]):
 
     BINDINGS = [
         Binding("escape", "dismiss", "Close"),
-        Binding("q",      "dismiss", "Close"),
-        Binding("j",      "scroll_down_line", "↓", show=False),
-        Binding("k",      "scroll_up_line",   "↑", show=False),
-        Binding("d",      "scroll_down_half", "½↓", show=False),
-        Binding("u",      "scroll_up_half",   "½↑", show=False),
+        Binding("q", "dismiss", "Close"),
+        Binding("j", "scroll_down_line", "↓", show=False),
+        Binding("k", "scroll_up_line", "↑", show=False),
+        Binding("d", "scroll_down_half", "½↓", show=False),
+        Binding("u", "scroll_up_half", "½↑", show=False),
         Binding("ctrl+d", "scroll_down_half", "½↓", show=False),
-        Binding("ctrl+u", "scroll_up_half",   "½↑", show=False),
+        Binding("ctrl+u", "scroll_up_half", "½↑", show=False),
         Binding("ctrl+f", "scroll_down_page", "↓↓", show=False),
-        Binding("ctrl+b", "scroll_up_page",   "↑↑", show=False),
-        Binding("space",  "scroll_down_page", "↓↓", show=False),
-        Binding("g",      "scroll_top",       "⇈",  show=False),
-        Binding("G",      "scroll_bottom",    "⇊",  show=False),
+        Binding("ctrl+b", "scroll_up_page", "↑↑", show=False),
+        Binding("space", "scroll_down_page", "↓↓", show=False),
+        Binding("g", "scroll_top", "⇈", show=False),
+        Binding("G", "scroll_bottom", "⇊", show=False),
     ]
 
     def _scroller(self) -> VerticalScroll | None:

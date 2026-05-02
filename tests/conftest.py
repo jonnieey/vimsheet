@@ -6,15 +6,14 @@ from typing import Any
 
 import pytest
 
-from pysheet.model.cell import Cell, CellFormat
-from pysheet.model.range import CellRange
+from pysheet.app import PySheetApp
 from pysheet.model.sheet import Sheet
 from pysheet.model.workbook import Workbook
-
 
 # ---------------------------------------------------------------------------
 # Low-level fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def empty_sheet() -> Sheet:
@@ -32,6 +31,7 @@ def blank_workbook() -> Workbook:
 # Helper functions (also usable from tests directly)
 # ---------------------------------------------------------------------------
 
+
 def make_sheet(data: dict[str, Any], name: str = "Sheet1") -> Sheet:
     """Create a Sheet populated with {address: value} data.
 
@@ -40,6 +40,7 @@ def make_sheet(data: dict[str, Any], name: str = "Sheet1") -> Sheet:
     sheet = Sheet(name=name)
     for addr, value in data.items():
         from pysheet.model.range import a1_to_rowcol
+
         r, c = a1_to_rowcol(addr)
         if isinstance(value, str) and value.startswith("="):
             sheet.set_cell_value(r, c, value, formula=value)
@@ -85,20 +86,21 @@ def make_workbook(
 # App fixture (for E2E tests — requires Textual)
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
-def app(blank_workbook: Workbook) -> "PySheetApp":
+def app(blank_workbook: Workbook) -> PySheetApp:
     """Return a PySheetApp instance backed by a blank workbook."""
-    from pysheet.app import PySheetApp
     return PySheetApp(workbook=blank_workbook)
 
 
 @pytest.fixture
-def app_with_data() -> "PySheetApp":
+def app_with_data() -> PySheetApp:
     """Return a PySheetApp pre-populated with sample data."""
-    from pysheet.app import PySheetApp
-    wb = make_workbook(data=[
-        ["Name", "Q1", "Q2", "Total"],
-        ["Alpha", 12400, 15200, "=@SUM(B2:C2)"],
-        ["Beta", 9800, 11450, "=@SUM(B3:C3)"],
-    ])
+    wb = make_workbook(
+        data=[
+            ["Name", "Q1", "Q2", "Total"],
+            ["Alpha", 12400, 15200, "=@SUM(B2:C2)"],
+            ["Beta", 9800, 11450, "=@SUM(B3:C3)"],
+        ]
+    )
     return PySheetApp(workbook=wb)

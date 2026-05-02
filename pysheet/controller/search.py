@@ -18,14 +18,14 @@ class SearchState:
     replace: str = ""
     case_sensitive: bool = False
     use_regex: bool = False
-    current_match: tuple[int, int] | None = None   # (row, col)
+    current_match: tuple[int, int] | None = None  # (row, col)
     matches: list[tuple[int, int]] = field(default_factory=list)
 
 
 class Searcher:
     """Performs find/replace operations on a Sheet."""
 
-    def __init__(self, sheet: "Sheet") -> None:
+    def __init__(self, sheet: Sheet) -> None:
         self._sheet = sheet
 
     # ------------------------------------------------------------------
@@ -54,10 +54,7 @@ class Searcher:
 
     def _matches_cell(self, regex: re.Pattern[str], row: int, col: int) -> bool:
         """Return True if any text in the cell matches *regex*."""
-        for text in self._cell_texts(row, col):
-            if regex.search(text):
-                return True
-        return False
+        return any(regex.search(text) for text in self._cell_texts(row, col))
 
     def _all_positions(self) -> list[tuple[int, int]]:
         """Return all (row, col) positions in the sheet in row-major order."""
@@ -66,11 +63,7 @@ class Searcher:
             return []
         max_r = sheet.max_row
         max_c = sheet.max_col
-        return [
-            (r, c)
-            for r in range(max_r + 1)
-            for c in range(max_c + 1)
-        ]
+        return [(r, c) for r in range(max_r + 1) for c in range(max_c + 1)]
 
     # ------------------------------------------------------------------
     # Public API

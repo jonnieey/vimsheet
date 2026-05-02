@@ -8,20 +8,20 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pysheet.io.base import FormatAdapter
 
-_adapters: list["FormatAdapter"] = []
+_adapters: list[FormatAdapter] = []
 
 # Map short format names (used in :e <fmt> <file>) to adapter index
 _FORMAT_NAMES: dict[str, str] = {
-    "csv":  ".csv",
-    "tsv":  ".tsv",
+    "csv": ".csv",
+    "tsv": ".tsv",
     "json": ".json",
     "xlsx": ".xlsx",
-    "xls":  ".xls",
-    "mkd":  ".md",
-    "md":   ".md",
-    "tex":  ".tex",
+    "xls": ".xls",
+    "mkd": ".md",
+    "md": ".md",
+    "tex": ".tex",
     "html": ".html",
-    "htm":  ".htm",
+    "htm": ".htm",
 }
 
 
@@ -34,18 +34,20 @@ def _init() -> None:
     from pysheet.io.xls_adapter import XLSAdapter
     from pysheet.io.xlsx_adapter import XLSXAdapter
 
-    _adapters.extend([
-        JSONAdapter(),
-        XLSXAdapter(),
-        XLSAdapter(),
-        CSVAdapter(),
-        MarkdownAdapter(),
-        LaTeXAdapter(),
-        HTMLAdapter(),
-    ])
+    _adapters.extend(
+        [
+            JSONAdapter(),
+            XLSXAdapter(),
+            XLSAdapter(),
+            CSVAdapter(),
+            MarkdownAdapter(),
+            LaTeXAdapter(),
+            HTMLAdapter(),
+        ]
+    )
 
 
-def get_adapter(path: Path) -> "FormatAdapter":
+def get_adapter(path: Path) -> FormatAdapter:
     """Return the adapter for *path*'s extension. Raises ValueError if none match."""
     if not _adapters:
         _init()
@@ -56,7 +58,7 @@ def get_adapter(path: Path) -> "FormatAdapter":
     raise ValueError(f"Unsupported file format: {ext!r}")
 
 
-def get_adapter_by_name(fmt: str) -> "FormatAdapter":
+def get_adapter_by_name(fmt: str) -> FormatAdapter:
     """Return the adapter for a short format name like 'csv', 'mkd', 'tex'."""
     if not _adapters:
         _init()

@@ -69,7 +69,9 @@ def fn_hlookup(val: Any, range_val: Any, row_num: Any, approx: Any = True) -> An
     for ci, key in enumerate(header):
         if exact:
             if key == val:
-                return table[row_idx][ci] if row_idx < len(table) and ci < len(table[row_idx]) else REF
+                return (
+                    table[row_idx][ci] if row_idx < len(table) and ci < len(table[row_idx]) else REF
+                )
         else:
             if key == val:
                 return table[row_idx][ci] if row_idx < len(table) else REF
@@ -126,9 +128,8 @@ def fn_match(val: Any, range_val: Any, match_type: Any = 1) -> Any:
         best = -1
         for i, v in enumerate(flat):
             try:
-                if float(v) >= float(val):
-                    if best == -1:
-                        best = i
+                if float(v) >= float(val) and best == -1:
+                    best = i
             except (TypeError, ValueError):
                 pass
         return best + 1 if best >= 0 else NA
@@ -197,10 +198,11 @@ def fn_indirect(addr: Any) -> Any:
 # Helper
 # ---------------------------------------------------------------------------
 
+
 def _truthy(v: Any) -> bool:
     if isinstance(v, bool):
         return v
-    if isinstance(v, (int, float)):
+    if isinstance(v, int | float):
         return v != 0
     if isinstance(v, str):
         return v.upper() not in ("FALSE", "0", "")

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from pysheet.model.sheet import Sheet
 
 
@@ -59,8 +58,8 @@ class TestColGroups:
 
 class TestJsonRoundTrip:
     def test_groups_preserved_in_json(self, tmp_path):
-        from pysheet.model.workbook import Workbook
         from pysheet.io.json_adapter import JSONAdapter
+        from pysheet.model.workbook import Workbook
 
         wb = Workbook.blank()
         wb.active_sheet.row_groups.append((2, 5))

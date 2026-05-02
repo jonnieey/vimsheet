@@ -58,7 +58,14 @@ class Mode(Enum):
 # ---------------------------------------------------------------------------
 
 VALID_TRANSITIONS: dict[Mode, set[Mode]] = {
-    Mode.NORMAL: {Mode.INSERT, Mode.EDIT, Mode.COMMAND, Mode.VISUAL, Mode.VISUAL_LINE, Mode.VISUAL_BLOCK},
+    Mode.NORMAL: {
+        Mode.INSERT,
+        Mode.EDIT,
+        Mode.COMMAND,
+        Mode.VISUAL,
+        Mode.VISUAL_LINE,
+        Mode.VISUAL_BLOCK,
+    },
     Mode.INSERT: {Mode.NORMAL, Mode.EDIT},
     Mode.EDIT: {Mode.NORMAL, Mode.INSERT},
     Mode.COMMAND: {Mode.NORMAL},

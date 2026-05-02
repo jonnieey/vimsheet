@@ -18,8 +18,8 @@ class XLSAdapter(FormatAdapter):
     def read(self, path: Path, **opts: object) -> Workbook:
         try:
             import xlrd
-        except ImportError:
-            raise RuntimeError("xlrd is required for .xls support: pip install xlrd")
+        except ImportError as err:
+            raise RuntimeError("xlrd is required for .xls support: pip install xlrd") from err
 
         wb_xls = xlrd.open_workbook(str(path))
         wb = Workbook()
@@ -37,9 +37,14 @@ class XLSAdapter(FormatAdapter):
                         val = bool(val)
                     elif cell.ctype == xlrd.XL_CELL_DATE:
                         import datetime
+
                         try:
                             tup = xlrd.xldate_as_tuple(val, wb_xls.datemode)
-                            val = datetime.datetime(*tup) if tup[3:] != (0, 0, 0) else datetime.date(*tup[:3])
+                            val = (
+                                datetime.datetime(*tup)
+                                if tup[3:] != (0, 0, 0)
+                                else datetime.date(*tup[:3])
+                            )
                         except Exception:
                             pass
                     sheet.set_cell_value(r, c, val, record_history=False)

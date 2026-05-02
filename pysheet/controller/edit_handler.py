@@ -13,11 +13,11 @@ if TYPE_CHECKING:
 class EditHandler:
     """Handles all key events while in Edit mode."""
 
-    def __init__(self, app: "PySheetApp") -> None:
+    def __init__(self, app: PySheetApp) -> None:
         self._app = app
         # Edit mode has a sub-mode: "normal" (vi motion) or "insert" (typing)
         self._sub: str = "normal"
-        self._orig_value: str = ""   # content when edit mode was entered, for 'u' undo
+        self._orig_value: str = ""  # content when edit mode was entered, for 'u' undo
 
     def enter(self, at_end: bool = True) -> None:
         """Switch app to Edit mode, loading current cell content."""
@@ -109,7 +109,7 @@ class EditHandler:
                 self._sub = "insert"
             case "s":
                 if pos < len(buf):
-                    app._edit_buffer = buf[:pos] + buf[pos + 1:]
+                    app._edit_buffer = buf[:pos] + buf[pos + 1 :]
                 self._sub = "insert"
             case "S":
                 app._edit_buffer = ""
@@ -117,7 +117,7 @@ class EditHandler:
                 self._sub = "insert"
             case "x":
                 if pos < len(buf):
-                    app._edit_buffer = buf[:pos] + buf[pos + 1:]
+                    app._edit_buffer = buf[:pos] + buf[pos + 1 :]
             case "u":
                 # Restore to value when edit mode was entered
                 app._edit_buffer = self._orig_value
@@ -132,7 +132,7 @@ class EditHandler:
                 # r{char} — replace char under cursor
                 if chord and chord[0] == "r":
                     if pos < len(buf):
-                        app._edit_buffer = buf[:pos] + key + buf[pos + 1:]
+                        app._edit_buffer = buf[:pos] + key + buf[pos + 1 :]
                     return
                 # Otherwise buffer single char for chord detection
                 app._edit_chord = key
@@ -149,7 +149,9 @@ class EditHandler:
             case "escape":
                 self._sub = "normal"
                 # clamp cursor to last char position (vim behaviour)
-                app._edit_cursor = max(0, min(pos, len(app._edit_buffer) - 1)) if app._edit_buffer else 0
+                app._edit_cursor = (
+                    max(0, min(pos, len(app._edit_buffer) - 1)) if app._edit_buffer else 0
+                )
             case "enter":
                 self._commit()
             case "backspace":
@@ -158,7 +160,7 @@ class EditHandler:
                     app._edit_cursor = pos - 1
             case "delete":
                 if pos < len(buf):
-                    app._edit_buffer = buf[:pos] + buf[pos + 1:]
+                    app._edit_buffer = buf[:pos] + buf[pos + 1 :]
             case "left":
                 app._edit_cursor = max(0, pos - 1)
             case "right":
@@ -173,7 +175,7 @@ class EditHandler:
                     i -= 1
                 while i >= 0 and buf[i] != " ":
                     i -= 1
-                app._edit_buffer = buf[:i + 1] + buf[pos:]
+                app._edit_buffer = buf[: i + 1] + buf[pos:]
                 app._edit_cursor = i + 1
             case "ctrl+u":
                 app._edit_buffer = ""
@@ -193,6 +195,7 @@ class EditHandler:
         r, c = app.cursor_row, app.cursor_col
 
         from pysheet.model.undo import SetCellCommand
+
         val: Any
         if raw.startswith("="):
             cmd = SetCellCommand(sheet, r, c, raw, new_formula=raw)
@@ -218,6 +221,7 @@ class EditHandler:
 # ---------------------------------------------------------------------------
 # Word-motion helpers (operate on the edit buffer string)
 # ---------------------------------------------------------------------------
+
 
 def _word_forward(s: str, pos: int) -> int:
     """Return position after next word boundary (vim 'w')."""

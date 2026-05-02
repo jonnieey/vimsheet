@@ -1,9 +1,10 @@
 import http.server
-import markdown
 import os
-from pathlib import Path
 import re
 import urllib.parse
+from pathlib import Path
+
+import markdown
 
 # DOCS_DIR = os.path.join(os.path.dirname(__file__), "docs")
 DOCS_DIR = Path(__file__).parent.parent / "docs"
@@ -33,7 +34,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <style>
     * {{ box-sizing: border-box; }}
     body {{
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
       line-height: 1.6;
       color: #e0e0e0;
       background: #0f0f23;
@@ -93,6 +95,7 @@ def rewrite_md_links(html: str) -> str:
         if href.endswith(".md") and not href.startswith(("http://", "https://", "#")):
             return f'href="{href}"'
         return m.group(0)
+
     return re.sub(r'href="([^"]+)"', _rewrite, html)
 
 

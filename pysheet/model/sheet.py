@@ -7,7 +7,7 @@ from typing import Any
 
 from pysheet.formula.dependency import DependencyGraph
 from pysheet.model.cell import Cell, CellFormat
-from pysheet.model.range import CellRange, NamedRangeRegistry, a1_to_rowcol, rowcol_to_a1
+from pysheet.model.range import CellRange, NamedRangeRegistry, a1_to_rowcol
 from pysheet.model.validation import SheetValidation
 
 
@@ -16,9 +16,9 @@ class CondFormatRule:
     """A conditional formatting rule applied to a range."""
 
     range_str: str
-    operator: str          # "eq", "ne", "lt", "le", "gt", "ge", "contains", "between"
+    operator: str  # "eq", "ne", "lt", "le", "gt", "ge", "contains", "between"
     value: Any
-    value2: Any = None     # used by "between"
+    value2: Any = None  # used by "between"
     fmt: CellFormat = field(default_factory=CellFormat)
 
     def matches(self, cell_value: Any) -> bool:
@@ -54,7 +54,7 @@ class CondFormatRule:
 class FilterRule:
     """A column filter rule."""
 
-    operator: str   # "eq", "ne", "lt", "le", "gt", "ge", "contains", "regex"
+    operator: str  # "eq", "ne", "lt", "le", "gt", "ge", "contains", "regex"
     value: Any
 
     def matches(self, cell_value: Any) -> bool:
@@ -101,8 +101,8 @@ class Sheet:
 
     name: str
     cells: dict[tuple[int, int], Cell] = field(default_factory=dict)
-    col_widths: dict[int, int] = field(default_factory=dict)       # col → chars
-    row_heights: dict[int, int] = field(default_factory=dict)      # row → chars
+    col_widths: dict[int, int] = field(default_factory=dict)  # col → chars
+    row_heights: dict[int, int] = field(default_factory=dict)  # row → chars
     hidden_rows: set[int] = field(default_factory=set)
     hidden_cols: set[int] = field(default_factory=set)
     row_groups: list[tuple[int, int]] = field(default_factory=list)
@@ -153,6 +153,7 @@ class Sheet:
         existing.formula = formula
         if formula and formula.startswith("="):
             from pysheet.formula.evaluator import Evaluator
+
             ev = Evaluator(self, getattr(self, "_workbook", None))
             existing.value = ev.eval_formula(formula, row, col)
             self._dep_graph.set_dependencies((row, col), ev.collect_deps(formula))
@@ -183,6 +184,7 @@ class Sheet:
     def set_cells_batch(self, updates: list[tuple[int, int, Any]]) -> None:
         """Set plain values for many cells in one pass, recalculating only once."""
         from pysheet.model.cell import Cell
+
         all_deps: set[tuple[int, int]] = set()
         for row, col, value in updates:
             existing = self.cells.get((row, col))
@@ -310,7 +312,7 @@ class Sheet:
     def auto_fit_col(self, col: int) -> None:
         """Set column width to the longest content in that column."""
         max_len = 1
-        for (r, c), cell in self.cells.items():
+        for (_, c), cell in self.cells.items():
             if c == col:
                 max_len = max(max_len, len(cell.display or ""))
         self.col_widths[col] = max(2, min(80, max_len + 2))
@@ -341,6 +343,7 @@ class Sheet:
         """Evaluate *start* cells (and their transitive dependents) in topo order."""
         from pysheet.formula.dependency import CycleError
         from pysheet.formula.evaluator import Evaluator
+
         try:
             order = self._dep_graph.evaluation_order(start)
         except CycleError:
@@ -382,7 +385,14 @@ class Sheet:
             for c in range(self.max_col + 1):
                 cell = self.get_cell(r, c)
                 if cell:
-                    row_data[c] = (cell.value, cell.formula, cell.display, cell.fmt.copy(), cell.locked, cell.comment)
+                    row_data[c] = (
+                        cell.value,
+                        cell.formula,
+                        cell.display,
+                        cell.fmt.copy(),
+                        cell.locked,
+                        cell.comment,
+                    )
             key = None
             if col in row_data:
                 v = row_data[col][0]
@@ -394,7 +404,7 @@ class Sheet:
         rows.sort(key=lambda x: (x[0] is None, x[0]), reverse=not ascending)
         self.cells.clear()
         for new_r, (_, row_data) in enumerate(rows):
-            for c, (val, formula, display, fmt, locked, comment) in row_data.items():
+            for c, (val, formula, _, fmt, locked, comment) in row_data.items():
                 self.set_cell_value(new_r, c, val, formula=formula, record_history=False)
                 cell = self.get_cell(new_r, c)
                 if cell:
@@ -417,4 +427,3 @@ class Sheet:
                         break
         self.hidden_rows = (self.hidden_rows - self._filter_rows) | filter_hidden
         self._filter_rows = filter_hidden
-

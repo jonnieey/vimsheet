@@ -8,10 +8,10 @@ from pysheet.app import PySheetApp
 from pysheet.controller.mode import Mode
 from tests.conftest import make_workbook
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def app() -> PySheetApp:
@@ -22,19 +22,22 @@ def app() -> PySheetApp:
 @pytest.fixture
 def app_with_data() -> PySheetApp:
     """App with a 5-row × 3-col data block."""
-    wb = make_workbook(data=[
-        ["Name", "Value", "Notes"],
-        ["Alpha", 10, "a"],
-        ["Beta", 20, "b"],
-        ["Gamma", 30, "c"],
-        ["Delta", 40, "d"],
-    ])
+    wb = make_workbook(
+        data=[
+            ["Name", "Value", "Notes"],
+            ["Alpha", 10, "a"],
+            ["Beta", 20, "b"],
+            ["Gamma", 30, "c"],
+            ["Delta", 40, "d"],
+        ]
+    )
     return PySheetApp(workbook=wb)
 
 
 # ---------------------------------------------------------------------------
 # Basic hjkl navigation
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_hjkl_right(app: PySheetApp) -> None:
@@ -67,10 +70,10 @@ async def test_hjkl_left_at_start_clamps(app: PySheetApp) -> None:
 @pytest.mark.asyncio
 async def test_hjkl_sequence(app: PySheetApp) -> None:
     async with app.run_test() as pilot:
-        await pilot.press("l")   # (0,1)
-        await pilot.press("j")   # (1,1)
-        await pilot.press("k")   # (0,1)
-        await pilot.press("h")   # (0,0)
+        await pilot.press("l")  # (0,1)
+        await pilot.press("j")  # (1,1)
+        await pilot.press("k")  # (0,1)
+        await pilot.press("h")  # (0,0)
         assert app.cursor == (0, 0)
 
 
@@ -91,6 +94,7 @@ async def test_arrow_keys(app: PySheetApp) -> None:
 # gg / G navigation
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_G_goes_to_last_row(app_with_data: PySheetApp) -> None:
     async with app_with_data.run_test() as pilot:
@@ -101,15 +105,16 @@ async def test_G_goes_to_last_row(app_with_data: PySheetApp) -> None:
 @pytest.mark.asyncio
 async def test_gg_goes_to_first_row(app_with_data: PySheetApp) -> None:
     async with app_with_data.run_test() as pilot:
-        await pilot.press("G")   # go to bottom
+        await pilot.press("G")  # go to bottom
         await pilot.press("g")
-        await pilot.press("g")   # gg → top
+        await pilot.press("g")  # gg → top
         assert app_with_data.cursor_row == 0
 
 
 # ---------------------------------------------------------------------------
 # 0 and $ navigation
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_zero_goes_to_col_a(app: PySheetApp) -> None:
@@ -131,6 +136,7 @@ async def test_dollar_goes_to_last_used_col(app_with_data: PySheetApp) -> None:
 # Ctrl+Home / Ctrl+End
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_ctrl_home(app_with_data: PySheetApp) -> None:
     async with app_with_data.run_test() as pilot:
@@ -151,6 +157,7 @@ async def test_ctrl_end(app_with_data: PySheetApp) -> None:
 # ---------------------------------------------------------------------------
 # go{address} navigation
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_goto_cell_address(app_with_data: PySheetApp) -> None:
@@ -179,6 +186,7 @@ async def test_goto_a1(app_with_data: PySheetApp) -> None:
 # Mode verification — navigation stays in Normal mode
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_navigation_stays_in_normal_mode(app: PySheetApp) -> None:
     async with app.run_test() as pilot:
@@ -190,6 +198,7 @@ async def test_navigation_stays_in_normal_mode(app: PySheetApp) -> None:
 # ---------------------------------------------------------------------------
 # Sheet navigation
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_gt_goes_to_next_sheet() -> None:
@@ -216,6 +225,7 @@ async def test_gT_goes_to_prev_sheet() -> None:
 # ---------------------------------------------------------------------------
 # Visual mode
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_visual_mode_entry_and_exit(app: PySheetApp) -> None:

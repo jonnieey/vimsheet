@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pysheet.model.workbook import Workbook
 from pysheet.plotting.chart import ChartSpec, render_chart
 
@@ -49,6 +47,7 @@ class TestRenderChart:
     def test_ascii_fallback(self):
         """Force ASCII fallback by using _render_ascii directly."""
         from pysheet.plotting.chart import _render_ascii
+
         data = [["Jan", 100], ["Feb", 150], ["Mar", 90]]
         spec = ChartSpec(chart_type="bar", width=40)
         result = _render_ascii(data, spec)
@@ -70,6 +69,7 @@ class TestRenderChart:
 
     def test_title_included_in_ascii(self):
         from pysheet.plotting.chart import _render_ascii
+
         data = [["A", 1], ["B", 2]]
         spec = ChartSpec(title="My Title", width=40)
         result = _render_ascii(data, spec)

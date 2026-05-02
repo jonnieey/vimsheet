@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class VisualHandler:
     """Handles all key events while in any Visual mode (v / V / Ctrl+v)."""
 
-    def __init__(self, app: "PySheetApp") -> None:
+    def __init__(self, app: PySheetApp) -> None:
         self._app = app
 
     def handle(self, key: str) -> None:
@@ -148,6 +148,7 @@ class VisualHandler:
 
     def _delete_range(self, cell_range: CellRange) -> None:
         from pysheet.model.undo import DeleteRangeCommand
+
         app = self._app
         sheet = app.workbook.active_sheet
         app._default_register = sheet.get_range_values(cell_range)
@@ -161,8 +162,10 @@ class VisualHandler:
         app = self._app
         sheet = app.workbook.active_sheet
         r1, c1, r2, c2 = (
-            cell_range.start_row, cell_range.start_col,
-            cell_range.end_row, cell_range.end_col,
+            cell_range.start_row,
+            cell_range.start_col,
+            cell_range.end_row,
+            cell_range.end_col,
         )
         rows: list[list[Any]] = []
         for r in range(r1, r2 + 1):
@@ -174,7 +177,7 @@ class VisualHandler:
             val = cell.value if cell else None
             if val is None:
                 return (1, "")
-            if isinstance(val, (int, float)):
+            if isinstance(val, int | float):
                 return (0, val)
             return (0, str(val))
 
@@ -204,7 +207,8 @@ class VisualHandler:
 
     def _fill_range(self, cell_range: CellRange) -> None:
         """Fill the selection by replicating the top-left cell downward/rightward."""
-        from pysheet.model.undo import SetCellCommand, CompositeCommand
+        from pysheet.model.undo import CompositeCommand, SetCellCommand
+
         app = self._app
         sheet = app.workbook.active_sheet
         src = sheet.get_cell(cell_range.start_row, cell_range.start_col)
@@ -223,7 +227,8 @@ class VisualHandler:
 
     def _apply_fmt(self, cell_range: CellRange, fmt_key: str) -> None:
         """Apply a format shortcut to all cells in the selection."""
-        from pysheet.model.undo import FormatCommand, CompositeCommand
+        from pysheet.model.undo import CompositeCommand, FormatCommand
+
         app = self._app
         sheet = app.workbook.active_sheet
         cmds: list[FormatCommand] = []

@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import pytest
-
-from pysheet.controller.search import SearchState, Searcher
+from pysheet.controller.search import Searcher, SearchState
 from pysheet.model.sheet import Sheet
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_sheet() -> Sheet:
     """Create a small test sheet with known content."""
@@ -36,6 +34,7 @@ def _make_sheet() -> Sheet:
 # ---------------------------------------------------------------------------
 # find_all tests
 # ---------------------------------------------------------------------------
+
 
 class TestFindAll:
     def test_simple_pattern_found(self) -> None:
@@ -115,6 +114,7 @@ class TestFindAll:
 # find_next / find_prev tests
 # ---------------------------------------------------------------------------
 
+
 class TestFindNextPrev:
     def test_find_next_wraps_around(self) -> None:
         sheet = _make_sheet()
@@ -169,6 +169,7 @@ class TestFindNextPrev:
 # ---------------------------------------------------------------------------
 # replace_one / replace_all tests
 # ---------------------------------------------------------------------------
+
 
 class TestReplaceOne:
     def test_replace_one_changes_cell_value(self) -> None:
@@ -231,6 +232,7 @@ class TestReplaceAll:
 # ---------------------------------------------------------------------------
 # Formula cell search test
 # ---------------------------------------------------------------------------
+
 
 class TestFormulaSearch:
     def test_search_finds_formula_text(self) -> None:

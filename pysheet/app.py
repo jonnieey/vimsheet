@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from pathlib import Path
 from typing import Any
@@ -13,10 +14,10 @@ from pysheet.controller.insert_handler import InsertHandler
 from pysheet.controller.macro import MacroRecorder
 from pysheet.controller.mode import Mode
 from pysheet.controller.normal_handler import NormalHandler
-from pysheet.controller.search import SearchState, Searcher
+from pysheet.controller.search import Searcher, SearchState
 from pysheet.controller.visual_handler import VisualHandler
-from pysheet.model.undo import UndoStack
 from pysheet.model.range import rowcol_to_a1
+from pysheet.model.undo import UndoStack
 from pysheet.model.workbook import Workbook
 from pysheet.ui.formula_bar import FormulaBar
 from pysheet.ui.grid import GridWidget
@@ -45,7 +46,6 @@ class PySheetApp(App[None]):
     Screen { layout: vertical; }
     """
 
-
     def __init__(self, workbook: Workbook | None = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.workbook: Workbook = workbook or Workbook.blank()
@@ -58,8 +58,8 @@ class PySheetApp(App[None]):
         self._insert_align: str = "right"
         self._edit_buffer: str = ""
         self._edit_cursor: int = 0
-        self._edit_chord: str = ""   # pending chord in Edit normal sub-mode
-        self._visual_chord: str = "" # pending chord in Visual mode
+        self._edit_chord: str = ""  # pending chord in Edit normal sub-mode
+        self._visual_chord: str = ""  # pending chord in Visual mode
 
         # ---- Registers / marks ----
         self._default_register: list[list[Any]] = []
@@ -193,10 +193,8 @@ class PySheetApp(App[None]):
         prompt = f":{self._command_buffer}"
         self.status_bar.set_persistent_message(prompt)
         # Also show in formula bar content area (reliable fallback)
-        try:
+        with contextlib.suppress(Exception):
             self.formula_bar.formula_text = prompt
-        except Exception:
-            pass
 
     def _handle_command_key(self, key: str) -> None:
         match key:
@@ -252,6 +250,7 @@ class PySheetApp(App[None]):
                 # :ex <file>          — export by extension
                 # :ex <format> <file> — export with explicit format
                 from pysheet.io.registry import _FORMAT_NAMES
+
                 if len(parts) == 3 and parts[1].lower() in _FORMAT_NAMES:
                     self._export_file(parts[1].lower(), Path(parts[2]))
                 elif len(parts) == 2:
@@ -281,7 +280,14 @@ class PySheetApp(App[None]):
                 else:
                     target_name = parts[1].strip("\"'") if len(parts) > 1 else None
                     if target_name:
-                        idx = next((i for i, s in enumerate(self.workbook.sheets) if s.name == target_name), None)
+                        idx = next(
+                            (
+                                i
+                                for i, s in enumerate(self.workbook.sheets)
+                                if s.name == target_name
+                            ),
+                            None,
+                        )
                         if idx is None:
                             self.status_bar.show_message(f"Sheet not found: {target_name!r}")
                             return
@@ -294,7 +300,9 @@ class PySheetApp(App[None]):
                     self.workbook.active_sheet_idx = max(0, idx - 1)
                     self._on_sheet_changed()
                     self.workbook.modified = True
-                    self.status_bar.show_message(f"Deleted sheet: {deleted_sheet.name}  (undo with :undodelsheet)")
+                    self.status_bar.show_message(
+                        f"Deleted sheet: {deleted_sheet.name}  (undo with :undodelsheet)"
+                    )
             case "renamesheet" | "renames":
                 if len(parts) > 1:
                     new_name = parts[1].strip("\"'")
@@ -313,7 +321,9 @@ class PySheetApp(App[None]):
                             return
                     self.status_bar.show_message(f"Sheet not found: {parts[1]!r}")
                 else:
-                    self.status_bar.show_message(f"Current sheet: {self.workbook.active_sheet.name}")
+                    self.status_bar.show_message(
+                        f"Current sheet: {self.workbook.active_sheet.name}"
+                    )
 
             # ---- Column width ----
             case "colwidth" | "cw":
@@ -336,6 +346,7 @@ class PySheetApp(App[None]):
             # ---- Sort ----
             case "funcs" | "functions":
                 from pysheet.ui.funcs_screen import FuncsScreen
+
                 term = parts[1] if len(parts) > 1 else ""
                 self.push_screen(FuncsScreen(filter_term=term))
 
@@ -352,19 +363,28 @@ class PySheetApp(App[None]):
 
             case "sort":
                 from pysheet.model.undo import SortCommand
+
                 sheet = self.workbook.active_sheet
                 col_arg = parts[1] if len(parts) > 1 else None
                 asc = True
-                if len(parts) > 2 and parts[2].lower() in ("desc", "d"):
-                    asc = False
-                elif len(parts) > 1 and parts[-1].lower() in ("desc", "d"):
+                if (
+                    len(parts) > 2
+                    and parts[2].lower() in ("desc", "d")
+                    or len(parts) > 1
+                    and parts[-1].lower() in ("desc", "d")
+                ):
                     asc = False
                 try:
                     if col_arg is None or col_arg.lower() in ("asc", "desc"):
                         sort_col = self.cursor_col
                     elif col_arg.isalpha():
-                        sort_col = sum((ord(ch.upper()) - 64) * (26 ** i)
-                                       for i, ch in enumerate(reversed(col_arg.upper()))) - 1
+                        sort_col = (
+                            sum(
+                                (ord(ch.upper()) - 64) * (26**i)
+                                for i, ch in enumerate(reversed(col_arg.upper()))
+                            )
+                            - 1
+                        )
                     else:
                         sort_col = int(col_arg) - 1
                     cmd = SortCommand(sheet, sort_col, asc)
@@ -372,7 +392,9 @@ class PySheetApp(App[None]):
                     self.grid.refresh_grid()
                     self.workbook.modified = True
                     label = chr(65 + sort_col) if sort_col < 26 else str(sort_col + 1)
-                    self.status_bar.show_message(f"Sorted by col {label} ({'asc' if asc else 'desc'})")
+                    self.status_bar.show_message(
+                        f"Sorted by col {label} ({'asc' if asc else 'desc'})"
+                    )
                 except (ValueError, IndexError) as e:
                     self.status_bar.show_message(f"Sort error: {e}")
 
@@ -380,6 +402,7 @@ class PySheetApp(App[None]):
             case "recalc":
                 sheet = self.workbook.active_sheet
                 from pysheet.formula.evaluator import recalculate
+
                 recalculate(sheet, sheet._dep_graph)
                 self.grid.refresh_grid()
                 self.status_bar.show_message("Recalculated")
@@ -389,6 +412,7 @@ class PySheetApp(App[None]):
                 if len(parts) > 1:
                     try:
                         from pysheet.model.range import a1_to_rowcol
+
                         r, c = a1_to_rowcol(parts[1].upper())
                         self.grid.move_cursor(r, c)
                     except Exception:
@@ -444,8 +468,12 @@ class PySheetApp(App[None]):
             case "plot":
                 # :plot [range] <type> [title]
                 # :plot line  /  :plot A1:B5 bar  /  :A1:B5 plot line
-                _chart_types = {"line","bar","scatter","pie","histogram","hist"}
-                if len(parts) > 1 and parts[1].upper() not in {t.upper() for t in _chart_types} and ":" in parts[1]:
+                _chart_types = {"line", "bar", "scatter", "pie", "histogram", "hist"}
+                if (
+                    len(parts) > 1
+                    and parts[1].upper() not in {t.upper() for t in _chart_types}
+                    and ":" in parts[1]
+                ):
                     # :plot <range> <type>
                     data_range = parts[1]
                     chart_type = parts[2] if len(parts) > 2 else "bar"
@@ -458,6 +486,7 @@ class PySheetApp(App[None]):
             case _ if len(parts) >= 2 and parts[1] == "fill":
                 # <range> fill [start] [step] [func]
                 from pysheet.model.range import CellRange
+
                 try:
                     cr = CellRange.from_a1(parts[0].upper())
                     self._cmd_fill(cr, parts[2:])
@@ -499,7 +528,9 @@ class PySheetApp(App[None]):
                 elif len(parts) == 2:
                     name = parts[1].upper()
                     val = self.workbook.active_sheet.named_ranges.resolve(name)
-                    self.status_bar.show_message(f"{name} = {val}" if val else f"{name}: not defined")
+                    self.status_bar.show_message(
+                        f"{name} = {val}" if val else f"{name}: not defined"
+                    )
                 else:
                     self.status_bar.show_message("Usage: :name <NAME> <A1:B5>  or  :name <NAME>")
 
@@ -517,6 +548,7 @@ class PySheetApp(App[None]):
                 else:
                     rule_type = parts[1].lower()
                     from pysheet.model.validation import ValidationRule
+
                     rule: ValidationRule
                     if rule_type == "list" and len(parts) > 2:
                         choices = parts[2].split(",")
@@ -525,7 +557,9 @@ class PySheetApp(App[None]):
                         op = parts[2].lower()
                         v1 = float(parts[3])
                         v2 = float(parts[4]) if len(parts) > 4 else None
-                        rule = ValidationRule(rule_type=rule_type, operator=op, value1=v1, value2=v2)
+                        rule = ValidationRule(
+                            rule_type=rule_type, operator=op, value1=v1, value2=v2
+                        )
                     else:
                         rule = ValidationRule(rule_type=rule_type)
                     sheet.validation.add(r, c, rule)
@@ -536,12 +570,14 @@ class PySheetApp(App[None]):
                 if len(parts) > 1:
                     try:
                         from pysheet.model.range import a1_to_rowcol
+
                         r, c = a1_to_rowcol(parts[1].upper())
                     except Exception:
                         r, c = self.cursor_row, self.cursor_col
                 else:
                     r, c = self.cursor_row, self.cursor_col
                 from pysheet.model.range import rowcol_to_a1 as _r2a
+
                 addr = _r2a(r, c)
                 cell = self.workbook.active_sheet.get_cell(r, c)
                 if cell:
@@ -556,10 +592,16 @@ class PySheetApp(App[None]):
                 # :filter <col_letter> <op> <value>   e.g. :filter A gt 10
                 if len(parts) >= 4:
                     from pysheet.model.sheet import FilterRule
+
                     col_letter = parts[1].upper()
                     try:
-                        filter_col = sum((ord(ch) - 64) * (26 ** i)
-                                         for i, ch in enumerate(reversed(col_letter))) - 1
+                        filter_col = (
+                            sum(
+                                (ord(ch) - 64) * (26**i)
+                                for i, ch in enumerate(reversed(col_letter))
+                            )
+                            - 1
+                        )
                     except Exception:
                         self.status_bar.show_message("Usage: :filter <col> <op> <value>")
                         return
@@ -569,7 +611,9 @@ class PySheetApp(App[None]):
                         val: Any = float(val_str)
                     except ValueError:
                         val = val_str
-                    self.workbook.active_sheet.filters[filter_col] = FilterRule(operator=op, value=val)
+                    self.workbook.active_sheet.filters[filter_col] = FilterRule(
+                        operator=op, value=val
+                    )
                     self.workbook.active_sheet.apply_filters()
                     self.grid.refresh_grid()
                     self.status_bar.show_message(f"Filter: col {col_letter} {op} {val_str}")
@@ -590,7 +634,9 @@ class PySheetApp(App[None]):
                     match option:
                         case "autocalc":
                             self._autocalc = not getattr(self, "_autocalc", True)
-                            self.status_bar.show_message(f"autocalc {'on' if self._autocalc else 'off'}")
+                            self.status_bar.show_message(
+                                f"autocalc {'on' if self._autocalc else 'off'}"
+                            )
                         case _:
                             self.status_bar.show_message(f"Unknown option: {option!r}")
                 else:
@@ -612,8 +658,9 @@ class PySheetApp(App[None]):
                 # :format <addr> color <#rrggbb>
                 # :format <addr> bg <#rrggbb>
                 # :format <addr> bold | italic | underline
-                from pysheet.model.undo import FormatCommand
                 from pysheet.model.range import a1_to_rowcol
+                from pysheet.model.undo import FormatCommand
+
                 if len(parts) >= 3:
                     try:
                         r, c = a1_to_rowcol(parts[1].upper())
@@ -641,7 +688,9 @@ class PySheetApp(App[None]):
                     self.workbook.modified = True
                     self.status_bar.show_message(f"Formatted {parts[1].upper()}: {prop} {val_str}")
                 else:
-                    self.status_bar.show_message("Usage: :format <addr> color|bg|bold|italic|underline [value]")
+                    self.status_bar.show_message(
+                        "Usage: :format <addr> color|bg|bold|italic|underline [value]"
+                    )
 
             # ---- Conditional formatting ----
             case "condformat" | "cond" | "cf":
@@ -655,8 +704,9 @@ class PySheetApp(App[None]):
                         self.grid.refresh_grid()
                         self.status_bar.show_message("All conditional formatting cleared")
                     elif len(parts) >= 4:
-                        from pysheet.model.sheet import CondFormatRule
                         from pysheet.model.cell import CellFormat
+                        from pysheet.model.sheet import CondFormatRule
+
                         range_str = parts[1].upper()
                         op = parts[2].lower()
                         val_str = parts[3]
@@ -689,13 +739,17 @@ class PySheetApp(App[None]):
                                 i += 1
                             else:
                                 i += 1
-                        rule = CondFormatRule(range_str=range_str, operator=op, value=value, fmt=fmt)
+                        rule = CondFormatRule(
+                            range_str=range_str, operator=op, value=value, fmt=fmt
+                        )
                         sheet.cond_formats.append(rule)
                         self.grid.refresh_grid()
                         self.workbook.modified = True
                         self.status_bar.show_message(f"Cond format: {range_str} {op} {val_str}")
                     else:
-                        self.status_bar.show_message("Usage: :cond <range> <op> <value> [color #hex] [bg #hex] [bold]")
+                        self.status_bar.show_message(
+                            "Usage: :cond <range> <op> <value> [color #hex] [bg #hex] [bold]"
+                        )
                 except Exception as exc:
                     self.status_bar.show_message(f"Condformat error: {exc}")
 
@@ -769,6 +823,7 @@ class PySheetApp(App[None]):
                 self.status_bar.show_message("PySheet 0.1.0")
             case "help":
                 from pysheet.ui.help_screen import HelpScreen
+
                 self.push_screen(HelpScreen())
             case _ if "!" in parts[0]:
                 # <range>!<script>  — no space variant
@@ -778,7 +833,9 @@ class PySheetApp(App[None]):
                 # <range> !<script>  — space variant
                 script_part = parts[1][1:] or (" ".join(parts[2:]) if len(parts) > 2 else "")
                 self._run_external_script(parts[0].upper(), script_part)
-            case _ if len(parts) == 2 and ":" in parts[0] and parts[1].upper() in self._get_script_func_names():
+            case _ if len(parts) == 2 and ":" in parts[0] and parts[
+                1
+            ].upper() in self._get_script_func_names():
                 # :<range> <FUNCNAME>  — apply registered script function to range in place
                 self._apply_script_func_to_range(parts[0].upper(), parts[1].upper())
             case _:
@@ -798,9 +855,7 @@ class PySheetApp(App[None]):
         if matches:
             state.current_match = matches[0]
             self.grid.move_cursor(*matches[0])
-            self.status_bar.show_message(
-                f"/{pattern}  [{1}/{len(matches)}]"
-            )
+            self.status_bar.show_message(f"/{pattern}  [{1}/{len(matches)}]")
         else:
             self.status_bar.show_message(f"Pattern not found: {pattern!r}")
 
@@ -815,7 +870,6 @@ class PySheetApp(App[None]):
         if nxt:
             state.current_match = nxt
             self.grid.move_cursor(*nxt)
-            total = len(state.matches) if state.matches else "?"
             self.status_bar.show_message(f"/{state.pattern}  [next]")
         else:
             self.status_bar.show_message("No matches")
@@ -859,7 +913,7 @@ class PySheetApp(App[None]):
             self.grid.refresh_grid()
         self.status_bar.show_message(f"Replaced {count} occurrence(s)")
 
-    def _cmd_fill(self, cr: "Any", args: list[str]) -> None:
+    def _cmd_fill(self, cr: Any, args: list[str]) -> None:
         """Fill a CellRange with a constant, sequence, or string with optional transform.
 
         Numeric:  fill <start> [step] [func]   — arithmetic sequence + numeric transform
@@ -868,18 +922,18 @@ class PySheetApp(App[None]):
         _NUM_TRANSFORMS: dict[str, Any] = {
             "double": lambda v: v * 2,
             "triple": lambda v: v * 3,
-            "square": lambda v: v ** 2,
-            "sqrt":   lambda v: v ** 0.5,
-            "half":   lambda v: v / 2,
-            "neg":    lambda v: -v,
+            "square": lambda v: v**2,
+            "sqrt": lambda v: v**0.5,
+            "half": lambda v: v / 2,
+            "neg": lambda v: -v,
         }
         _STR_TRANSFORMS: dict[str, Any] = {
-            "upper":     str.upper,
-            "lower":     str.lower,
-            "title":     str.title,
+            "upper": str.upper,
+            "lower": str.lower,
+            "title": str.title,
             "capitalize": str.capitalize,
-            "strip":     str.strip,
-            "reverse":   lambda s: s[::-1],
+            "strip": str.strip,
+            "reverse": lambda s: s[::-1],
         }
 
         sheet = self.workbook.active_sheet
@@ -944,11 +998,14 @@ class PySheetApp(App[None]):
                         val: float = start if step is None else start + i * step
                         if transform:
                             val = transform(val)
-                        stored: Any = int(val) if isinstance(val, float) and val.is_integer() else val
+                        stored: Any = (
+                            int(val) if isinstance(val, float) and val.is_integer() else val
+                        )
                         updates.append((r, c, stored))
                         i += 1
 
         from pysheet.model.undo import FillRangeCommand
+
         cmd = FillRangeCommand(sheet, updates)
         self.undo_stack.push(cmd)
         self.workbook.modified = True
@@ -960,9 +1017,11 @@ class PySheetApp(App[None]):
         """Render a chart for *data_range* and display it in a full-screen modal."""
         from pysheet.plotting.chart import ChartSpec, render_chart
         from pysheet.ui.chart_screen import ChartScreen
+
         if not data_range:
             sheet = self.workbook.active_sheet
             from pysheet.model.range import rowcol_to_a1
+
             top = rowcol_to_a1(0, self.cursor_col)
             bot = rowcol_to_a1(sheet.max_row, self.cursor_col)
             data_range = f"{top}:{bot}"
@@ -1001,7 +1060,8 @@ class PySheetApp(App[None]):
         import subprocess
         import sys as _sys
         from pathlib import Path as _Path
-        from pysheet.model.range import CellRange, rowcol_to_a1, a1_to_rowcol
+
+        from pysheet.model.range import CellRange, a1_to_rowcol, rowcol_to_a1
 
         script = _Path(script_path)
         if not script.exists():
@@ -1028,10 +1088,8 @@ class PySheetApp(App[None]):
                     try:
                         val = int(val)
                     except ValueError:
-                        try:
+                        with contextlib.suppress(ValueError):
                             val = float(val)
-                        except ValueError:
-                            pass
                 row[col_letter] = val
             rows_data.append(row)
         payload = json.dumps({"rows": rows_data})
@@ -1057,7 +1115,8 @@ class PySheetApp(App[None]):
             return
 
         # Process output lines
-        from pysheet.model.undo import SetCellCommand, CompositeCommand
+        from pysheet.model.undo import CompositeCommand, SetCellCommand
+
         cmds = []
         messages = []
         for line in proc.stdout.splitlines():
@@ -1084,6 +1143,7 @@ class PySheetApp(App[None]):
 
         if cmds:
             from pysheet.model.undo import CompositeCommand
+
             self.undo_stack.push(CompositeCommand(cmds))
             self.workbook.modified = True
             self.grid.refresh_grid()
@@ -1105,12 +1165,14 @@ class PySheetApp(App[None]):
     def _register_script_func(self, name: str, script_path: str) -> None:
         """Register *script_path* as formula function *name*."""
         from pathlib import Path as _Path
+
         script = _Path(script_path)
         if not script.exists():
             self.status_bar.show_message(f"Script not found: {script_path}")
             return
         self._script_funcs[name] = str(script)
         from pysheet.formula.functions.registry import register_script_function
+
         register_script_function(name, str(script))
         self.status_bar.show_message(f"Registered function: @{name}")
 
@@ -1121,11 +1183,16 @@ class PySheetApp(App[None]):
         """Apply a registered script function to *range_str* in place."""
         script_path = self._script_funcs.get(func_name)
         if not script_path:
-            self.status_bar.show_message(f"Unknown function: {func_name} — use :func to register it")
+            self.status_bar.show_message(
+                f"Unknown function: {func_name} — use :func to register it"
+            )
             return
-        import json, subprocess, sys as _sys
+        import json
+        import subprocess
+        import sys as _sys
+
         from pysheet.model.range import CellRange, a1_to_rowcol
-        from pysheet.model.undo import SetCellCommand, CompositeCommand
+        from pysheet.model.undo import CompositeCommand, SetCellCommand
 
         sheet = self.workbook.active_sheet
         try:
@@ -1141,10 +1208,11 @@ class PySheetApp(App[None]):
                 cell = sheet.get_cell(r, c)
                 val = cell.value if cell else None
                 if isinstance(val, str):
-                    try: val = int(val)
+                    try:
+                        val = int(val)
                     except ValueError:
-                        try: val = float(val)
-                        except ValueError: pass
+                        with contextlib.suppress(ValueError):
+                            val = float(val)
                 rows_data.append({"_row": r + 1, col_letter: val})
 
         payload = json.dumps({"rows": rows_data})
@@ -1152,7 +1220,9 @@ class PySheetApp(App[None]):
             proc = subprocess.run(
                 [_sys.executable, script_path],
                 input=payload + "\n",
-                capture_output=True, text=True, timeout=30,
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
         except Exception as exc:
             self.status_bar.show_message(f"Script error: {exc}")
@@ -1215,6 +1285,7 @@ class PySheetApp(App[None]):
         match action[0]:
             case "clear_cell":
                 from pysheet.model.undo import ClearCellCommand
+
                 r, c = self.cursor_row, self.cursor_col
                 cmd = ClearCellCommand(self.workbook.active_sheet, r, c)
                 self.undo_stack.push(cmd)
@@ -1223,6 +1294,7 @@ class PySheetApp(App[None]):
             case "paste":
                 _, after, data = action
                 from pysheet.model.undo import PasteCommand
+
                 dr = 1 if after else 0
                 r, c = self.cursor_row + dr, self.cursor_col
                 cmd = PasteCommand(self.workbook.active_sheet, r, c, data)
@@ -1248,6 +1320,7 @@ class PySheetApp(App[None]):
             self.status_bar.show_message("No filename — use :w <file>")
             return
         from pysheet.io.registry import get_adapter
+
         try:
             adapter = get_adapter(target)
             adapter.write(self.workbook, target)
@@ -1261,6 +1334,7 @@ class PySheetApp(App[None]):
 
     def _open_file(self, path: Path) -> None:
         from pysheet.io.registry import get_adapter
+
         try:
             adapter = get_adapter(path)
             self.workbook = adapter.read(path)
@@ -1274,6 +1348,7 @@ class PySheetApp(App[None]):
 
     def _export_file(self, fmt: str, path: Path) -> None:
         from pysheet.io.registry import get_adapter_by_name
+
         try:
             adapter = get_adapter_by_name(fmt)
             adapter.write(self.workbook, path)
@@ -1312,9 +1387,7 @@ class PySheetApp(App[None]):
         self.status_bar.mode = self.mode
         self.status_bar.sheet_name = self.workbook.active_sheet.name
         self.status_bar.used_rows = self.workbook.active_sheet.max_row + 1
-        self.status_bar.filename = (
-            self.workbook.filepath.name if self.workbook.filepath else ""
-        )
+        self.status_bar.filename = self.workbook.filepath.name if self.workbook.filepath else ""
         self.status_bar.file_modified = self.workbook.modified
         # Preserve the command prompt — don't overwrite with positional info
         if self.mode == Mode.COMMAND:
@@ -1359,7 +1432,9 @@ class PySheetApp(App[None]):
             self.theme = resolved
             self.status_bar.show_message(f"Theme: {resolved}")
         except Exception:
-            available = "dark light nord gruvbox dracula tokyo monokai solarized catppuccin rose-pine"
+            available = (
+                "dark light nord gruvbox dracula tokyo monokai solarized catppuccin rose-pine"
+            )
             self.status_bar.show_message(f"Unknown theme {name!r}. Try: {available}")
 
     def _fold_group(self, action: str) -> None:

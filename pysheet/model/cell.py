@@ -15,13 +15,13 @@ class CellFormat:
     italic: bool = False
     underline: bool = False
     align: Literal["left", "right", "center"] = "right"
-    fg_color: str | None = None   # hex RGB e.g. "#ff0000"
+    fg_color: str | None = None  # hex RGB e.g. "#ff0000"
     bg_color: str | None = None
     num_decimals: int | None = None
     num_format: str | None = None  # strftime or number pattern
     thousands_sep: bool = False
 
-    def copy(self) -> "CellFormat":
+    def copy(self) -> CellFormat:
         """Return a shallow copy of this format."""
         return CellFormat(
             bold=self.bold,
@@ -43,9 +43,9 @@ class Cell:
     row: int
     col: int
     # Content
-    formula: str | None = None      # raw formula string e.g. "=SUM(A1:A5)"
-    value: Any = None               # computed/stored value
-    display: str = ""               # formatted string for display
+    formula: str | None = None  # raw formula string e.g. "=SUM(A1:A5)"
+    value: Any = None  # computed/stored value
+    display: str = ""  # formatted string for display
     # Metadata
     fmt: CellFormat = field(default_factory=CellFormat)
     locked: bool = False
@@ -73,7 +73,7 @@ class Cell:
         if isinstance(self.value, bool):
             return "TRUE" if self.value else "FALSE"
 
-        if isinstance(self.value, (int, float)):
+        if isinstance(self.value, int | float):
             num = float(self.value)
 
             decimals = fmt.num_decimals
@@ -96,7 +96,7 @@ class Cell:
 
         return str(self.value)
 
-    def copy(self) -> "Cell":
+    def copy(self) -> Cell:
         """Return a copy of this cell (same position, same content)."""
         return Cell(
             row=self.row,

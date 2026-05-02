@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import shlex
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -106,13 +107,24 @@ class ScriptEngine:
 
         # TUI command aliases → ScriptEngine commands
         _ALIASES: dict[str, str] = {
-            "w": "save", "write": "save",
-            "e": "open", "edit": "open", "r": "open", "read": "open",
-            "q": "quit", "q!": "quit", "wq": "wquit", "x": "wquit",
-            "newsheet": "addsheet", "sheet+": "addsheet",
-            "nextsheet": "sheet_next", "prevsheet": "sheet_prev",
-            "renamesheet": "renamesheet", "delsheet": "delsheet",
-            "find": "print", "set": "config",
+            "w": "save",
+            "write": "save",
+            "e": "open",
+            "edit": "open",
+            "r": "open",
+            "read": "open",
+            "q": "quit",
+            "q!": "quit",
+            "wq": "wquit",
+            "x": "wquit",
+            "newsheet": "addsheet",
+            "sheet+": "addsheet",
+            "nextsheet": "sheet_next",
+            "prevsheet": "sheet_prev",
+            "renamesheet": "renamesheet",
+            "delsheet": "delsheet",
+            "find": "print",
+            "set": "config",
         }
         cmd = _ALIASES.get(cmd, cmd)
 
@@ -208,7 +220,8 @@ class ScriptEngine:
     def _cmd_clear(self, args: list[str]) -> None:
         if not args:
             raise ScriptError("Usage: clear <cell_or_range>")
-        from pysheet.model.range import CellRange, a1_to_rowcol
+        from pysheet.model.range import CellRange
+
         addr = args[0].upper()
         if ":" in addr:
             cr = CellRange.from_a1(addr)
@@ -237,7 +250,6 @@ class ScriptEngine:
             self._apply_fmt(cell, key.lower(), val_str)  # type: ignore[arg-type]
 
     def _apply_fmt(self, cell: Any, key: str, val_str: str) -> None:
-        from pysheet.model.cell import Cell
         fmt = cell.fmt
         val_str = val_str.lower()
         match key:
@@ -255,10 +267,8 @@ class ScriptEngine:
             case "bg" | "bg_color":
                 fmt.bg_color = val_str or None
             case "decimals" | "num_decimals":
-                try:
+                with contextlib.suppress(ValueError):
                     fmt.num_decimals = int(val_str)
-                except ValueError:
-                    pass
             case "thousands":
                 fmt.thousands_sep = val_str in ("true", "1", "yes")
 
@@ -270,8 +280,8 @@ class ScriptEngine:
         c = self._parse_col(col_str)
         try:
             w = int(width_str)
-        except ValueError:
-            raise ScriptError(f"Invalid width: {width_str!r}")
+        except ValueError as err:
+            raise ScriptError(f"Invalid width: {width_str!r}") from err
         self.workbook.active_sheet.set_col_width(c, w)
 
     def _cmd_autofit(self, args: list[str]) -> None:
@@ -285,7 +295,7 @@ class ScriptEngine:
         if not args:
             raise ScriptError("Usage: sort <col> [asc|desc]")
         c = self._parse_col(args[0])
-        asc = True if len(args) < 2 or args[1].lower() in ("asc", "a") else False
+        asc = bool(len(args) < 2 or args[1].lower() in ("asc", "a"))
         _sort_sheet(self.workbook.active_sheet, c, asc)
 
     def _cmd_addsheet(self, args: list[str]) -> None:
@@ -316,6 +326,7 @@ class ScriptEngine:
             raise ScriptError("Usage: open <file>")
         path = Path(args[0])
         from pysheet.io.registry import get_adapter
+
         try:
             adapter = get_adapter(path)
             self.workbook = adapter.read(path)
@@ -327,6 +338,7 @@ class ScriptEngine:
             raise ScriptError("Usage: save <file>")
         path = Path(args[0]) if args else self.workbook.filepath
         from pysheet.io.registry import get_adapter
+
         try:
             adapter = get_adapter(path)  # type: ignore[arg-type]
             adapter.write(self.workbook, path)  # type: ignore[arg-type]
@@ -348,7 +360,8 @@ class ScriptEngine:
                 print("\t".join(row_vals))
             return
         addr = args[0].upper()
-        from pysheet.model.range import CellRange, a1_to_rowcol
+        from pysheet.model.range import CellRange
+
         if ":" in addr:
             cr = CellRange.from_a1(addr)
             sheet = self.workbook.active_sheet
@@ -368,8 +381,8 @@ class ScriptEngine:
             raise ScriptError("Usage: hiderow <row>")
         try:
             r = int(args[0]) - 1
-        except ValueError:
-            raise ScriptError(f"Invalid row: {args[0]!r}")
+        except ValueError as err:
+            raise ScriptError(f"Invalid row: {args[0]!r}") from err
         self.workbook.active_sheet.hidden_rows.add(r)
 
     def _cmd_showrow(self, args: list[str]) -> None:
@@ -377,8 +390,8 @@ class ScriptEngine:
             raise ScriptError("Usage: showrow <row>")
         try:
             r = int(args[0]) - 1
-        except ValueError:
-            raise ScriptError(f"Invalid row: {args[0]!r}")
+        except ValueError as err:
+            raise ScriptError(f"Invalid row: {args[0]!r}") from err
         self.workbook.active_sheet.hidden_rows.discard(r)
 
     def _cmd_hidecol(self, args: list[str]) -> None:
@@ -400,8 +413,8 @@ class ScriptEngine:
         try:
             rows = int(args[0])
             cols = int(args[1]) if len(args) > 1 else 0
-        except ValueError:
-            raise ScriptError("freeze rows and cols must be integers")
+        except ValueError as err:
+            raise ScriptError("freeze rows and cols must be integers") from err
         self.workbook.active_sheet.freeze_rows = rows
         self.workbook.active_sheet.freeze_cols = cols
 
@@ -432,10 +445,11 @@ class ScriptEngine:
 
     def _parse_addr(self, addr: str) -> tuple[int, int]:
         from pysheet.model.range import a1_to_rowcol
+
         try:
             return a1_to_rowcol(addr.replace("$", ""))
-        except Exception:
-            raise ScriptError(f"Invalid cell address: {addr!r}")
+        except Exception as err:
+            raise ScriptError(f"Invalid cell address: {addr!r}") from err
 
     def _parse_col(self, col_str: str) -> int:
         """Parse 'A' or '1' (1-based) into 0-based column index."""
@@ -444,16 +458,18 @@ class ScriptEngine:
             c = int(col_str) - 1
         else:
             from pysheet.model.range import a1_to_rowcol
+
             try:
                 _, c = a1_to_rowcol(col_str + "1")
-            except Exception:
-                raise ScriptError(f"Invalid column: {col_str!r}")
+            except Exception as err:
+                raise ScriptError(f"Invalid column: {col_str!r}") from err
         return c
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _coerce(raw: str) -> Any:
     """Try int → float → str."""
@@ -474,6 +490,7 @@ def _coerce(raw: str) -> Any:
 def _sort_sheet(sheet: Any, col: int, ascending: bool) -> None:
     """Sort sheet rows by 0-based column."""
     from pysheet.model.sheet import SortState
+
     if not sheet.cells:
         return
     max_r = sheet.max_row
@@ -484,7 +501,13 @@ def _sort_sheet(sheet: Any, col: int, ascending: bool) -> None:
         for c in range(max_c + 1):
             cell = sheet.get_cell(r, c)
             if cell:
-                row_cells[c] = (cell.value, cell.formula, cell.fmt.copy(), cell.locked, cell.comment)
+                row_cells[c] = (
+                    cell.value,
+                    cell.formula,
+                    cell.fmt.copy(),
+                    cell.locked,
+                    cell.comment,
+                )
         key = None
         if col in row_cells:
             v = row_cells[col][0]

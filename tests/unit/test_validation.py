@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import datetime
 
-import pytest
-
 from pysheet.model.validation import SheetValidation, ValidationRule
 
 
@@ -103,9 +101,13 @@ class TestSheetValidation:
 
     def test_validate_fails(self):
         sv = SheetValidation()
-        sv.add(0, 0, ValidationRule(
-            rule_type="number", operator="gt", value1=0, error_message="Must be positive"
-        ))
+        sv.add(
+            0,
+            0,
+            ValidationRule(
+                rule_type="number", operator="gt", value1=0, error_message="Must be positive"
+            ),
+        )
         ok, msg = sv.validate(0, 0, -1)
         assert ok is False
         assert msg == "Must be positive"
@@ -118,6 +120,7 @@ class TestSheetValidation:
 
     def test_sheet_has_validation(self):
         from pysheet.model.workbook import Workbook
+
         wb = Workbook.blank()
         sheet = wb.active_sheet
         assert hasattr(sheet, "validation")

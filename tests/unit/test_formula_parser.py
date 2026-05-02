@@ -3,16 +3,23 @@
 import pytest
 
 from pysheet.formula.ast_nodes import (
-    BinaryNode, BoolNode, CellRefNode, FuncCallNode,
-    NameNode, NumberNode, PercentNode, RangeRefNode,
-    StringNode, UnaryNode,
+    BinaryNode,
+    BoolNode,
+    CellRefNode,
+    FuncCallNode,
+    NameNode,
+    NumberNode,
+    PercentNode,
+    RangeRefNode,
+    StringNode,
+    UnaryNode,
 )
 from pysheet.formula.parser import parse_formula
-
 
 # ---------------------------------------------------------------------------
 # Literals
 # ---------------------------------------------------------------------------
+
 
 class TestLiterals:
     def test_integer(self):
@@ -51,6 +58,7 @@ class TestLiterals:
 # Cell and range references
 # ---------------------------------------------------------------------------
 
+
 class TestReferences:
     def test_simple_cell_ref(self):
         assert parse_formula("A1") == CellRefNode("A1")
@@ -82,6 +90,7 @@ class TestReferences:
 # ---------------------------------------------------------------------------
 # Arithmetic operators
 # ---------------------------------------------------------------------------
+
 
 class TestArithmetic:
     def test_addition(self):
@@ -130,6 +139,7 @@ class TestArithmetic:
 # Comparison operators
 # ---------------------------------------------------------------------------
 
+
 class TestComparisons:
     def test_eq(self):
         assert parse_formula("A1=B1").op == "="
@@ -153,6 +163,7 @@ class TestComparisons:
 # ---------------------------------------------------------------------------
 # Function calls
 # ---------------------------------------------------------------------------
+
 
 class TestFunctions:
     def test_no_args(self):
@@ -197,11 +208,12 @@ class TestFunctions:
 # Error cases
 # ---------------------------------------------------------------------------
 
+
 class TestParseErrors:
     def test_empty_string_raises(self):
-        with pytest.raises(Exception):
+        with pytest.raises(SyntaxError):
             parse_formula("")
 
     def test_unmatched_paren_raises(self):
-        with pytest.raises(Exception):
+        with pytest.raises(SyntaxError):
             parse_formula("(1+2")

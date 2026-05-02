@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pysheet.model.workbook import Workbook
 from pysheet.scripting.engine import ScriptEngine
 
@@ -19,6 +17,7 @@ def make_engine(script: str = "", file: str | None = None) -> ScriptEngine:
 # ---------------------------------------------------------------------------
 # Basic set / formula
 # ---------------------------------------------------------------------------
+
 
 class TestSetCommand:
     def test_set_number(self):
@@ -64,6 +63,7 @@ class TestFormulaCommand:
 # Clear
 # ---------------------------------------------------------------------------
 
+
 class TestClearCommand:
     def test_clear_cell(self):
         script = "set A1 = 99\nclear A1"
@@ -80,6 +80,7 @@ class TestClearCommand:
 # ---------------------------------------------------------------------------
 # Format
 # ---------------------------------------------------------------------------
+
 
 class TestFormatCommand:
     def test_bold(self):
@@ -98,6 +99,7 @@ class TestFormatCommand:
 # ---------------------------------------------------------------------------
 # Sheet management
 # ---------------------------------------------------------------------------
+
 
 class TestSheetCommands:
     def test_addsheet(self):
@@ -126,6 +128,7 @@ class TestSheetCommands:
 # Column width / autofit
 # ---------------------------------------------------------------------------
 
+
 class TestColWidthCommands:
     def test_colwidth(self):
         engine = make_engine("colwidth A 20")
@@ -146,6 +149,7 @@ class TestColWidthCommands:
 # Sort
 # ---------------------------------------------------------------------------
 
+
 class TestSortCommand:
     def test_sort_asc(self):
         script = "set A1 = 3\nset A2 = 1\nset A3 = 2\nsort 1 asc"
@@ -165,6 +169,7 @@ class TestSortCommand:
 # ---------------------------------------------------------------------------
 # Error handling
 # ---------------------------------------------------------------------------
+
 
 class TestErrors:
     def test_unknown_command(self):
@@ -197,11 +202,12 @@ class TestErrors:
 # File save / open
 # ---------------------------------------------------------------------------
 
+
 class TestFileCommands:
     def test_save_and_open_csv(self, tmp_path):
         path = tmp_path / "out.csv"
         script = f"set A1 = 10\nset B1 = 20\nsave {path}"
-        engine = make_engine(script)
+        make_engine(script)
         assert path.exists()
 
         engine2 = ScriptEngine()
@@ -216,7 +222,8 @@ class TestFileCommands:
 # New sheet-level commands
 # ---------------------------------------------------------------------------
 
-class TestSheetCommands:
+
+class TestSheetCommands2:
     def test_hiderow_showrow(self):
         engine = make_engine("set A1 = x")
         engine.run_string("hiderow 1")

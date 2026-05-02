@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from typing import Iterator
+from collections.abc import Iterator
 
 
 class CycleError(ValueError):
@@ -61,9 +61,7 @@ class DependencyGraph:
     # Topological sort (Kahn's algorithm)
     # -----------------------------------------------------------------------
 
-    def evaluation_order(
-        self, dirty: set[tuple[int, int]]
-    ) -> list[tuple[int, int]]:
+    def evaluation_order(self, dirty: set[tuple[int, int]]) -> list[tuple[int, int]]:
         """Return cells in evaluation order for the subgraph reachable from *dirty*.
 
         Raises CycleError if a cycle is detected.
@@ -88,9 +86,7 @@ class DependencyGraph:
                 if dep in affected:
                     in_degree[cell] += 1
 
-        ready: deque[tuple[int, int]] = deque(
-            c for c in affected if in_degree[c] == 0
-        )
+        ready: deque[tuple[int, int]] = deque(c for c in affected if in_degree[c] == 0)
         order: list[tuple[int, int]] = []
         while ready:
             cell = ready.popleft()

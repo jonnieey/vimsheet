@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -12,8 +13,8 @@ from pysheet.model.sheet import Sheet
 class ChartSpec:
     """Specification for a chart to render."""
 
-    chart_type: str = "bar"          # "bar" | "line" | "scatter" | "pie"
-    data_range: str = ""             # A1:B10 style
+    chart_type: str = "bar"  # "bar" | "line" | "scatter" | "pie"
+    data_range: str = ""  # A1:B10 style
     title: str = ""
     x_label: str = ""
     y_label: str = ""
@@ -45,6 +46,7 @@ def _extract_data(sheet: Sheet, spec: ChartSpec) -> list[list[Any]]:
     if not spec.data_range:
         return []
     from pysheet.model.range import CellRange
+
     try:
         cr = CellRange.from_a1(spec.data_range.replace("$", ""))
     except Exception:
@@ -62,15 +64,16 @@ def _extract_data(sheet: Sheet, spec: ChartSpec) -> list[list[Any]]:
 def _render_textual_plotext(data: list[list[Any]], spec: ChartSpec) -> str:
     """Render using textual-plotext (uses plotext with color disabled for clean ASCII)."""
     from textual_plotext import PlotextPlot  # noqa: F401 — presence check
+
     return _render_plotext(data, spec)
 
 
 def _render_gnuplot(data: list[list[Any]], spec: ChartSpec) -> str:
     """Render using gnuplot via subprocess (dumb terminal → ASCII art)."""
-    import subprocess
-    import shutil
-    import tempfile
     import os
+    import shutil
+    import subprocess
+    import tempfile
 
     if not shutil.which("gnuplot"):
         raise ImportError("gnuplot not found")
@@ -83,15 +86,10 @@ def _render_gnuplot(data: list[list[Any]], spec: ChartSpec) -> str:
     with tempfile.NamedTemporaryFile(mode="w", suffix=".dat", delete=False) as f:
         dat_path = f.name
         for i, row in enumerate(data):
-            if num_cols == 1:
-                val = row[0]
-            else:
-                val = row[1] if len(row) > 1 else None
+            val = row[0] if num_cols == 1 else (row[1] if len(row) > 1 else None)
             label = str(row[0]) if row[0] is not None else str(i)
-            try:
+            with contextlib.suppress(TypeError, ValueError):
                 f.write(f"{i + 1}\t{float(val)}\t{label}\n")  # type: ignore[arg-type]
-            except (TypeError, ValueError):
-                pass
 
     ct = spec.chart_type
     if ct == "bar":
@@ -104,11 +102,7 @@ def _render_gnuplot(data: list[list[Any]], spec: ChartSpec) -> str:
         plot_cmd = f"plot '{dat_path}' using 1:2 with linespoints notitle"
 
     title_cmd = f"set title '{spec.title}'" if spec.title else ""
-    script = (
-        f"set terminal dumb {spec.width} {spec.height}\n"
-        f"{title_cmd}\n"
-        f"{plot_cmd}\n"
-    )
+    script = f"set terminal dumb {spec.width} {spec.height}\n" f"{title_cmd}\n" f"{plot_cmd}\n"
     try:
         proc = subprocess.run(
             ["gnuplot"],
@@ -125,6 +119,7 @@ def _render_gnuplot(data: list[list[Any]], spec: ChartSpec) -> str:
 def _strip_ansi(text: str) -> str:
     """Remove ANSI escape sequences from a string."""
     import re
+
     return re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", text)
 
 
@@ -132,13 +127,12 @@ def _render_plotext(data: list[list[Any]], spec: ChartSpec) -> str:
     """Render using plotext to a plain-text string."""
     import io
     import sys
+
     import plotext as plt
 
     plt.clf()
-    try:
+    with contextlib.suppress(AttributeError):
         plt.colorless()  # disable ANSI color codes
-    except AttributeError:
-        pass
     plt.plotsize(spec.width, spec.height)
     if spec.title:
         plt.title(spec.title)
@@ -163,8 +157,8 @@ def _render_plotext(data: list[list[Any]], spec: ChartSpec) -> str:
         ys_raw = [row[1] if len(row) > 1 else None for row in data]
 
     labels = [str(x) if x is not None else "" for x in xs]
-    y_nums = [float(v) for v in ys_raw if isinstance(v, (int, float))]
-    labels_clean = labels[:len(y_nums)]
+    y_nums = [float(v) for v in ys_raw if isinstance(v, int | float)]
+    labels_clean = labels[: len(y_nums)]
 
     if chart_type == "pie":
         # plotext has no pie; render as ASCII percentage table instead
@@ -172,7 +166,7 @@ def _render_plotext(data: list[list[Any]], spec: ChartSpec) -> str:
         title_line = (spec.title + "\n\n") if spec.title else ""
         bar_w = 30
         rows = []
-        for lbl, v in zip(labels_clean, y_nums):
+        for lbl, v in zip(labels_clean, y_nums, strict=False):
             pct = v / total * 100
             filled = int(pct / 100 * bar_w)
             bar = "█" * filled + "░" * (bar_w - filled)
@@ -197,8 +191,8 @@ def _render_plotext(data: list[list[Any]], spec: ChartSpec) -> str:
 
 
 def _plot_series(plt: Any, chart_type: str, xs: list, ys: list, name: str) -> None:
-    clean_ys = [float(v) for v in ys if isinstance(v, (int, float))]
-    clean_xs = xs[:len(clean_ys)]
+    clean_ys = [float(v) for v in ys if isinstance(v, int | float)]
+    clean_xs = xs[: len(clean_ys)]
     match chart_type:
         case "line":
             plt.plot(clean_xs, clean_ys, label=name)
@@ -234,7 +228,7 @@ def _render_ascii(data: list[list[Any]], spec: ChartSpec) -> str:
     if spec.title:
         lines.append(spec.title.center(spec.width))
         lines.append("")
-    for label, val in zip(labels, nums):
+    for label, val in zip(labels, nums, strict=False):
         bar_len = int(val / max_val * bar_width) if max_val else 0
         bar = "█" * bar_len
         lines.append(f"{label:>10} │{bar:<{bar_width}} {val}")

@@ -4,14 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
-
 from pysheet.model.cell import Cell, CellFormat
-
 
 # ---------------------------------------------------------------------------
 # CellFormat tests
 # ---------------------------------------------------------------------------
+
 
 class TestCellFormat:
     def test_defaults(self) -> None:
@@ -36,9 +34,15 @@ class TestCellFormat:
 
     def test_copy_values_match(self) -> None:
         fmt = CellFormat(
-            bold=True, italic=True, underline=True,
-            align="center", fg_color="#aabbcc", bg_color="#112233",
-            num_decimals=2, num_format="%Y-%m-%d", thousands_sep=True,
+            bold=True,
+            italic=True,
+            underline=True,
+            align="center",
+            fg_color="#aabbcc",
+            bg_color="#112233",
+            num_decimals=2,
+            num_format="%Y-%m-%d",
+            thousands_sep=True,
         )
         copy = fmt.copy()
         assert copy.bold == fmt.bold
@@ -55,6 +59,7 @@ class TestCellFormat:
 # ---------------------------------------------------------------------------
 # Cell tests
 # ---------------------------------------------------------------------------
+
 
 class TestCell:
     def test_defaults(self) -> None:

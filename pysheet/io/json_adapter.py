@@ -28,7 +28,7 @@ def _col_letter(c: int) -> str:
 
 
 def _serialize_value(val: object) -> object:
-    if isinstance(val, (datetime.date, datetime.datetime, datetime.time)):
+    if isinstance(val, datetime.date | datetime.datetime | datetime.time):
         return str(val)
     return val
 
@@ -101,8 +101,7 @@ class JSONAdapter(FormatAdapter):
         if has_header_row:
             # Build headers from row 0, deduplicating identical names
             raw: list[str] = [
-                str(v) if v is not None else _col_letter(c)
-                for c, v in enumerate(row0_values)
+                str(v) if v is not None else _col_letter(c) for c, v in enumerate(row0_values)
             ]
             data_start = 1
         else:
@@ -159,9 +158,7 @@ class JSONAdapter(FormatAdapter):
         # If every header is exactly the auto-generated column letter for its
         # position (A, B, C, …), they were artificial — skip writing them and
         # put data starting at row 0.
-        auto_headers = all(
-            h == _col_letter(c) for c, h in enumerate(headers)
-        )
+        auto_headers = all(h == _col_letter(c) for c, h in enumerate(headers))
 
         if auto_headers:
             data_start = 0
@@ -241,13 +238,28 @@ class JSONAdapter(FormatAdapter):
                 if val is not None:
                     cd["value"] = _serialize_value(val)
                 fmt = cell.fmt
-                if any([fmt.bold, fmt.italic, fmt.underline, fmt.align != "right",
-                        fmt.fg_color, fmt.bg_color, fmt.num_decimals is not None,
-                        fmt.num_format, fmt.thousands_sep]):
+                if any(
+                    [
+                        fmt.bold,
+                        fmt.italic,
+                        fmt.underline,
+                        fmt.align != "right",
+                        fmt.fg_color,
+                        fmt.bg_color,
+                        fmt.num_decimals is not None,
+                        fmt.num_format,
+                        fmt.thousands_sep,
+                    ]
+                ):
                     cd["fmt"] = {
-                        "bold": fmt.bold, "italic": fmt.italic, "underline": fmt.underline,
-                        "align": fmt.align, "fg_color": fmt.fg_color, "bg_color": fmt.bg_color,
-                        "num_decimals": fmt.num_decimals, "num_format": fmt.num_format,
+                        "bold": fmt.bold,
+                        "italic": fmt.italic,
+                        "underline": fmt.underline,
+                        "align": fmt.align,
+                        "fg_color": fmt.fg_color,
+                        "bg_color": fmt.bg_color,
+                        "num_decimals": fmt.num_decimals,
+                        "num_format": fmt.num_format,
                         "thousands_sep": fmt.thousands_sep,
                     }
                 if cell.locked:
@@ -255,17 +267,19 @@ class JSONAdapter(FormatAdapter):
                 if cell.comment:
                     cd["comment"] = cell.comment
                 cells_data.append(cd)
-            sheets_data.append({
-                "name": sheet.name,
-                "cells": cells_data,
-                "col_widths": {str(k): v for k, v in sheet.col_widths.items()},
-                "row_heights": {str(k): v for k, v in sheet.row_heights.items()},
-                "hidden_rows": sorted(sheet.hidden_rows),
-                "hidden_cols": sorted(sheet.hidden_cols),
-                "row_groups": [list(g) for g in sheet.row_groups],
-                "col_groups": [list(g) for g in sheet.col_groups],
-                "freeze_rows": sheet.freeze_rows,
-                "freeze_cols": sheet.freeze_cols,
-            })
+            sheets_data.append(
+                {
+                    "name": sheet.name,
+                    "cells": cells_data,
+                    "col_widths": {str(k): v for k, v in sheet.col_widths.items()},
+                    "row_heights": {str(k): v for k, v in sheet.row_heights.items()},
+                    "hidden_rows": sorted(sheet.hidden_rows),
+                    "hidden_cols": sorted(sheet.hidden_cols),
+                    "row_groups": [list(g) for g in sheet.row_groups],
+                    "col_groups": [list(g) for g in sheet.col_groups],
+                    "freeze_rows": sheet.freeze_rows,
+                    "freeze_cols": sheet.freeze_cols,
+                }
+            )
         doc = {"version": 1, "active_sheet": workbook.active_sheet_idx, "sheets": sheets_data}
         path.write_text(json.dumps(doc, indent=2, ensure_ascii=False), encoding="utf-8")

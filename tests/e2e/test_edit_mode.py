@@ -92,7 +92,7 @@ async def test_x_deletes_char_under_cursor_in_edit(app_with_data: PySheetApp) ->
 async def test_u_in_edit_restores_original(app_with_data: PySheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("e")
-        await pilot.press("i")   # insert sub-mode
+        await pilot.press("i")  # insert sub-mode
         for ch in "EXTRA":
             await pilot.press(ch)
         assert "EXTRA" in app_with_data._edit_buffer

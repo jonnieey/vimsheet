@@ -20,10 +20,10 @@ def _build_funcs_text(filter_term: str = "") -> str:
     # Group by source module
     _CATEGORY_ORDER = ["math_funcs", "text_funcs", "logic_funcs", "date_funcs", "lookup_funcs"]
     _CATEGORY_LABELS = {
-        "math_funcs":   "Math & Statistics",
-        "text_funcs":   "Text",
-        "logic_funcs":  "Logic",
-        "date_funcs":   "Date & Time",
+        "math_funcs": "Math & Statistics",
+        "text_funcs": "Text",
+        "logic_funcs": "Logic",
+        "date_funcs": "Date & Time",
         "lookup_funcs": "Lookup",
     }
 
@@ -36,7 +36,7 @@ def _build_funcs_text(filter_term: str = "") -> str:
     # Build entries: (category, primary_name, aliases, sig_str)
     entries: list[tuple[str, str, list[str], str]] = []
     processed: set[int] = set()
-    for name, fn in sorted(fns.items()):
+    for _, fn in sorted(fns.items()):
         fn_id = id(fn)
         if fn_id in processed:
             continue
@@ -90,11 +90,14 @@ def _build_funcs_text(filter_term: str = "") -> str:
             name_col = primary.ljust(col_w)
             sig_col = f"({sig_str})" if sig_str else "()"
             alias_col = f"  [dim]aka {', '.join(aliases)}[/dim]" if aliases else ""
-            lines.append(f"  [bold green]{name_col}[/bold green] [yellow]{sig_col}[/yellow]{alias_col}")
+            lines.append(
+                f"  [bold green]{name_col}[/bold green] [yellow]{sig_col}[/yellow]{alias_col}"
+            )
         lines.append("")
 
     total = len(entries)
-    header = f"[bold]{total} function{'s' if total != 1 else ''} available[/bold]  [dim](q/Esc to close)[/dim]\n"
+    plural = "s" if total != 1 else ""
+    header = f"[bold]{total} function{plural} available[/bold]  [dim](q/Esc to close)[/dim]\n"
     return header + "\n".join(lines)
 
 

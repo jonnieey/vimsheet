@@ -4,7 +4,6 @@ import pytest
 
 from pysheet.formula.dependency import CycleError, DependencyGraph
 
-
 A = (0, 0)
 B = (0, 1)
 C = (0, 2)

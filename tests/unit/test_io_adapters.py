@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
 
-from pysheet.model.sheet import Sheet
 from pysheet.model.workbook import Workbook
 
 
@@ -28,9 +26,11 @@ def make_workbook() -> Workbook:  # noqa: D401
 # CSV adapter
 # ---------------------------------------------------------------------------
 
+
 class TestCSVAdapter:
     def test_write_then_read(self, tmp_path: Path):
         from pysheet.io.csv_adapter import CSVAdapter
+
         wb = make_workbook()
         path = tmp_path / "test.csv"
         CSVAdapter().write(wb, path)
@@ -41,6 +41,7 @@ class TestCSVAdapter:
 
     def test_empty_sheet(self, tmp_path: Path):
         from pysheet.io.csv_adapter import CSVAdapter
+
         wb = Workbook.blank()  # one sheet, no cells
         path = tmp_path / "empty.csv"
         CSVAdapter().write(wb, path)
@@ -48,6 +49,7 @@ class TestCSVAdapter:
 
     def test_tsv(self, tmp_path: Path):
         from pysheet.io.csv_adapter import CSVAdapter
+
         wb = make_workbook()
         path = tmp_path / "test.tsv"
         CSVAdapter().write(wb, path, delimiter="\t")
@@ -59,9 +61,11 @@ class TestCSVAdapter:
 # JSON adapter
 # ---------------------------------------------------------------------------
 
+
 class TestJSONAdapter:
     def test_write_then_read(self, tmp_path: Path):
         from pysheet.io.json_adapter import JSONAdapter
+
         wb = make_workbook()
         path = tmp_path / "test.pysheet"
         JSONAdapter().write(wb, path)
@@ -72,6 +76,7 @@ class TestJSONAdapter:
 
     def test_formula_preserved(self, tmp_path: Path):
         from pysheet.io.json_adapter import JSONAdapter
+
         wb = Workbook.blank()
         sheet = wb.active_sheet
         sheet.set_cell_value(0, 0, 10)
@@ -87,6 +92,7 @@ class TestJSONAdapter:
 
     def test_multi_sheet(self, tmp_path: Path):
         from pysheet.io.json_adapter import JSONAdapter
+
         wb = Workbook.blank()
         wb.add_sheet("Sheet2")
         wb.sheets[1].set_cell_value(0, 0, "second")
@@ -98,6 +104,7 @@ class TestJSONAdapter:
 
     def test_valid_json_structure(self, tmp_path: Path):
         from pysheet.io.json_adapter import JSONAdapter
+
         wb = make_workbook()
         path = tmp_path / "test.pysheet"
         JSONAdapter().write(wb, path)
@@ -108,6 +115,7 @@ class TestJSONAdapter:
 
     def test_format_preserved(self, tmp_path: Path):
         from pysheet.io.json_adapter import JSONAdapter
+
         wb = Workbook.blank()
         sheet = wb.active_sheet
         sheet.set_cell_value(0, 0, "bold text")
@@ -126,9 +134,11 @@ class TestJSONAdapter:
 # XLSX adapter
 # ---------------------------------------------------------------------------
 
+
 class TestXLSXAdapter:
     def test_write_then_read(self, tmp_path: Path):
         from pysheet.io.xlsx_adapter import XLSXAdapter
+
         wb = make_workbook()
         path = tmp_path / "test.xlsx"
         XLSXAdapter().write(wb, path)
@@ -139,6 +149,7 @@ class TestXLSXAdapter:
 
     def test_multi_sheet(self, tmp_path: Path):
         from pysheet.io.xlsx_adapter import XLSXAdapter
+
         wb = Workbook.blank()
         wb.add_sheet("Sheet2")
         wb.sheets[1].set_cell_value(0, 0, "hello")
@@ -152,9 +163,11 @@ class TestXLSXAdapter:
 # Markdown adapter
 # ---------------------------------------------------------------------------
 
+
 class TestMarkdownAdapter:
     def test_write_produces_table(self, tmp_path: Path):
         from pysheet.io.markdown_adapter import MarkdownAdapter
+
         wb = make_workbook()
         path = tmp_path / "test.md"
         MarkdownAdapter().write(wb, path)
@@ -166,6 +179,7 @@ class TestMarkdownAdapter:
 
     def test_read_raises(self, tmp_path: Path):
         from pysheet.io.markdown_adapter import MarkdownAdapter
+
         path = tmp_path / "test.md"
         path.write_text("| a | b |\n|---|---|\n")
         with pytest.raises(NotImplementedError):
@@ -173,6 +187,7 @@ class TestMarkdownAdapter:
 
     def test_empty_sheet(self, tmp_path: Path):
         from pysheet.io.markdown_adapter import MarkdownAdapter
+
         wb = Workbook.blank()
         path = tmp_path / "empty.md"
         MarkdownAdapter().write(wb, path)
@@ -183,9 +198,11 @@ class TestMarkdownAdapter:
 # HTML adapter
 # ---------------------------------------------------------------------------
 
+
 class TestHTMLAdapter:
     def test_write_produces_html(self, tmp_path: Path):
         from pysheet.io.html_adapter import HTMLAdapter
+
         wb = make_workbook()
         path = tmp_path / "test.html"
         HTMLAdapter().write(wb, path)
@@ -196,6 +213,7 @@ class TestHTMLAdapter:
 
     def test_read_raises(self, tmp_path: Path):
         from pysheet.io.html_adapter import HTMLAdapter
+
         path = tmp_path / "test.html"
         path.write_text("<html></html>")
         with pytest.raises(NotImplementedError):
@@ -206,26 +224,34 @@ class TestHTMLAdapter:
 # Adapter registry
 # ---------------------------------------------------------------------------
 
+
 class TestAdapterRegistry:
     def test_csv(self):
         from pysheet.io.registry import get_adapter
+
         a = get_adapter(Path("data.csv"))
         from pysheet.io.csv_adapter import CSVAdapter
+
         assert isinstance(a, CSVAdapter)
 
     def test_json(self):
         from pysheet.io.registry import get_adapter
+
         a = get_adapter(Path("data.pysheet"))
         from pysheet.io.json_adapter import JSONAdapter
+
         assert isinstance(a, JSONAdapter)
 
     def test_xlsx(self):
         from pysheet.io.registry import get_adapter
+
         a = get_adapter(Path("data.xlsx"))
         from pysheet.io.xlsx_adapter import XLSXAdapter
+
         assert isinstance(a, XLSXAdapter)
 
     def test_unknown_raises(self):
         from pysheet.io.registry import get_adapter
+
         with pytest.raises(ValueError):
             get_adapter(Path("data.xyz123"))

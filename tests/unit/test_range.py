@@ -13,10 +13,10 @@ from pysheet.model.range import (
     rowcol_to_a1,
 )
 
-
 # ---------------------------------------------------------------------------
 # col_letters_to_index
 # ---------------------------------------------------------------------------
+
 
 class TestColLettersToIndex:
     def test_a(self) -> None:
@@ -49,6 +49,7 @@ class TestColLettersToIndex:
 # col_index_to_letters
 # ---------------------------------------------------------------------------
 
+
 class TestColIndexToLetters:
     def test_zero(self) -> None:
         assert col_index_to_letters(0) == "A"
@@ -73,6 +74,7 @@ class TestColIndexToLetters:
 # ---------------------------------------------------------------------------
 # a1_to_rowcol
 # ---------------------------------------------------------------------------
+
 
 class TestA1ToRowcol:
     def test_a1(self) -> None:
@@ -110,6 +112,7 @@ class TestA1ToRowcol:
 # rowcol_to_a1
 # ---------------------------------------------------------------------------
 
+
 class TestRowcolToA1:
     def test_origin(self) -> None:
         assert rowcol_to_a1(0, 0) == "A1"
@@ -125,6 +128,7 @@ class TestRowcolToA1:
 # ---------------------------------------------------------------------------
 # CellRange
 # ---------------------------------------------------------------------------
+
 
 class TestCellRange:
     def test_single_cell(self) -> None:
@@ -203,6 +207,7 @@ class TestCellRange:
 # ---------------------------------------------------------------------------
 # NamedRangeRegistry
 # ---------------------------------------------------------------------------
+
 
 class TestNamedRangeRegistry:
     def test_define_and_resolve(self) -> None:

@@ -8,10 +8,10 @@ from pysheet.app import PySheetApp
 from pysheet.controller.mode import Mode
 from tests.conftest import make_workbook
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def app() -> PySheetApp:
@@ -22,17 +22,20 @@ def app() -> PySheetApp:
 @pytest.fixture
 def app_with_data() -> PySheetApp:
     """App with a small data block."""
-    wb = make_workbook(data=[
-        ["Alpha", 10, "note"],
-        ["Beta", 20, "note2"],
-        ["Gamma", 30, "note3"],
-    ])
+    wb = make_workbook(
+        data=[
+            ["Alpha", 10, "note"],
+            ["Beta", 20, "note2"],
+            ["Gamma", 30, "note3"],
+        ]
+    )
     return PySheetApp(workbook=wb)
 
 
 # ---------------------------------------------------------------------------
 # x — clear cell
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_x_clears_cell_content(app_with_data: PySheetApp) -> None:
@@ -61,6 +64,7 @@ async def test_x_on_empty_cell_does_not_raise(app: PySheetApp) -> None:
 # yy + p — yank and paste
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_yy_then_p_pastes_one_row_below(app_with_data: PySheetApp) -> None:
     async with app_with_data.run_test() as pilot:
@@ -84,6 +88,7 @@ async def test_yy_then_p_pastes_one_row_below(app_with_data: PySheetApp) -> None
 # ---------------------------------------------------------------------------
 # Mode entry: =, e, v
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_equals_enters_insert_mode(app: PySheetApp) -> None:
@@ -110,6 +115,7 @@ async def test_v_enters_visual_mode(app: PySheetApp) -> None:
 # ir — insert row
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_ir_inserts_row_and_shifts_data_down(app_with_data: PySheetApp) -> None:
     async with app_with_data.run_test() as pilot:
@@ -133,6 +139,7 @@ async def test_ir_inserts_row_and_shifts_data_down(app_with_data: PySheetApp) ->
 # dr — delete row
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_dr_deletes_row_and_shifts_up(app_with_data: PySheetApp) -> None:
     async with app_with_data.run_test() as pilot:
@@ -154,6 +161,7 @@ async def test_dr_deletes_row_and_shifts_up(app_with_data: PySheetApp) -> None:
 # fb — toggle bold
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_fb_toggles_bold_on_cell(app_with_data: PySheetApp) -> None:
     async with app_with_data.run_test() as pilot:
@@ -173,6 +181,7 @@ async def test_fb_toggles_bold_on_cell(app_with_data: PySheetApp) -> None:
 # ---------------------------------------------------------------------------
 # u — undo cell clear
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_u_undoes_x_clear(app_with_data: PySheetApp) -> None:
@@ -195,6 +204,7 @@ async def test_u_undoes_x_clear(app_with_data: PySheetApp) -> None:
 # ---------------------------------------------------------------------------
 # ctrl+r — redo after undo
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_ctrl_r_redoes_after_undo(app_with_data: PySheetApp) -> None:
@@ -220,6 +230,7 @@ async def test_ctrl_r_redoes_after_undo(app_with_data: PySheetApp) -> None:
 # ---------------------------------------------------------------------------
 # Marks: ma / 'a
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_mark_set_and_jump(app_with_data: PySheetApp) -> None:
@@ -250,6 +261,7 @@ async def test_mark_set_and_jump(app_with_data: PySheetApp) -> None:
 # ---------------------------------------------------------------------------
 # ZQ — quit
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_ZQ_quits_app(app: PySheetApp) -> None:

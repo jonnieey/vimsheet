@@ -8,10 +8,10 @@ from pysheet.app import PySheetApp
 from pysheet.controller.mode import Mode
 from tests.conftest import make_workbook
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def app() -> PySheetApp:
@@ -20,16 +20,19 @@ def app() -> PySheetApp:
 
 @pytest.fixture
 def app_with_data() -> PySheetApp:
-    wb = make_workbook(data=[
-        ["Hello", 42],
-        ["World", 99],
-    ])
+    wb = make_workbook(
+        data=[
+            ["Hello", 42],
+            ["World", 99],
+        ]
+    )
     return PySheetApp(workbook=wb)
 
 
 # ---------------------------------------------------------------------------
 # Typing builds _insert_buffer
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_typing_builds_insert_buffer(app: PySheetApp) -> None:
@@ -61,6 +64,7 @@ async def test_backspace_removes_last_char(app: PySheetApp) -> None:
 # ---------------------------------------------------------------------------
 # Left/right arrow moves insert cursor
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_left_right_moves_insert_cursor(app: PySheetApp) -> None:
@@ -94,6 +98,7 @@ async def test_left_clamps_at_zero(app: PySheetApp) -> None:
 # Enter commits and moves cursor down
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_enter_commits_and_moves_down(app: PySheetApp) -> None:
     async with app.run_test() as pilot:
@@ -121,6 +126,7 @@ async def test_enter_commits_and_moves_down(app: PySheetApp) -> None:
 # Tab commits and moves cursor right
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_tab_commits_and_moves_right(app: PySheetApp) -> None:
     async with app.run_test() as pilot:
@@ -145,6 +151,7 @@ async def test_tab_commits_and_moves_right(app: PySheetApp) -> None:
 # Escape cancels insert
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_escape_cancels_insert(app: PySheetApp) -> None:
     async with app.run_test() as pilot:
@@ -167,6 +174,7 @@ async def test_escape_cancels_insert(app: PySheetApp) -> None:
 # ctrl+u clears buffer
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_ctrl_u_clears_buffer(app: PySheetApp) -> None:
     async with app.run_test() as pilot:
@@ -185,6 +193,7 @@ async def test_ctrl_u_clears_buffer(app: PySheetApp) -> None:
 # ---------------------------------------------------------------------------
 # After commit, cell has the correct value
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_numeric_value_stored_as_int(app: PySheetApp) -> None:

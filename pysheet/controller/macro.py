@@ -7,8 +7,8 @@ class MacroRecorder:
     """Records and replays keystroke sequences into named registers a–z."""
 
     def __init__(self) -> None:
-        self._recording: str | None = None   # register name currently being recorded
-        self._buffer: list[str] = []         # keys accumulated during recording
+        self._recording: str | None = None  # register name currently being recorded
+        self._buffer: list[str] = []  # keys accumulated during recording
         self._macros: dict[str, list[str]] = {}
         self._last_register: str | None = None  # register used by last @{reg}
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 
 from textual.app import ComposeResult
@@ -86,9 +87,7 @@ class StatusBar(Widget):
 
     def _tick_clock(self) -> None:
         """Update the clock display."""
-        self.query_one("#status-clock", Static).update(
-            time.strftime("%H:%M:%S")
-        )
+        self.query_one("#status-clock", Static).update(time.strftime("%H:%M:%S"))
 
     def watch_mode(self, value: Mode) -> None:
         """Update mode label."""
@@ -137,10 +136,8 @@ class StatusBar(Widget):
     def _write_message(self, text: str) -> None:
         """Write text directly to the message widget, bypassing reactive batching."""
         self.message = text
-        try:
+        with contextlib.suppress(Exception):
             self.query_one("#status-message", Static).update(text)
-        except Exception:
-            pass
 
     def _clear_message(self) -> None:
         self._write_message("")
