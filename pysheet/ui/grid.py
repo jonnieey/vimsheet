@@ -38,6 +38,8 @@ class GridWidget(ScrollView):
         background: $surface;
         border: none;
         height: 1fr;
+        scrollbar-size-horizontal: 0;
+        scrollbar-size-vertical: 1;
     }
     """
 

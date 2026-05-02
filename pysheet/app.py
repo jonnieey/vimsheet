@@ -857,11 +857,12 @@ class PySheetApp(App[None]):
         self.status_bar.show_message(f"Replaced {count} occurrence(s)")
 
     def _cmd_fill(self, cr: "Any", args: list[str]) -> None:
-        """Fill a CellRange with a sequence or constant, with optional transform."""
-        from pysheet.model.range import CellRange
-        from pysheet.model.undo import SetCellCommand
+        """Fill a CellRange with a constant, sequence, or string with optional transform.
 
-        _TRANSFORMS = {
+        Numeric:  fill <start> [step] [func]   — arithmetic sequence + numeric transform
+        String:   fill <text> [str_func]        — constant string + optional string transform
+        """
+        _NUM_TRANSFORMS: dict[str, Any] = {
             "double": lambda v: v * 2,
             "triple": lambda v: v * 3,
             "square": lambda v: v ** 2,
@@ -869,40 +870,80 @@ class PySheetApp(App[None]):
             "half":   lambda v: v / 2,
             "neg":    lambda v: -v,
         }
-
-        # Parse args: [value] or [start, step] or [start, step, func]
-        try:
-            if len(args) == 0:
-                start, step, func = 0.0, 1.0, None
-            elif len(args) == 1:
-                start, step, func = float(args[0]), None, None  # constant fill
-            elif len(args) == 2:
-                try:
-                    start, step, func = float(args[0]), float(args[1]), None
-                except ValueError:
-                    start, step, func = float(args[0]), None, args[1].lower()
-            else:
-                start, step, func = float(args[0]), float(args[1]), args[2].lower()
-        except ValueError as e:
-            self.status_bar.show_message(f"Fill: invalid args — {e}")
-            return
-
-        transform = _TRANSFORMS.get(func) if func else None
-        if func and transform is None:
-            self.status_bar.show_message(f"Fill: unknown function '{func}'. Use: {', '.join(_TRANSFORMS)}")
-            return
+        _STR_TRANSFORMS: dict[str, Any] = {
+            "upper":     str.upper,
+            "lower":     str.lower,
+            "title":     str.title,
+            "capitalize": str.capitalize,
+            "strip":     str.strip,
+            "reverse":   lambda s: s[::-1],
+        }
 
         sheet = self.workbook.active_sheet
         updates: list[tuple[int, int, Any]] = []
-        i = 0
-        for r in range(cr.start_row, cr.end_row + 1):
-            for c in range(cr.start_col, cr.end_col + 1):
-                val: float = start if step is None else start + i * step
-                if transform:
-                    val = transform(val)
-                stored: Any = int(val) if isinstance(val, float) and val.is_integer() else val
-                updates.append((r, c, stored))
-                i += 1
+
+        if not args:
+            # default: fill with 0, 1, 2 …
+            for i, (r, c) in enumerate(
+                (r, c)
+                for r in range(cr.start_row, cr.end_row + 1)
+                for c in range(cr.start_col, cr.end_col + 1)
+            ):
+                updates.append((r, c, i))
+        else:
+            first = args[0]
+            # Detect string vs numeric by attempting float conversion
+            try:
+                start = float(first)
+            except ValueError:
+                # ── String fill ──────────────────────────────────────────
+                str_func_name = args[1].lower() if len(args) >= 2 else None
+                str_transform = _STR_TRANSFORMS.get(str_func_name) if str_func_name else None
+                if str_func_name and str_transform is None:
+                    self.status_bar.show_message(
+                        f"Fill: unknown string function '{str_func_name}'. "
+                        f"Use: {', '.join(_STR_TRANSFORMS)}"
+                    )
+                    return
+                value: str = str_transform(first) if str_transform else first
+                for r in range(cr.start_row, cr.end_row + 1):
+                    for c in range(cr.start_col, cr.end_col + 1):
+                        updates.append((r, c, value))
+            else:
+                # ── Numeric fill ─────────────────────────────────────────
+                step: float | None
+                func_name: str | None
+                if len(args) == 1:
+                    step, func_name = None, None
+                elif len(args) == 2:
+                    try:
+                        step, func_name = float(args[1]), None
+                    except ValueError:
+                        step, func_name = None, args[1].lower()
+                else:
+                    try:
+                        step, func_name = float(args[1]), args[2].lower()
+                    except ValueError:
+                        self.status_bar.show_message("Fill: invalid numeric args")
+                        return
+
+                transform = _NUM_TRANSFORMS.get(func_name) if func_name else None
+                if func_name and transform is None:
+                    self.status_bar.show_message(
+                        f"Fill: unknown function '{func_name}'. "
+                        f"Use: {', '.join(_NUM_TRANSFORMS)}"
+                    )
+                    return
+
+                i = 0
+                for r in range(cr.start_row, cr.end_row + 1):
+                    for c in range(cr.start_col, cr.end_col + 1):
+                        val: float = start if step is None else start + i * step
+                        if transform:
+                            val = transform(val)
+                        stored: Any = int(val) if isinstance(val, float) and val.is_integer() else val
+                        updates.append((r, c, stored))
+                        i += 1
 
         from pysheet.model.undo import FillRangeCommand
         cmd = FillRangeCommand(sheet, updates)
