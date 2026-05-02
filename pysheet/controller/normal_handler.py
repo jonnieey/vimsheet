@@ -125,12 +125,26 @@ class NormalHandler:
             # @{a-z} run macro, @@ run last
             case s if len(s) == 2 and s[0] == "@":
                 reg = s[1]
+                if app.macro_recorder.is_recording:
+                    app.status_bar.show_message("Cannot replay macro while recording")
+                    app._key_buffer = ""
+                    return
                 if reg == "@":
+                    actual_reg = app.macro_recorder.recording_register or reg
                     keys = app.macro_recorder.replay_last()
                 else:
+                    actual_reg = reg
                     keys = app.macro_recorder.get_macro(reg)
                 if keys:
-                    app._replay_keys(keys)
+                    if actual_reg in app._replaying_macros:
+                        app.status_bar.show_message(f"Recursive macro '@{actual_reg}' skipped")
+                        app._key_buffer = ""
+                        return
+                    app._replaying_macros.add(actual_reg)
+                    try:
+                        app._replay_keys(keys)
+                    finally:
+                        app._replaying_macros.discard(actual_reg)
                 else:
                     app.status_bar.show_message(f"No macro in register '{reg}'")
                 app._key_buffer = ""

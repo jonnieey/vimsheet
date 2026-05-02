@@ -83,6 +83,9 @@ class PySheetApp(App[None]):
         # ---- Autocalc flag ----
         self._autocalc: bool = True
 
+        # ---- Macro replay guard (prevents recursive self-calling macros) ----
+        self._replaying_macros: set[str] = set()
+
         # ---- Handlers (created after super().__init__ so App attrs exist) ----
         self.normal_handler = NormalHandler(self)
         self.insert_handler = InsertHandler(self)
