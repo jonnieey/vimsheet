@@ -41,6 +41,11 @@ class SheetRangeRefNode:
     ref: str          # range like "A1:B2"
 
 @dataclass
+class ColRangeRefNode:
+    """A whole-column reference, e.g. A$:B$ or A:B or A$."""
+    ref: str          # raw text like "A$:B$", "A:B", "A$"
+
+@dataclass
 class NameNode:
     """A named range or undefined identifier."""
     name: str
@@ -70,7 +75,7 @@ class FuncCallNode:
 # Union type alias
 Expr = (
     NumberNode | StringNode | BoolNode
-    | CellRefNode | RangeRefNode
+    | CellRefNode | RangeRefNode | ColRangeRefNode
     | SheetCellRefNode | SheetRangeRefNode
     | NameNode
     | UnaryNode | BinaryNode | PercentNode

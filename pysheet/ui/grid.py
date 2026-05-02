@@ -67,7 +67,7 @@ class GridWidget(ScrollView):
         self.workbook = workbook
 
     def on_mount(self) -> None:
-        w = ROW_HEADER_WIDTH + sum(self.get_col_width(c) for c in range(26))
+        w = ROW_HEADER_WIDTH + sum(self.get_col_width(c) + 1 for c in range(26))
         h = max(self.sheet.max_row + 200, 1000)
         self.virtual_size = Size(w, h)
 
@@ -90,7 +90,7 @@ class GridWidget(ScrollView):
         max_col = max(self.sheet.max_col, self.cursor_col, 25)
         total = ROW_HEADER_WIDTH
         for c in range(max_col + 1):
-            total += self.get_col_width(c)
+            total += self.get_col_width(c) + 1  # +1 for column divider
         return total
 
     def get_content_height(self, container: Size, viewport: Size, width: int) -> int:
@@ -117,6 +117,7 @@ class GridWidget(ScrollView):
 
     def _render_header_row(self, scroll_x: int, width: int) -> Strip:
         hdr = Style(bgcolor="grey23", color="grey74", bold=True)
+        div = Style(bgcolor="grey23", color="grey35")
         segs: list[Segment] = [Segment(" " * ROW_HEADER_WIDTH, hdr)]
         x = ROW_HEADER_WIDTH
         col = 0
@@ -125,7 +126,8 @@ class GridWidget(ScrollView):
             if col not in self.sheet.hidden_cols:
                 label = col_index_to_letters(col).center(cw)
                 segs.append(Segment(label[:cw], hdr))
-            x += cw
+                segs.append(Segment("│", div))
+            x += cw + 1
             col += 1
             if col > 702:
                 break
@@ -188,7 +190,10 @@ class GridWidget(ScrollView):
             else:
                 text = text.rjust(cw)
             segs.append(Segment(text, style))
-            x += cw
+            # Column divider (1 char wide, neutral colour)
+            div_bg = "grey19" if row % 2 == 1 else None
+            segs.append(Segment("│", Style(color="grey30", bgcolor=div_bg)))
+            x += cw + 1
             col += 1
             if col > 702:
                 break
@@ -231,7 +236,7 @@ class GridWidget(ScrollView):
             underline=underline or None, color=fg, bgcolor=bg,
         )
         if bg is None and row % 2 == 1:
-            style = style + Style(bgcolor="grey7")
+            style = style + Style(bgcolor="grey19")
         return style
 
     def _fold_indicator(self, row: int) -> str:
@@ -405,10 +410,10 @@ class GridWidget(ScrollView):
         elif self.cursor_row >= scroll_y + data_rows_visible:
             self.scroll_to(y=self.cursor_row - data_rows_visible + 1, animate=False)
 
-        # Horizontal
+        # Horizontal (+1 per col for divider)
         x = ROW_HEADER_WIDTH
         for c in range(self.cursor_col):
-            x += self.get_col_width(c)
+            x += self.get_col_width(c) + 1
         cw = self.get_col_width(self.cursor_col)
         scroll_x = int(self.scroll_offset.x)
         vis_w = self.size.width

@@ -32,6 +32,11 @@ class StatusBar(Widget):
         content-align: center middle;
         text-style: bold;
     }
+    StatusBar #status-sheet {
+        width: 16;
+        background: $primary-darken-1;
+        text-style: bold;
+    }
     StatusBar #status-pos {
         width: 14;
     }
@@ -54,6 +59,7 @@ class StatusBar(Widget):
     """
 
     mode: reactive[Mode] = reactive(Mode.NORMAL)
+    sheet_name: reactive[str] = reactive("")
     cell_address: reactive[str] = reactive("A1")
     row: reactive[int] = reactive(0)
     col: reactive[int] = reactive(0)
@@ -65,6 +71,7 @@ class StatusBar(Widget):
     def compose(self) -> ComposeResult:
         """Lay out status segments."""
         yield Static("NORMAL", id="status-mode", classes="segment")
+        yield Static("", id="status-sheet", classes="segment")
         yield Static("A1", id="status-pos", classes="segment")
         yield Static("", id="status-stats", classes="segment")
         yield Static("", id="status-message", classes="segment")
@@ -86,6 +93,9 @@ class StatusBar(Widget):
     def watch_mode(self, value: Mode) -> None:
         """Update mode label."""
         self.query_one("#status-mode", Static).update(value.label())
+
+    def watch_sheet_name(self, value: str) -> None:
+        self.query_one("#status-sheet", Static).update(value)
 
     def watch_cell_address(self, value: str) -> None:
         """Update cell address label."""

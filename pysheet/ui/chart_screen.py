@@ -3,20 +3,14 @@
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.binding import Binding
-from textual.screen import ModalScreen
 from textual.containers import VerticalScroll
 from textual.widgets import Static
 
+from pysheet.ui.vim_modal import VimModalScreen
 
-class ChartScreen(ModalScreen[None]):
+
+class ChartScreen(VimModalScreen):
     """Full-screen modal that displays a rendered ASCII chart."""
-
-    BINDINGS = [
-        Binding("escape", "dismiss", "Close"),
-        Binding("q", "dismiss", "Close"),
-        Binding("space", "dismiss", "Close"),
-    ]
 
     DEFAULT_CSS = """
     ChartScreen {
@@ -44,7 +38,7 @@ class ChartScreen(ModalScreen[None]):
             f"[bold cyan]{self._title}[/bold cyan]\n"
             f"{'─' * min(len(self._title), 60)}\n\n"
             f"{self._chart_text}\n\n"
-            f"[dim]q / Escape / Space — close[/dim]"
+            f"[dim]j/k scroll · d/u half-page · g/G top/bottom · q close[/dim]"
         )
         with VerticalScroll():
             yield Static(content, markup=True)

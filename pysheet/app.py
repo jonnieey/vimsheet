@@ -331,6 +331,22 @@ class PySheetApp(App[None]):
                 self.status_bar.show_message(f"Auto-fit column {col + 1}")
 
             # ---- Sort ----
+            case "funcs" | "functions":
+                from pysheet.ui.funcs_screen import FuncsScreen
+                term = parts[1] if len(parts) > 1 else ""
+                self.push_screen(FuncsScreen(filter_term=term))
+
+            case "fill":
+                # :fill <value>                  — fill all cells with constant
+                # :fill <start> <step>           — arithmetic sequence
+                # :fill <start> <step> <func>    — sequence then apply func
+                sel = self.grid.visual_selection()
+                cr = sel if sel else None
+                if cr is None:
+                    self.status_bar.show_message("Select a range first (visual mode)")
+                else:
+                    self._cmd_fill(cr, parts[1:])
+
             case "sort":
                 from pysheet.model.undo import SortCommand
                 sheet = self.workbook.active_sheet
@@ -436,6 +452,15 @@ class PySheetApp(App[None]):
                     chart_type = parts[1] if len(parts) > 1 else "bar"
                     title = " ".join(parts[2:]) if len(parts) > 2 else ""
                 self._cmd_plot(data_range, chart_type, title)
+            case _ if len(parts) >= 2 and parts[1] == "fill":
+                # <range> fill [start] [step] [func]
+                from pysheet.model.range import CellRange
+                try:
+                    cr = CellRange.from_a1(parts[0].upper())
+                    self._cmd_fill(cr, parts[2:])
+                except Exception as e:
+                    self.status_bar.show_message(f"Fill error: {e}")
+
             case _ if len(parts) >= 2 and parts[1] == "plot":
                 # <range> plot <type> [title]  — range pre-filled from visual mode
                 data_range = parts[0]
@@ -831,6 +856,62 @@ class PySheetApp(App[None]):
             self.grid.refresh_grid()
         self.status_bar.show_message(f"Replaced {count} occurrence(s)")
 
+    def _cmd_fill(self, cr: "Any", args: list[str]) -> None:
+        """Fill a CellRange with a sequence or constant, with optional transform."""
+        from pysheet.model.range import CellRange
+        from pysheet.model.undo import SetCellCommand
+
+        _TRANSFORMS = {
+            "double": lambda v: v * 2,
+            "triple": lambda v: v * 3,
+            "square": lambda v: v ** 2,
+            "sqrt":   lambda v: v ** 0.5,
+            "half":   lambda v: v / 2,
+            "neg":    lambda v: -v,
+        }
+
+        # Parse args: [value] or [start, step] or [start, step, func]
+        try:
+            if len(args) == 0:
+                start, step, func = 0.0, 1.0, None
+            elif len(args) == 1:
+                start, step, func = float(args[0]), None, None  # constant fill
+            elif len(args) == 2:
+                try:
+                    start, step, func = float(args[0]), float(args[1]), None
+                except ValueError:
+                    start, step, func = float(args[0]), None, args[1].lower()
+            else:
+                start, step, func = float(args[0]), float(args[1]), args[2].lower()
+        except ValueError as e:
+            self.status_bar.show_message(f"Fill: invalid args — {e}")
+            return
+
+        transform = _TRANSFORMS.get(func) if func else None
+        if func and transform is None:
+            self.status_bar.show_message(f"Fill: unknown function '{func}'. Use: {', '.join(_TRANSFORMS)}")
+            return
+
+        sheet = self.workbook.active_sheet
+        updates: list[tuple[int, int, Any]] = []
+        i = 0
+        for r in range(cr.start_row, cr.end_row + 1):
+            for c in range(cr.start_col, cr.end_col + 1):
+                val: float = start if step is None else start + i * step
+                if transform:
+                    val = transform(val)
+                stored: Any = int(val) if isinstance(val, float) and val.is_integer() else val
+                updates.append((r, c, stored))
+                i += 1
+
+        from pysheet.model.undo import FillRangeCommand
+        cmd = FillRangeCommand(sheet, updates)
+        self.undo_stack.push(cmd)
+        self.workbook.modified = True
+        self.grid.refresh_grid()
+        self._sync_formula_bar()
+        self.status_bar.show_message(f"Filled {len(updates)} cells")
+
     def _cmd_plot(self, data_range: str, chart_type: str = "bar", title: str = "") -> None:
         """Render a chart for *data_range* and display it in a full-screen modal."""
         from pysheet.plotting.chart import ChartSpec, render_chart
@@ -1185,6 +1266,7 @@ class PySheetApp(App[None]):
         r, c = self.cursor_row, self.cursor_col
         self.status_bar.update_cursor(r, c, rowcol_to_a1(r, c))
         self.status_bar.mode = self.mode
+        self.status_bar.sheet_name = self.workbook.active_sheet.name
         self.status_bar.used_rows = self.workbook.active_sheet.max_row + 1
         self.status_bar.filename = (
             self.workbook.filepath.name if self.workbook.filepath else ""

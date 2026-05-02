@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.binding import Binding
-from textual.screen import ModalScreen
 from textual.containers import VerticalScroll
 from textual.widgets import Static
+
+from pysheet.ui.vim_modal import VimModalScreen
 
 _HELP_TEXT = """\
 [bold cyan]NORMAL MODE[/bold cyan]
@@ -78,14 +78,8 @@ _HELP_TEXT = """\
 """
 
 
-class HelpScreen(ModalScreen[None]):
+class HelpScreen(VimModalScreen):
     """Modal overlay displaying key bindings."""
-
-    BINDINGS = [
-        Binding("q", "dismiss", "Close"),
-        Binding("escape", "dismiss", "Close"),
-        Binding("space", "dismiss", "Close"),
-    ]
 
     DEFAULT_CSS = """
     HelpScreen {
@@ -107,5 +101,3 @@ class HelpScreen(ModalScreen[None]):
         with VerticalScroll():
             yield Static(_HELP_TEXT, markup=True)
 
-    def action_dismiss(self) -> None:
-        self.dismiss()

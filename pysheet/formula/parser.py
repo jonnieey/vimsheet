@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pysheet.formula.ast_nodes import (
-    BinaryNode, BoolNode, CellRefNode, Expr,
+    BinaryNode, BoolNode, CellRefNode, ColRangeRefNode, Expr,
     FuncCallNode, NameNode, NumberNode, PercentNode,
     RangeRefNode, SheetCellRefNode, SheetRangeRefNode, StringNode, UnaryNode,
 )
@@ -112,6 +112,10 @@ class Parser:
             self._advance()
             sheet, ref = tok.value.split("!", 1)
             return SheetCellRefNode(sheet, ref)
+
+        if tok.type == TT.COL_RANGE_REF:
+            self._advance()
+            return ColRangeRefNode(tok.value)
 
         if tok.type == TT.RANGE_REF:
             self._advance()

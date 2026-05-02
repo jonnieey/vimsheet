@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, TYPE_CHECKING
 
 from pysheet.formula.ast_nodes import (
-    BinaryNode, BoolNode, CellRefNode, Expr,
+    BinaryNode, BoolNode, CellRefNode, ColRangeRefNode, Expr,
     FuncCallNode, NameNode, NumberNode, PercentNode,
     RangeRefNode, SheetCellRefNode, SheetRangeRefNode, StringNode, UnaryNode,
 )
@@ -111,6 +111,9 @@ class Evaluator:
 
             case RangeRefNode(ref=ref):
                 return self._range_values(ref)
+
+            case ColRangeRefNode(ref=ref):
+                return self._col_range_values(ref)
 
             case SheetCellRefNode(sheet=sname, ref=ref):
                 return self._cross_sheet_cell(sname, ref)
@@ -277,6 +280,26 @@ class Evaluator:
         for r in range(cr.start_row, cr.end_row + 1):
             row_vals = []
             for c in range(cr.start_col, cr.end_col + 1):
+                row_vals.append(self._cell_value(r, c))
+            result.append(row_vals)
+        return result
+
+    def _col_range_values(self, ref: str) -> list[list[Any]]:
+        """Return all values for a whole-column reference (A$, A$:B$, A:B)."""
+        import re
+        # Normalise: strip $ and split into one or two column letters
+        clean = ref.replace("$", "").upper()
+        parts = clean.split(":")
+        col_a_str = parts[0].strip()
+        col_b_str = parts[1].strip() if len(parts) > 1 else col_a_str
+        # Convert column letters to 0-based indices
+        _, c1 = a1_to_rowcol(col_a_str + "1")
+        _, c2 = a1_to_rowcol(col_b_str + "1")
+        max_row = max(self._sheet.max_row, 0)
+        result = []
+        for r in range(max_row + 1):
+            row_vals = []
+            for c in range(c1, c2 + 1):
                 row_vals.append(self._cell_value(r, c))
             result.append(row_vals)
         return result

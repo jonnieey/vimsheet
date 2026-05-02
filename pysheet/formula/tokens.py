@@ -15,6 +15,7 @@ class TT(Enum):
     RANGE_REF       = auto()
     SHEET_CELL_REF  = auto()   # SheetName!A1
     SHEET_RANGE_REF = auto()   # SheetName!A1:B2
+    COL_RANGE_REF   = auto()   # A$:B$ or A:B (whole-column range)
     NAME            = auto()
     OP              = auto()
     LPAREN          = auto()

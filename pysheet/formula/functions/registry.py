@@ -28,6 +28,11 @@ def all_names() -> list[str]:
     return sorted(_REGISTRY.keys())
 
 
+def all_functions() -> dict[str, Any]:
+    """Return a copy of the registry mapping name → callable."""
+    return dict(_REGISTRY)
+
+
 def register_script_function(name: str, script_path: str) -> None:
     """Register an external Python script as a callable formula function."""
     import json

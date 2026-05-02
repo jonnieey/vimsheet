@@ -16,6 +16,12 @@ _SHEET_RANGE_PAT = re.compile(
 _SHEET_CELL_PAT  = re.compile(
     r"([A-Za-z_][A-Za-z0-9_ .]*)!(\$?[A-Za-z]{1,3}\$?\d+)"
 )
+# Whole-column: A$:B$  or  A$  or  A:B  (letters only, no row digits)
+_COL_RANGE_PAT = re.compile(
+    r"[A-Za-z]{1,3}\$:[A-Za-z]{1,3}\$"          # A$:B$
+    r"|[A-Za-z]{1,3}(?<!\d):[A-Za-z]{1,3}(?!\d)" # A:B  (no surrounding digits)
+    r"|[A-Za-z]{1,3}\$(?![\d\$])"                 # A$   (single column)
+)
 _RANGE_PAT  = re.compile(r"\$?[A-Za-z]{1,3}\$?\d+:\$?[A-Za-z]{1,3}\$?\d+")
 _CELL_PAT   = re.compile(r"\$?[A-Za-z]{1,3}\$?\d+")
 _NAME_PAT   = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*")
@@ -82,6 +88,13 @@ def tokenize(source: str) -> list[Token]:
         m = _SHEET_CELL_PAT.match(source, i)
         if m:
             tokens.append(Token(TT.SHEET_CELL_REF, m.group(), i))
+            i = m.end()
+            continue
+
+        # Whole-column reference (A$:B$, A:B, A$) — before plain range/cell
+        m = _COL_RANGE_PAT.match(source, i)
+        if m:
+            tokens.append(Token(TT.COL_RANGE_REF, m.group(), i))
             i = m.end()
             continue
 

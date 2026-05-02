@@ -180,6 +180,45 @@ class Sheet:
         if direct_deps:
             self._do_recalculate(direct_deps)
 
+    def set_cells_batch(self, updates: list[tuple[int, int, Any]]) -> None:
+        """Set plain values for many cells in one pass, recalculating only once."""
+        from pysheet.model.cell import Cell
+        all_deps: set[tuple[int, int]] = set()
+        for row, col, value in updates:
+            existing = self.cells.get((row, col))
+            if existing is None:
+                existing = Cell(row=row, col=col)
+                self.cells[(row, col)] = existing
+            # Clear any old formula dep edges
+            if existing.formula and existing.formula.startswith("="):
+                self._dep_graph.set_dependencies((row, col), set())
+            existing.formula = None
+            existing.value = value
+            existing.display = existing.format_value()
+            self._update_extents(row, col)
+            all_deps |= self._dep_graph.dependents_of((row, col))
+        self._recalculate_extents()
+        updated = {(r, c) for r, c, _ in updates}
+        surviving_deps = all_deps - updated
+        if surviving_deps:
+            self._do_recalculate(surviving_deps)
+
+    def clear_cells_batch(self, positions: list[tuple[int, int]]) -> None:
+        """Remove content from many cells in one pass, recalculating only once."""
+        all_deps: set[tuple[int, int]] = set()
+        for row, col in positions:
+            all_deps |= self._dep_graph.dependents_of((row, col))
+            cell = self.cells.get((row, col))
+            if cell and cell.formula and cell.formula.startswith("="):
+                self._dep_graph.set_dependencies((row, col), set())
+            self.cells.pop((row, col), None)
+        self._recalculate_extents()
+        # Only recalculate dependents that weren't themselves cleared
+        cleared = set(positions)
+        surviving_deps = all_deps - cleared
+        if surviving_deps:
+            self._do_recalculate(surviving_deps)
+
     # -----------------------------------------------------------------------
     # Range access
     # -----------------------------------------------------------------------

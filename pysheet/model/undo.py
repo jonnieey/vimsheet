@@ -109,9 +109,28 @@ class DeleteRangeCommand(Command):
         self._snaps: dict[tuple[int, int], Cell | None] = {}
 
     def execute(self) -> None:
-        for r, c in self._range.iter_cells():
+        positions = list(self._range.iter_cells())
+        for r, c in positions:
             self._snaps[(r, c)] = _snapshot_cell(self._sheet, r, c)
-            self._sheet.clear_cell(r, c)
+        self._sheet.clear_cells_batch(positions)
+
+    def undo(self) -> None:
+        for (r, c), snap in self._snaps.items():
+            _restore_cell(self._sheet, r, c, snap)
+
+
+class FillRangeCommand(Command):
+    description = "fill range"
+
+    def __init__(self, sheet: Sheet, updates: list[tuple[int, int, Any]]) -> None:
+        self._sheet = sheet
+        self._updates = updates
+        self._snaps: dict[tuple[int, int], Cell | None] = {}
+
+    def execute(self) -> None:
+        for r, c, _ in self._updates:
+            self._snaps[(r, c)] = _snapshot_cell(self._sheet, r, c)
+        self._sheet.set_cells_batch(self._updates)
 
     def undo(self) -> None:
         for (r, c), snap in self._snaps.items():

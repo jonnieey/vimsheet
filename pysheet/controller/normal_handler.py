@@ -224,7 +224,7 @@ class NormalHandler:
                 app.exit();                  return
 
             # Pending prefixes (no standalone action for these)
-            case "g" | "f" | "i" | "d" | "y" | "r" | "z" | "m" | "'" | "@" | '"' | "q":
+            case "g" | "f" | "i" | "d" | "y" | "r" | "z" | "Z" | "m" | "'" | "@" | '"' | "q":
                 app._key_buffer = buf
                 return
 
