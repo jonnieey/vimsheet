@@ -935,6 +935,13 @@ class PySheetApp(App[None]):
                 self._cmd_fetchstop_range(parts[0].upper())
             case _ if len(parts) == 2 and parts[1].lower() == "fetchnow":
                 self._cmd_fetchnow_range(parts[0].upper())
+            # ---- Range-prefix name: <range> name <NAME> ----
+            case _ if len(parts) == 3 and parts[1].lower() == "name":
+                range_str = parts[0].upper()
+                name = parts[2].upper()
+                self.workbook.active_sheet.named_ranges.define(name, range_str)
+                self.workbook.modified = True
+                self.status_bar.show_message(f"Named range: {name} = {range_str}")
             case _:
                 self.status_bar.show_message(f"Unknown command: {cmd!r}")
 
