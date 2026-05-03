@@ -302,8 +302,42 @@ class NormalHandler:
                 app.exit()
                 return
 
+            # Shift cell
+            case "sj":
+                self._shift_cell(1, 0)
+                app._key_buffer = ""
+                return
+            case "sk":
+                self._shift_cell(-1, 0)
+                app._key_buffer = ""
+                return
+            case "sl":
+                self._shift_cell(0, 1)
+                app._key_buffer = ""
+                return
+            case "sh":
+                self._shift_cell(0, -1)
+                app._key_buffer = ""
+                return
+
             # Pending prefixes (no standalone action for these)
-            case "g" | "f" | "i" | "d" | "y" | "Y" | "r" | "z" | "Z" | "m" | "'" | "@" | '"' | "q":
+            case (
+                "g"
+                | "f"
+                | "i"
+                | "d"
+                | "y"
+                | "Y"
+                | "r"
+                | "z"
+                | "Z"
+                | "m"
+                | "'"
+                | "@"
+                | '"'
+                | "q"
+                | "s"
+            ):
                 app._key_buffer = buf
                 return
 
@@ -711,6 +745,23 @@ class NormalHandler:
     def _show_col(self) -> None:
         app = self._app
         app.workbook.active_sheet.hidden_cols.discard(app.cursor_col)
+        app.grid.refresh_grid()
+
+    def _shift_cell(self, dr: int, dc: int) -> None:
+        """Move the current cell in direction (dr, dc), overwriting destination."""
+        from pysheet.model.range import CellRange
+        from pysheet.model.undo import ShiftCellsCommand
+
+        app = self._app
+        r, c = app.cursor_row, app.cursor_col
+        dst_r, dst_c = r + dr, c + dc
+        if dst_r < 0 or dst_c < 0:
+            return
+        src = CellRange(r, c, r, c)
+        cmd = ShiftCellsCommand(app.workbook.active_sheet, src, dr, dc)
+        app.undo_stack.push(cmd)
+        app.workbook.modified = True
+        app.grid.move_cursor(dst_r, dst_c)
         app.grid.refresh_grid()
 
     def _goto_address(self, addr: str) -> None:

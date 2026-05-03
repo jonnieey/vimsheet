@@ -20,6 +20,35 @@ class VisualHandler:
     def handle(self, key: str) -> None:
         app = self._app
 
+        # ---- Active chord: handle second key before navigation ----
+        chord = app._visual_chord
+        if chord and key != "escape":
+            app._visual_chord = ""
+            if chord == "g" and key == "g":
+                app.grid.move_to_first_row()
+            elif chord == "f":
+                sel = app.grid.visual_selection()
+                if sel:
+                    self._apply_fmt(sel, key)
+            elif chord == "s":
+                sel = app.grid.visual_selection()
+                if sel:
+                    match key:
+                        case "s":
+                            self._sort_range(sel)
+                            app.mode = Mode.NORMAL
+                        case "j":
+                            self._shift_range_cells(sel, 1, 0)
+                        case "k":
+                            self._shift_range_cells(sel, -1, 0)
+                        case "l":
+                            self._shift_range_cells(sel, 0, 1)
+                        case "h":
+                            self._shift_range_cells(sel, 0, -1)
+            app._sync_formula_bar()
+            app._sync_status_bar()
+            return
+
         match key:
             case "escape":
                 app.mode = Mode.NORMAL
@@ -38,9 +67,6 @@ class VisualHandler:
             case "g":
                 app._visual_chord = "g"
                 return
-            case "gg" | _ if key == "g" and app._visual_chord == "g":
-                app._visual_chord = ""
-                app.grid.move_to_first_row()
             case "0":
                 app.grid.move_to_row_start()
             case "$":
@@ -97,12 +123,10 @@ class VisualHandler:
                     self._fill_range(sel)
                 app.mode = Mode.NORMAL
 
-            # --- Sort (s) ---
+            # --- s-chord prefix: ss=sort, sj/sk/sl/sh=shift ---
             case "s":
-                sel = app.grid.visual_selection()
-                if sel:
-                    self._sort_range(sel)
-                app.mode = Mode.NORMAL
+                app._visual_chord = "s"
+                return
 
             # --- Shift right/left ---
             case ">":
@@ -114,15 +138,10 @@ class VisualHandler:
                 if sel:
                     self._shift_range(sel, -1)
 
-            # --- Formatting in visual ---
+            # --- Formatting chord prefix ---
             case "f":
                 app._visual_chord = "f"
                 return
-            case _ if app._visual_chord == "f":
-                app._visual_chord = ""
-                sel = app.grid.visual_selection()
-                if sel:
-                    self._apply_fmt(sel, key)
 
             # --- Enter command mode with range pre-filled ---
             case ":":
@@ -264,6 +283,24 @@ class VisualHandler:
             composite = CompositeCommand(cmds)  # type: ignore[arg-type]
             app.undo_stack.push(composite)
             app.grid.refresh_grid()
+
+    def _shift_range_cells(self, cell_range: CellRange, dr: int, dc: int) -> None:
+        """Move the selected block of cells by (dr, dc), overwriting destination."""
+        from pysheet.model.undo import ShiftCellsCommand
+
+        app = self._app
+        dst_r = cell_range.start_row + dr
+        dst_c = cell_range.start_col + dc
+        if dst_r < 0 or dst_c < 0:
+            return
+        cmd = ShiftCellsCommand(app.workbook.active_sheet, cell_range, dr, dc)
+        app.undo_stack.push(cmd)
+        app.workbook.modified = True
+        # Move visual anchor and cursor with the block
+        app.grid.visual_anchor_row += dr
+        app.grid.visual_anchor_col += dc
+        app.grid.move_cursor(app.cursor_row + dr, app.cursor_col + dc)
+        app.grid.refresh_grid()
 
     def _paste_into_selection(self, cell_range: CellRange) -> None:
         """Paste yanked data into the visual selection.

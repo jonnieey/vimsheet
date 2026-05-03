@@ -326,6 +326,69 @@ class SortCommand(Command):
         self._sheet.sort_state = None
 
 
+class ShiftCellsCommand(Command):
+    """Cascade-shift a cell block one step in direction (dr, dc).
+
+    The entire strip from the source's leading edge to the end of used data
+    shifts by one, so existing content is pushed out of the way rather than
+    overwritten.  The vacated leading edge is left empty.
+    """
+
+    description = "shift cells"
+
+    def __init__(self, sheet: Sheet, src: CellRange, dr: int, dc: int) -> None:
+        self._sheet = sheet
+        self._src = src
+        self._dr = dr
+        self._dc = dc
+        self._snapshot: dict[tuple[int, int], Cell | None] = {}
+
+    def execute(self) -> None:
+        sheet = self._sheet
+        src = self._src
+        dr, dc = self._dr, self._dc
+
+        # Snapshot the strip that will be affected (source + everything beyond)
+        if dc > 0:
+            for r in range(src.start_row, src.end_row + 1):
+                for c in range(src.start_col, sheet.max_col + 2):
+                    self._snapshot[(r, c)] = _snapshot_cell(sheet, r, c)
+        elif dc < 0:
+            for r in range(src.start_row, src.end_row + 1):
+                for c in range(0, src.end_col + 1):
+                    self._snapshot[(r, c)] = _snapshot_cell(sheet, r, c)
+        elif dr > 0:
+            for c in range(src.start_col, src.end_col + 1):
+                for r in range(src.start_row, sheet.max_row + 2):
+                    self._snapshot[(r, c)] = _snapshot_cell(sheet, r, c)
+        elif dr < 0:
+            for c in range(src.start_col, src.end_col + 1):
+                for r in range(0, src.end_row + 1):
+                    self._snapshot[(r, c)] = _snapshot_cell(sheet, r, c)
+
+        # Clear the snapshotted area, then shift everything by (dr, dc)
+        for pos in self._snapshot:
+            sheet.clear_cell(*pos)
+        for (r, c), snap in self._snapshot.items():
+            new_r, new_c = r + dr, c + dc
+            if new_r >= 0 and new_c >= 0 and snap is not None:
+                _restore_cell(sheet, new_r, new_c, snap)
+        sheet._recalculate_extents()
+
+    def undo(self) -> None:
+        sheet = self._sheet
+        dr, dc = self._dr, self._dc
+        # Clear what was written during execute
+        for r, c in self._snapshot:
+            new_r, new_c = r + dr, c + dc
+            if new_r >= 0 and new_c >= 0:
+                sheet.clear_cell(new_r, new_c)
+        # Restore original content
+        for (r, c), snap in self._snapshot.items():
+            _restore_cell(sheet, r, c, snap)
+        sheet._recalculate_extents()
+
+
 class CompositeCommand(Command):
     description = "composite"
 
