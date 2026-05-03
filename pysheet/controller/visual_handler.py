@@ -76,6 +76,13 @@ class VisualHandler:
                     self._yank_range(sel)
                 app.mode = Mode.NORMAL
 
+            # --- Paste into selection ---
+            case "p":
+                sel = app.grid.visual_selection()
+                if sel:
+                    self._paste_into_selection(sel)
+                app.mode = Mode.NORMAL
+
             # --- Delete / clear ---
             case "d" | "x":
                 sel = app.grid.visual_selection()
@@ -257,3 +264,49 @@ class VisualHandler:
             composite = CompositeCommand(cmds)  # type: ignore[arg-type]
             app.undo_stack.push(composite)
             app.grid.refresh_grid()
+
+    def _paste_into_selection(self, cell_range: CellRange) -> None:
+        """Paste yanked data into the visual selection.
+
+        Single-cell yank: fill every cell in the selection with that value.
+        Multi-cell yank: paste the block starting at the top-left of the selection.
+        """
+        from pysheet.model.undo import PasteCommand
+
+        app = self._app
+        reg = app._pending_register
+        if reg == "+":
+            from pysheet.controller.normal_handler import NormalHandler
+
+            data = NormalHandler(app)._from_clipboard()
+        elif reg and reg in app._registers:
+            data = app._registers[reg]
+        else:
+            data = app._default_register
+        app._pending_register = ""
+
+        if not data:
+            app.status_bar.show_message("Nothing to paste")
+            return
+
+        src_rows = len(data)
+        src_cols = max(len(r) for r in data)
+
+        if src_rows == 1 and src_cols == 1:
+            # Single-cell yank — broadcast to every cell in the selection
+            entry = data[0][0]
+            paste_data = [[entry] * cell_range.num_cols for _ in range(cell_range.num_rows)]
+        else:
+            # Multi-cell yank — paste block as-is from selection's top-left
+            paste_data = data
+
+        cmd = PasteCommand(
+            app.workbook.active_sheet,
+            cell_range.start_row,
+            cell_range.start_col,
+            paste_data,
+        )
+        app.undo_stack.push(cmd)
+        app.workbook.modified = True
+        app.grid.refresh_grid()
+        app.status_bar.show_message(f"Pasted into {cell_range.num_rows}×{cell_range.num_cols}")
