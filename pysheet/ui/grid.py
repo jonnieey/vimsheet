@@ -121,10 +121,13 @@ class GridWidget(ScrollView):
     def _render_header_row(self, scroll_x: int, width: int) -> Strip:
         hdr = Style(bgcolor="grey23", color="grey74", bold=True)
         div = Style(bgcolor="grey23", color="grey35")
-        segs: list[Segment] = [Segment(" " * ROW_HEADER_WIDTH, hdr)]
-        x = ROW_HEADER_WIDTH
+        # Corner cell — always pinned at left regardless of horizontal scroll
+        corner = Strip([Segment(" " * ROW_HEADER_WIDTH, hdr)])
+        data_width = width - ROW_HEADER_WIDTH
+        segs: list[Segment] = []
+        x = 0
         col = 0
-        while x < scroll_x + width + ROW_HEADER_WIDTH:
+        while x < scroll_x + data_width:
             cw = self.get_col_width(col)
             if col not in self.sheet.hidden_cols:
                 label = col_index_to_letters(col).center(cw)
@@ -134,7 +137,7 @@ class GridWidget(ScrollView):
             col += 1
             if col > 702:
                 break
-        return Strip(segs).crop(scroll_x, scroll_x + width)
+        return corner + Strip(segs).crop(scroll_x, scroll_x + data_width)
 
     def _render_data_row(self, row: int, scroll_x: int, width: int) -> Strip:
         is_cursor_row = row == self.cursor_row
@@ -157,16 +160,21 @@ class GridWidget(ScrollView):
         fold_indicator = self._fold_indicator(row)
         row_label = str(row + 1).rjust(ROW_HEADER_WIDTH - 2) + fold_indicator + " "
 
+        # Row number — always pinned at left regardless of horizontal scroll
+        row_hdr_strip = Strip([Segment(row_label, row_hdr_style)])
+        data_width = width - ROW_HEADER_WIDTH
+
         if is_hidden:
-            return Strip([Segment("…" + " " * (ROW_HEADER_WIDTH - 1), row_hdr_style)]).crop(
-                scroll_x, scroll_x + width
+            hidden_label = "…" + " " * (ROW_HEADER_WIDTH - 1)
+            return Strip([Segment(hidden_label, row_hdr_style)]) + Strip(
+                [Segment(" " * data_width)]
             )
 
-        segs: list[Segment] = [Segment(row_label, row_hdr_style)]
-        x = ROW_HEADER_WIDTH
+        segs: list[Segment] = []
+        x = 0
         freeze_cols = self.sheet.freeze_cols
         col = 0
-        while x < scroll_x + width + ROW_HEADER_WIDTH:
+        while x < scroll_x + data_width:
             cw = self.get_col_width(col)
             if col in self.sheet.hidden_cols:
                 x += cw
@@ -201,7 +209,7 @@ class GridWidget(ScrollView):
             col += 1
             if col > 702:
                 break
-        return Strip(segs).crop(scroll_x, scroll_x + width)
+        return row_hdr_strip + Strip(segs).crop(scroll_x, scroll_x + data_width)
 
     def _cell_style(self, row: int, col: int, cell: object) -> Style:
         from pysheet.model.cell import Cell as CellType
