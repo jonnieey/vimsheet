@@ -150,8 +150,8 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
 
-            # Named register: "{a-z} prefix for yank/paste
-            case s if len(s) == 2 and s[0] == '"' and s[1].isalpha():
+            # Named register: "{a-z/+} prefix for yank/paste
+            case s if len(s) == 2 and s[0] == '"' and (s[1].isalpha() or s[1] == "+"):
                 app._pending_register = s[1]
                 app._key_buffer = ""
                 # Next key is the operation — let it fall through

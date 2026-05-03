@@ -818,6 +818,14 @@ class PySheetApp(App[None]):
                 else:
                     self.status_bar.show_message("Usage: :func <NAME> <script_path>")
 
+            # ---- Load plain-text file into cells ----
+            case "loadtext" | "lt":
+                if len(parts) >= 2:
+                    delim = parts[2] if len(parts) >= 3 else None
+                    self._cmd_loadtext(parts[1], delim)
+                else:
+                    self.status_bar.show_message("Usage: :loadtext <file> [delimiter]")
+
             # ---- Misc ----
             case "version":
                 self.status_bar.show_message("PySheet 0.1.0")
@@ -840,6 +848,56 @@ class PySheetApp(App[None]):
                 self._apply_script_func_to_range(parts[0].upper(), parts[1].upper())
             case _:
                 self.status_bar.show_message(f"Unknown command: {cmd!r}")
+
+    def _cmd_loadtext(self, filepath: str, delimiter: str | None) -> None:
+        """Load a plain-text file and fill cells from the current cursor.
+
+        Each line becomes a row.  If *delimiter* is given (tab/comma/space/|)
+        each line is split into multiple columns.  Values are coerced to
+        numbers where possible.
+        """
+        from pysheet.io.csv_adapter import _coerce as csv_coerce
+        from pysheet.model.undo import FillRangeCommand
+
+        path = Path(filepath).expanduser()
+        if not path.exists():
+            self.status_bar.show_message(f"File not found: {filepath}")
+            return
+
+        _DELIM_MAP = {
+            "tab": "\t",
+            "comma": ",",
+            "space": " ",
+            "pipe": "|",
+            "|": "|",
+            ",": ",",
+            ";": ";",
+        }
+        sep: str | None = _DELIM_MAP.get(delimiter.lower(), delimiter) if delimiter else None
+
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        base_row, base_col = self.cursor_row, self.cursor_col
+
+        updates: list[tuple[int, int, Any]] = []
+        for dr, line in enumerate(lines):
+            if not line.strip():
+                continue
+            cells = [csv_coerce(c) for c in line.split(sep)] if sep else [csv_coerce(line.strip())]
+            for dc, val in enumerate(cells):
+                if val is not None:
+                    updates.append((base_row + dr, base_col + dc, val))
+
+        if not updates:
+            self.status_bar.show_message("No data loaded")
+            return
+
+        sheet = self.workbook.active_sheet
+        cmd = FillRangeCommand(sheet, updates)
+        self.undo_stack.push(cmd)
+        self.workbook.modified = True
+        self.grid.refresh_grid()
+        self._sync_formula_bar()
+        self.status_bar.show_message(f"Loaded {len(updates)} cells from {path.name}")
 
     # -----------------------------------------------------------------------
     # Search helpers
