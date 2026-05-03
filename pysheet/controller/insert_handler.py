@@ -106,6 +106,11 @@ class InsertHandler:
         sheet = app.workbook.active_sheet
         r, c = app.cursor_row, app.cursor_col
 
+        # Cancel any FETCH running on this cell if it's being overwritten
+        old = sheet.get_cell(r, c)
+        if old and old.formula and "FETCH" in old.formula.upper():
+            app.fetch_manager.cancel((sheet.name, r, c))
+
         from pysheet.model.undo import SetCellCommand
 
         if raw.startswith("="):

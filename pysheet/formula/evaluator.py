@@ -271,6 +271,23 @@ class Evaluator:
             except Exception:
                 return ERR
 
+        # Inject cell context for FETCH so it knows which cell it's in
+        if name == "FETCH":
+            import pysheet.formula.functions.net_funcs as _nf
+            from pysheet.fetch.fetch_manager import _get_global_manager
+
+            _nf._fetch_context = (_get_global_manager(), row, col)
+            try:
+                return fn(*args)
+            except EvalError:
+                raise
+            except ZeroDivisionError:
+                return DIV0
+            except Exception:
+                return ERR
+            finally:
+                _nf._fetch_context = None
+
         try:
             return fn(*args)
         except EvalError:

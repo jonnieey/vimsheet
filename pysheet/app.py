@@ -92,6 +92,12 @@ class PySheetApp(App[None]):
         self.edit_handler = EditHandler(self)
         self.visual_handler = VisualHandler(self)
 
+        # ---- HTTP fetch manager ----
+        from pysheet.fetch.fetch_manager import FetchManager, _set_global_manager
+
+        self.fetch_manager: FetchManager = FetchManager(self)
+        _set_global_manager(self.fetch_manager)
+
     # -----------------------------------------------------------------------
     # Layout
     # -----------------------------------------------------------------------
@@ -109,6 +115,33 @@ class PySheetApp(App[None]):
         self._sync_formula_bar()
         self._sync_status_bar()
         self.grid.focus()
+        self._trigger_fetch_cells()
+
+    def on_unmount(self) -> None:
+        self.fetch_manager.cancel_all()
+
+    def _trigger_fetch_cells(self) -> None:
+        """Re-evaluate every FETCH formula cell now that FetchManager is live.
+
+        Formulas are evaluated during file load before the app (and FetchManager)
+        exist, so FETCH cells land as #LOADING.  This pass re-runs them so the
+        manager schedules background requests.
+        """
+        from pysheet.formula.evaluator import Evaluator
+
+        for sheet in self.workbook.sheets:
+            fetch_cells = [
+                (r, c, cell)
+                for (r, c), cell in sheet.cells.items()
+                if cell.formula and "FETCH" in cell.formula.upper()
+            ]
+            if not fetch_cells:
+                continue
+            ev = Evaluator(sheet, self.workbook)
+            for r, c, cell in fetch_cells:
+                cell.value = ev.eval_formula(cell.formula, r, c)
+                cell.display = cell.format_value()
+        self.grid.refresh_grid()
 
     # -----------------------------------------------------------------------
     # Widget shortcuts
@@ -826,6 +859,19 @@ class PySheetApp(App[None]):
                 else:
                     self.status_bar.show_message("Usage: :loadtext <file> [delimiter]")
 
+            # ---- Fetch commands ----
+            case "fetchnow":
+                addr = parts[1].upper() if len(parts) > 1 else ""
+                if addr:
+                    self._cmd_fetchnow(addr)
+                else:
+                    self.status_bar.show_message("Usage: :fetchnow <A1>")
+            case "fetchstop":
+                target = parts[1] if len(parts) > 1 else "all"
+                self._cmd_fetchstop(target)
+            case "fetchlist":
+                self._cmd_fetchlist()
+
             # ---- Misc ----
             case "version":
                 self.status_bar.show_message("PySheet 0.1.0")
@@ -846,6 +892,11 @@ class PySheetApp(App[None]):
             ].upper() in self._get_script_func_names():
                 # :<range> <FUNCNAME>  — apply registered script function to range in place
                 self._apply_script_func_to_range(parts[0].upper(), parts[1].upper())
+            # ---- Fetch range commands: <range> fetchstop / fetchnow ----
+            case _ if len(parts) == 2 and parts[1].lower() == "fetchstop":
+                self._cmd_fetchstop_range(parts[0].upper())
+            case _ if len(parts) == 2 and parts[1].lower() == "fetchnow":
+                self._cmd_fetchnow_range(parts[0].upper())
             case _:
                 self.status_bar.show_message(f"Unknown command: {cmd!r}")
 
@@ -898,6 +949,82 @@ class PySheetApp(App[None]):
         self.grid.refresh_grid()
         self._sync_formula_bar()
         self.status_bar.show_message(f"Loaded {len(updates)} cells from {path.name}")
+
+    # -----------------------------------------------------------------------
+    # Fetch helpers
+    # -----------------------------------------------------------------------
+
+    def _cmd_fetchnow(self, addr: str) -> None:
+        from pysheet.model.range import a1_to_rowcol
+
+        try:
+            r, c = a1_to_rowcol(addr)
+        except Exception:
+            self.status_bar.show_message(f"Invalid address: {addr!r}")
+            return
+        key = (self.workbook.active_sheet.name, r, c)
+        self.fetch_manager.fetch_now(key)
+        self.status_bar.show_message(f"Fetching {addr}…")
+
+    def _cmd_fetchstop(self, target: str) -> None:
+        if target.lower() == "all":
+            self.fetch_manager.cancel_all()
+            self.status_bar.show_message("All fetches stopped")
+            return
+        from pysheet.model.range import a1_to_rowcol
+
+        try:
+            r, c = a1_to_rowcol(target.upper())
+        except Exception:
+            self.status_bar.show_message(f"Invalid address: {target!r}")
+            return
+        key = (self.workbook.active_sheet.name, r, c)
+        self.fetch_manager.cancel(key)
+        self.status_bar.show_message(f"Fetch stopped for {target.upper()}")
+
+    def _cmd_fetchlist(self) -> None:
+        from pysheet.ui.fetch_list_screen import FetchListScreen
+
+        entries = self.fetch_manager.all_entries()
+        if not entries:
+            self.status_bar.show_message("No active fetches")
+            return
+        self.push_screen(FetchListScreen(entries))
+
+    def _cmd_fetchnow_range(self, range_str: str) -> None:
+        from pysheet.model.range import CellRange
+
+        try:
+            cr = CellRange.from_a1(range_str)
+        except Exception:
+            self.status_bar.show_message(f"Invalid range: {range_str!r}")
+            return
+        sheet_name = self.workbook.active_sheet.name
+        count = 0
+        for r in range(cr.start_row, cr.end_row + 1):
+            for c in range(cr.start_col, cr.end_col + 1):
+                key = (sheet_name, r, c)
+                if key in {k for k, _ in self.fetch_manager.all_entries()}:
+                    self.fetch_manager.fetch_now(key)
+                    count += 1
+        self.status_bar.show_message(f"Re-fetching {count} cell{'s' if count != 1 else ''}")
+
+    def _cmd_fetchstop_range(self, range_str: str) -> None:
+        from pysheet.model.range import CellRange
+
+        try:
+            cr = CellRange.from_a1(range_str)
+        except Exception:
+            self.status_bar.show_message(f"Invalid range: {range_str!r}")
+            return
+        sheet_name = self.workbook.active_sheet.name
+        count = 0
+        for r in range(cr.start_row, cr.end_row + 1):
+            for c in range(cr.start_col, cr.end_col + 1):
+                key = (sheet_name, r, c)
+                self.fetch_manager.cancel(key)
+                count += 1
+        self.status_bar.show_message(f"Stopped fetches for {count} cell{'s' if count != 1 else ''}")
 
     # -----------------------------------------------------------------------
     # Search helpers
@@ -1400,6 +1527,7 @@ class PySheetApp(App[None]):
             self.grid.workbook = self.workbook
             self.undo_stack.clear()
             self._on_sheet_changed()
+            self._trigger_fetch_cells()
             self.status_bar.show_message(f"Opened: {path}")
         except Exception as exc:
             self.status_bar.show_message(f"Open error: {exc}")
