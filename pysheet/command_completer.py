@@ -232,6 +232,31 @@ class CommandCompleter:
                 partial = (parts[2] if len(parts) == 3 else "").lower()
                 return [f"sort {parts[1]} {o}" for o in _SORT_ORDERS if o.startswith(partial)]
 
+        # ── 8. set <key>=<value> — cycle through config fields
+        if cmd == "set":
+            from dataclasses import fields as _dc_fields
+
+            from pysheet.model.config import Config
+
+            try:
+                cfg_fields = [
+                    (f.name, getattr(self._app.config, f.name)) for f in _dc_fields(Config)
+                ]
+            except Exception:
+                return []
+            if len(parts) == 1 and has_trailing_space:
+                # "set " → offer all keys with current values
+                return [f"set {name}={val!r}".replace("'", "") for name, val in cfg_fields]
+            elif len(parts) == 2 and not has_trailing_space:
+                # "set au" → filter by partial key (handle "key=val" syntax)
+                partial_key = parts[1].split("=")[0].lower()
+                return [
+                    f"set {name}={val!r}".replace("'", "")
+                    for name, val in cfg_fields
+                    if name.startswith(partial_key)
+                ]
+            return []
+
         return []
 
     # ── Helpers ───────────────────────────────────────────────────────────────

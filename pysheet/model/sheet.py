@@ -120,6 +120,7 @@ class Sheet:
     _dep_graph: DependencyGraph = field(
         default_factory=DependencyGraph, init=False, repr=False, compare=False
     )
+    autocalc: bool = field(default=True, init=False, repr=False, compare=False)
 
     # -----------------------------------------------------------------------
     # Cell access
@@ -178,7 +179,7 @@ class Sheet:
         if (row, col) in self.cells:
             del self.cells[(row, col)]
         self._recalculate_extents()
-        if direct_deps:
+        if direct_deps and self.autocalc:
             self._do_recalculate(direct_deps)
 
     def set_cells_batch(self, updates: list[tuple[int, int, Any]]) -> None:
@@ -202,7 +203,7 @@ class Sheet:
         self._recalculate_extents()
         updated = {(r, c) for r, c, _ in updates}
         surviving_deps = all_deps - updated
-        if surviving_deps:
+        if surviving_deps and self.autocalc:
             self._do_recalculate(surviving_deps)
 
     def clear_cells_batch(self, positions: list[tuple[int, int]]) -> None:
@@ -218,7 +219,7 @@ class Sheet:
         # Only recalculate dependents that weren't themselves cleared
         cleared = set(positions)
         surviving_deps = all_deps - cleared
-        if surviving_deps:
+        if surviving_deps and self.autocalc:
             self._do_recalculate(surviving_deps)
 
     # -----------------------------------------------------------------------
@@ -335,6 +336,8 @@ class Sheet:
 
     def _recalculate_dependents(self, row: int, col: int) -> None:
         """Recalculate all formula cells that transitively depend on (row, col)."""
+        if not self.autocalc:
+            return
         direct = self._dep_graph.dependents_of((row, col))
         if direct:
             self._do_recalculate(direct)

@@ -97,8 +97,8 @@ class PySheetApp(App[None]):
         # ---- Deleted sheet undo buffer ----
         self._deleted_sheets: list[tuple[int, Any]] = []
 
-        # ---- Autocalc flag (from config) ----
-        self._autocalc: bool = True
+        # ---- Autosave timer handle ----
+        self._autosave_handle: Any = None
 
         # ---- Macro replay guard (prevents recursive self-calling macros) ----
         self._replaying_macros: set[str] = set()
@@ -121,7 +121,7 @@ class PySheetApp(App[None]):
 
     def compose(self) -> ComposeResult:
         yield FormulaBar(id="formula-bar")
-        yield GridWidget(self.workbook, id="grid")
+        yield GridWidget(self.workbook, config=self.config, id="grid")
         yield SheetTabs(id="sheet-tabs")
         yield StatusBar(id="status-bar")
 
@@ -133,6 +133,16 @@ class PySheetApp(App[None]):
         if theme:
             self._apply_theme(theme)
         self._sync_sheet_tabs()
+        # Apply config visibility settings
+        if not self.config.formula_bar_visible:
+            self.query_one("#formula-bar").display = False
+        if not self.config.status_bar_visible:
+            self.query_one("#status-bar").display = False
+        # Apply autocalc to all sheets
+        self.workbook.set_autocalc(self.config.autocalc)
+        # Start autosave timer if enabled
+        if self.config.autosave:
+            self._start_autosave()
         self._sync_formula_bar()
         self._sync_status_bar()
         self.grid.focus()
@@ -695,10 +705,7 @@ class PySheetApp(App[None]):
                     option = parts[1].lower()
                     match option:
                         case "autocalc":
-                            self._autocalc = not self._autocalc
-                            self.status_bar.show_message(
-                                f"autocalc {'on' if self._autocalc else 'off'}"
-                            )
+                            self._set_config("autocalc", str(not self.config.autocalc))
                         case _ if "=" in option:
                             key, _, val = option.partition("=")
                             self._set_config(key.strip(), val.strip())
@@ -1658,6 +1665,49 @@ class PySheetApp(App[None]):
         setattr(self.config, key, coerced)
         self.config.save(Config.default_path())
         self.status_bar.show_message(f"{key} = {coerced!r}  (saved)")
+        # Apply side effects of config changes
+        match key:
+            case "autocalc":
+                self.workbook.set_autocalc(coerced)
+            case "formula_bar_visible":
+                self.query_one("#formula-bar").display = coerced
+            case "status_bar_visible":
+                self.query_one("#status-bar").display = coerced
+            case "show_grid_lines" | "show_row_headers" | "show_col_headers" | "default_col_width":
+                self.grid.update_config(self.config)
+            case "autosave":
+                if coerced:
+                    self._start_autosave()
+                else:
+                    self._stop_autosave()
+            case "autosave_interval":
+                if self.config.autosave:
+                    self._stop_autosave()
+                    self._start_autosave()
+            case "theme":
+                self._apply_theme(coerced)
+
+    def _start_autosave(self) -> None:
+        self._stop_autosave()
+        self._autosave_handle = self.set_interval(self.config.autosave_interval, self._auto_save)
+
+    def _stop_autosave(self) -> None:
+        handle = getattr(self, "_autosave_handle", None)
+        if handle is not None:
+            handle.stop()
+            self._autosave_handle = None
+
+    def _auto_save(self) -> None:
+        if self.workbook.modified and self.workbook.filepath:
+            from pysheet.io.registry import get_adapter
+
+            try:
+                adapter = get_adapter(self.workbook.filepath)
+                adapter.write(self.workbook, self.workbook.filepath)
+                self.workbook.modified = False
+                self.status_bar.show_message("Auto-saved")
+            except Exception as exc:
+                self.status_bar.show_message(f"Auto-save error: {exc}")
 
     def _show_file_info(self) -> None:
         path = str(self.workbook.filepath) if self.workbook.filepath else "[no file]"

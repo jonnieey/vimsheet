@@ -65,9 +65,10 @@ class GridWidget(ScrollView):
     visual_anchor_row: reactive[int] = reactive(0)
     visual_anchor_col: reactive[int] = reactive(0)
 
-    def __init__(self, workbook: Workbook, **kwargs: Any) -> None:
+    def __init__(self, workbook: Workbook, config: Any = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.workbook = workbook
+        self._config = config
 
     def on_mount(self) -> None:
         w = ROW_HEADER_WIDTH + sum(self.get_col_width(c) + 1 for c in range(26))
@@ -83,7 +84,14 @@ class GridWidget(ScrollView):
         return self.workbook.active_sheet
 
     def get_col_width(self, col: int) -> int:
-        return self.sheet.col_widths.get(col, DEFAULT_COL_WIDTH)
+        default_w = (
+            self._config.default_col_width if self._config is not None else DEFAULT_COL_WIDTH
+        )
+        return self.sheet.col_widths.get(col, default_w)
+
+    def update_config(self, config: Any) -> None:
+        self._config = config
+        self.refresh()
 
     # -----------------------------------------------------------------------
     # Virtual size — header is frozen, so virtual height = data rows only
@@ -119,6 +127,8 @@ class GridWidget(ScrollView):
         return self._render_data_row(data_row, scroll_x, width)
 
     def _render_header_row(self, scroll_x: int, width: int) -> Strip:
+        if self._config is not None and not self._config.show_col_headers:
+            return Strip([Segment(" " * width)])
         hdr = Style(bgcolor="grey23", color="grey74", bold=True)
         div = Style(bgcolor="grey23", color="grey35")
         # Corner cell — always pinned at left regardless of horizontal scroll
@@ -132,7 +142,9 @@ class GridWidget(ScrollView):
             if col not in self.sheet.hidden_cols:
                 label = col_index_to_letters(col).center(cw)
                 segs.append(Segment(label[:cw], hdr))
-                segs.append(Segment("│", div))
+                no_lines = self._config is not None and not self._config.show_grid_lines
+                div_char = " " if no_lines else "│"
+                segs.append(Segment(div_char, div))
             x += cw + 1
             col += 1
             if col > 702:
@@ -159,6 +171,10 @@ class GridWidget(ScrollView):
         # Show fold indicator when this row is the start of a group
         fold_indicator = self._fold_indicator(row)
         row_label = str(row + 1).rjust(ROW_HEADER_WIDTH - 2) + fold_indicator + " "
+
+        if self._config is not None and not self._config.show_row_headers:
+            row_label = " " * ROW_HEADER_WIDTH
+            row_hdr_style = Style()
 
         # Row number — always pinned at left regardless of horizontal scroll
         row_hdr_strip = Strip([Segment(row_label, row_hdr_style)])
@@ -204,7 +220,10 @@ class GridWidget(ScrollView):
             segs.append(Segment(text, style))
             # Column divider (1 char wide, neutral colour)
             div_bg = "grey19" if row % 2 == 1 else None
-            segs.append(Segment("│", Style(color="grey30", bgcolor=div_bg)))
+            no_lines = self._config is not None and not self._config.show_grid_lines
+            divider = " " if no_lines else "│"
+            divider_style = Style() if no_lines else Style(color="grey30", bgcolor=div_bg)
+            segs.append(Segment(divider, divider_style))
             x += cw + 1
             col += 1
             if col > 702:

@@ -53,6 +53,8 @@ class Workbook:
             raise ValueError(f"Sheet {name!r} already exists")
         sheet = Sheet(name=name)
         sheet._workbook = self
+        if self.sheets:
+            sheet.autocalc = self.sheets[0].autocalc
         self.sheets.append(sheet)
         self.modified = True
         return sheet
@@ -83,6 +85,11 @@ class Workbook:
         """Set _workbook back-reference on all sheets (called after IO load)."""
         for sheet in self.sheets:
             sheet._workbook = self
+
+    def set_autocalc(self, value: bool) -> None:
+        """Propagate autocalc setting to all sheets."""
+        for sheet in self.sheets:
+            sheet.autocalc = value
 
     def go_to_next_sheet(self) -> None:
         """Switch to the next sheet, wrapping around."""

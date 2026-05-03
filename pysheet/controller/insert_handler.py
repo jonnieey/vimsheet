@@ -35,14 +35,16 @@ class InsertHandler:
                 app._insert_cursor = 0
             case "enter":
                 self._fn_completions = []
-                self._commit(move=(1, 0))
+                em = getattr(app.config, "enter_moves", "down")
+                move = (0, 1) if em == "right" else (0, 0) if em == "none" else (1, 0)
+                self._commit(move=move)
                 return
             case "tab":
                 if buf.startswith("=") and self._try_formula_complete(buf, pos):
                     pass  # completion handled inside _try_formula_complete
                 else:
                     self._fn_completions = []
-                    self._commit(move=(0, 1))
+                    self._commit(move=(0, getattr(app.config, "tab_size", 1)))
                     return
             case "shift+enter":
                 self._commit(move=(-1, 0))
