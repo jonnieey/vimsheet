@@ -1553,17 +1553,20 @@ class PySheetApp(App[None]):
         r, c = self.cursor_row, self.cursor_col
         address = rowcol_to_a1(r, c)
         cell = self.workbook.active_sheet.get_cell(r, c)
+        cursor_pos = -1
         match self.mode:
             case Mode.INSERT:
                 content = self._insert_buffer
+                cursor_pos = self._insert_cursor
             case Mode.EDIT:
                 content = self._edit_buffer
+                cursor_pos = self._edit_cursor
             case Mode.COMMAND:
                 content = f":{self._command_buffer}"
             case _:
                 content = (cell.formula or cell.display or "") if cell else ""
         locked = cell.locked if cell else False
-        self.formula_bar.update_cell(address, content, locked)
+        self.formula_bar.update_cell(address, content, locked, cursor_pos=cursor_pos)
         self.formula_bar.is_modified = self.workbook.modified
         self.formula_bar.mode = self.mode
 
