@@ -74,6 +74,11 @@ class PySheetApp(App[None]):
         self.undo_stack: UndoStack = UndoStack()
         self.macro_recorder: MacroRecorder = MacroRecorder()
 
+        # ---- Tab completion ----
+        from pysheet.command_completer import CommandCompleter
+
+        self._cmd_completer: CommandCompleter = CommandCompleter(self)
+
         # ---- Search state ----
         self._search_state: SearchState | None = None
 
@@ -232,18 +237,26 @@ class PySheetApp(App[None]):
     def _handle_command_key(self, key: str) -> None:
         match key:
             case "escape":
+                self._cmd_completer.reset()
                 self.mode = Mode.NORMAL
                 self._command_buffer = ""
                 self.status_bar.set_persistent_message("")
             case "enter":
+                self._cmd_completer.reset()
                 cmd = self._command_buffer.strip()
                 self._command_buffer = ""
                 self.mode = Mode.NORMAL
                 self._dispatch_command(cmd)
+            case "tab":
+                completed = self._cmd_completer.tab(self._command_buffer)
+                self._command_buffer = completed
+                self._show_command_prompt()
             case "backspace":
+                self._cmd_completer.reset()
                 self._command_buffer = self._command_buffer[:-1]
                 self._show_command_prompt()
             case _ if len(key) == 1 and key.isprintable():
+                self._cmd_completer.reset()
                 self._command_buffer += key
                 self._show_command_prompt()
         self._sync_formula_bar()

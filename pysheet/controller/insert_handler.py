@@ -15,6 +15,11 @@ class InsertHandler:
 
     def __init__(self, app: PySheetApp) -> None:
         self._app = app
+        self._fn_completions: list[str] = []  # cycling formula completions
+        self._fn_idx: int = 0
+        self._fn_prefix: str = ""  # buffer text before the completed token
+        self._fn_at: str = ""  # "@" or "" captured from original token
+        self._fn_suffix: str = ""  # buffer text after cursor when cycling started
 
     def handle(self, key: str) -> None:
         app = self._app
@@ -24,15 +29,21 @@ class InsertHandler:
 
         match key:
             case "escape":
+                self._fn_completions = []
                 app.mode = Mode.NORMAL
                 app._insert_buffer = ""
                 app._insert_cursor = 0
             case "enter":
+                self._fn_completions = []
                 self._commit(move=(1, 0))
                 return
             case "tab":
-                self._commit(move=(0, 1))
-                return
+                if buf.startswith("=") and self._try_formula_complete(buf, pos):
+                    pass  # completion handled inside _try_formula_complete
+                else:
+                    self._fn_completions = []
+                    self._commit(move=(0, 1))
+                    return
             case "shift+enter":
                 self._commit(move=(-1, 0))
                 return
@@ -40,21 +51,28 @@ class InsertHandler:
                 self._commit(move=(0, -1))
                 return
             case "backspace":
+                self._fn_completions = []
                 if pos > 0:
                     app._insert_buffer = buf[: pos - 1] + buf[pos:]
                     app._insert_cursor = pos - 1
             case "delete":
+                self._fn_completions = []
                 if pos < len(buf):
                     app._insert_buffer = buf[:pos] + buf[pos + 1 :]
             case "left" | "ctrl+b":
+                self._fn_completions = []
                 app._insert_cursor = max(0, pos - 1)
             case "right" | "ctrl+f":
+                self._fn_completions = []
                 app._insert_cursor = min(len(buf), pos + 1)
             case "home" | "ctrl+a":
+                self._fn_completions = []
                 app._insert_cursor = 0
             case "end" | "ctrl+e":
+                self._fn_completions = []
                 app._insert_cursor = len(buf)
             case "ctrl+w":
+                self._fn_completions = []
                 # Delete word before cursor
                 before = buf[:pos]
                 stripped = before.rstrip()
@@ -66,15 +84,69 @@ class InsertHandler:
                 app._insert_buffer = new_before + buf[pos:]
                 app._insert_cursor = len(new_before)
             case "ctrl+u":
+                self._fn_completions = []
                 app._insert_buffer = ""
                 app._insert_cursor = 0
             case _ if len(key) == 1 and key.isprintable():
+                self._fn_completions = []
                 app._insert_buffer = buf[:pos] + key + buf[pos:]
                 app._insert_cursor = pos + 1
 
         app._sync_formula_bar()
         app._sync_status_bar()
         self._show_autocomplete_hint()
+
+    def _try_formula_complete(self, buf: str, pos: int) -> bool:
+        """Tab-complete a formula function name at the cursor.
+
+        Returns True if a completion was applied (tab consumed), False otherwise.
+        First Tab builds the completion list; subsequent Tabs cycle through it
+        using the stored prefix/suffix so cursor position after `(` doesn't
+        confuse re-parsing.
+        """
+        if self._fn_completions:
+            # Already cycling — advance and rewrite using stored context
+            self._fn_idx = (self._fn_idx + 1) % len(self._fn_completions)
+            self._apply_fn_completion()
+            return True
+
+        # First Tab — find the partial token before the cursor
+        import re
+
+        from pysheet.formula.functions.registry import all_names
+
+        before = buf[:pos]
+        m = re.search(r"(@?)([A-Za-z]\w*)$", before)
+        if not m:
+            return False
+
+        at_sign = m.group(1)  # "@" or ""
+        partial = m.group(2).upper()
+
+        matches = sorted(n for n in all_names() if n.startswith(partial))
+        if not matches:
+            return False
+
+        self._fn_prefix = before[: m.start()]  # everything before @WORD
+        self._fn_at = at_sign
+        self._fn_suffix = buf[pos:]  # everything after cursor
+        self._fn_completions = matches
+        self._fn_idx = 0
+        self._apply_fn_completion()
+        return True
+
+    def _apply_fn_completion(self) -> None:
+        """Write the current cycling candidate into the buffer."""
+        name = self._fn_completions[self._fn_idx]
+        completed = self._fn_prefix + self._fn_at + name + "("
+        self._app._insert_buffer = completed + self._fn_suffix
+        self._app._insert_cursor = len(completed)
+
+        total = len(self._fn_completions)
+        if total > 1:
+            peek = min(5, total)
+            rest = [self._fn_completions[(self._fn_idx + i) % total] for i in range(1, peek)]
+            self._app.status_bar.show_message(f"{name}  →  {'  '.join(rest)}")
 
     def _show_autocomplete_hint(self) -> None:
         """Show matching function names in status bar when typing a formula."""
