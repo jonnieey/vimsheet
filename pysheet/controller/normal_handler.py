@@ -93,6 +93,12 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
 
+            # ge — open cell in $EDITOR / $VISUAL
+            case "ge":
+                app._key_buffer = ""
+                app.open_in_external_editor()
+                return
+
             # Marks: m{a-zA-Z} set, '{a-z} jump
             case s if len(s) == 2 and s[0] == "m" and s[1].isalpha():
                 reg = s[1]

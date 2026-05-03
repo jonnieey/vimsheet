@@ -1027,6 +1027,58 @@ class PySheetApp(App[None]):
         self.status_bar.show_message(f"Stopped fetches for {count} cell{'s' if count != 1 else ''}")
 
     # -----------------------------------------------------------------------
+    # External editor
+    # -----------------------------------------------------------------------
+
+    def open_in_external_editor(self) -> None:
+        """Open current cell content in $EDITOR, then write back on save."""
+        import os
+        import subprocess
+        import tempfile
+
+        r, c = self.cursor_row, self.cursor_col
+        sheet = self.workbook.active_sheet
+        cell = sheet.get_cell(r, c)
+        initial = ""
+        if cell:
+            initial = cell.formula or cell.display or ""
+
+        editor = os.environ.get("VISUAL") or os.environ.get("EDITOR") or "vi"
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".txt", delete=False, encoding="utf-8"
+        ) as f:
+            f.write(initial)
+            tmp_path = f.name
+
+        try:
+            with self.suspend():
+                subprocess.run([editor, tmp_path], check=False)  # noqa: S603
+            with open(tmp_path, encoding="utf-8") as f:
+                content = f.read()
+            # Strip trailing newline that editors add but leave internal newlines
+            if content.endswith("\n"):
+                content = content[:-1]
+            if content == initial:
+                return  # unchanged — nothing to do
+            from pysheet.model.undo import SetCellCommand
+
+            if content.startswith("="):
+                cmd = SetCellCommand(sheet, r, c, content, new_formula=content)
+            else:
+                cmd = SetCellCommand(sheet, r, c, content)
+            self.undo_stack.push(cmd)
+            self.workbook.modified = True
+            self._sync_formula_bar()
+            self._sync_status_bar()
+            self.grid.refresh_grid()
+        finally:
+            import contextlib
+
+            with contextlib.suppress(OSError):
+                os.unlink(tmp_path)
+
+    # -----------------------------------------------------------------------
     # Search helpers
     # -----------------------------------------------------------------------
 

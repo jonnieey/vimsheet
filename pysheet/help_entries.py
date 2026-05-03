@@ -25,6 +25,7 @@ _S = "EDITING"
 register_help(_S, "=", "Insert mode (right-align)", order=10)
 register_help(_S, "\\ / > / <", "Insert left-align / right-align / default", order=11)
 register_help(_S, "e / E", "Edit cell (cursor at end / start)", order=20)
+register_help(_S, "ge", "Open cell in $EDITOR / $VISUAL", order=21)
 register_help(_S, "x", "Clear cell", order=30)
 register_help(_S, "yy / YY", "Yank cell formula / value", order=40)
 register_help(_S, "p", "Paste yanked cell", order=41)
