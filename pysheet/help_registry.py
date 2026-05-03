@@ -62,7 +62,7 @@ def _formula_section() -> str:
 
     for sig_plain, desc in entries:
         padded = sig_plain.ljust(col_w)
-        cell = f"[green]{escape(padded)}[/green]"
+        cell = f"[chartreuse]{escape(padded)}[/chartreuse]"
         if desc:
             cell += f" [dim]{desc}[/dim]"
         row.append(cell)

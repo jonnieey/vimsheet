@@ -443,9 +443,9 @@ def fn_int(n: Any) -> Any:
 
 
 @register("TRUNC")
-def fn_trunc(n: Any, d: Any = 0) -> Any:
+def fn_trunc(n: Any, m: Any = 0) -> Any:
     try:
-        factor = 10 ** int(d)
+        factor = 10 ** int(m)
         v = float(n)
         return math.trunc(v * factor) / factor
     except (TypeError, ValueError):

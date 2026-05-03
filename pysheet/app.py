@@ -46,9 +46,21 @@ class PySheetApp(App[None]):
     Screen { layout: vertical; }
     """
 
-    def __init__(self, workbook: Workbook | None = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        workbook: Workbook | None = None,
+        config: Any = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self.workbook: Workbook = workbook or Workbook.blank()
+
+        # ---- Config ----
+        if config is None:
+            from pysheet.model.config import Config
+
+            config = Config.load(Config.default_path())
+        self.config = config
 
         # ---- Mode controller state ----
         self._key_buffer: str = ""
@@ -71,7 +83,7 @@ class PySheetApp(App[None]):
         self._last_action: tuple[Any, ...] | None = None
 
         # ---- Undo / macro ----
-        self.undo_stack: UndoStack = UndoStack()
+        self.undo_stack: UndoStack = UndoStack(max_size=self.config.max_undo)
         self.macro_recorder: MacroRecorder = MacroRecorder()
 
         # ---- Tab completion ----
@@ -85,7 +97,7 @@ class PySheetApp(App[None]):
         # ---- Deleted sheet undo buffer ----
         self._deleted_sheets: list[tuple[int, Any]] = []
 
-        # ---- Autocalc flag ----
+        # ---- Autocalc flag (from config) ----
         self._autocalc: bool = True
 
         # ---- Macro replay guard (prevents recursive self-calling macros) ----
@@ -114,8 +126,12 @@ class PySheetApp(App[None]):
         yield StatusBar(id="status-bar")
 
     def on_mount(self) -> None:
-        if startup_theme := getattr(self, "_startup_theme", None):
-            self._apply_theme(startup_theme)
+        # --theme CLI arg takes priority; fall back to config theme
+        theme = getattr(self, "_startup_theme", None) or (
+            self.config.theme if self.config.theme != "default" else None
+        )
+        if theme:
+            self._apply_theme(theme)
         self._sync_sheet_tabs()
         self._sync_formula_bar()
         self._sync_status_bar()
@@ -679,12 +695,21 @@ class PySheetApp(App[None]):
                     option = parts[1].lower()
                     match option:
                         case "autocalc":
-                            self._autocalc = not getattr(self, "_autocalc", True)
+                            self._autocalc = not self._autocalc
                             self.status_bar.show_message(
                                 f"autocalc {'on' if self._autocalc else 'off'}"
                             )
+                        case _ if "=" in option:
+                            key, _, val = option.partition("=")
+                            self._set_config(key.strip(), val.strip())
+                        case _ if len(parts) == 3:
+                            self._set_config(parts[1], parts[2])
                         case _:
-                            self.status_bar.show_message(f"Unknown option: {option!r}")
+                            cur = getattr(self.config, option, None)
+                            if cur is not None:
+                                self.status_bar.show_message(f"{option} = {cur!r}")
+                            else:
+                                self.status_bar.show_message(f"Unknown option: {option!r}")
                 else:
                     self.status_bar.show_message("Usage: :set <option>")
 
@@ -1606,6 +1631,26 @@ class PySheetApp(App[None]):
             self.status_bar.show_message(f"Exported ({fmt}): {path}")
         except Exception as exc:
             self.status_bar.show_message(f"Export error: {exc}")
+
+    def _set_config(self, key: str, val: str) -> None:
+        """Set a config value by name, coerce type, and persist to disk."""
+        from pysheet.model.config import Config
+
+        if not hasattr(self.config, key):
+            self.status_bar.show_message(f"Unknown config key: {key!r}")
+            return
+        field_type = type(getattr(self.config, key))
+        try:
+            if field_type is bool:
+                coerced: Any = val.lower() in ("true", "1", "yes", "on")
+            else:
+                coerced = field_type(val)
+        except (ValueError, TypeError):
+            self.status_bar.show_message(f"Invalid value for {key!r}: {val!r}")
+            return
+        setattr(self.config, key, coerced)
+        self.config.save(Config.default_path())
+        self.status_bar.show_message(f"{key} = {coerced!r}  (saved)")
 
     def _show_file_info(self) -> None:
         path = str(self.workbook.filepath) if self.workbook.filepath else "[no file]"

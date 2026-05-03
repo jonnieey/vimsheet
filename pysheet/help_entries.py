@@ -101,6 +101,7 @@ register_help(_S, ":theme <name>", "Change theme  (dracula/light/gruvbox/nord)",
 register_help(_S, ":loadtext <file>", "Fill cells from plain-text file", order=121)
 register_help(_S, ":fill <n> <value>", "Fill N cells with value/range", order=122)
 register_help(_S, ":set autocalc", "Toggle auto-recalculation", order=130)
+register_help(_S, ":set key=value", "Set/save a config value  (e.g. :set theme=nord)", order=131)
 register_help(_S, ":recalc", "Force full recalculation", order=131)
 register_help(_S, ":fetchnow <cell>", "Force immediate re-fetch of FETCH cell", order=140)
 register_help(_S, ":fetchstop <cell|all>", "Cancel FETCH refresh timer", order=141)

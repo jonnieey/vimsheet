@@ -139,7 +139,7 @@ def _run_tui(args: argparse.Namespace, config_overrides: dict[str, str]) -> None
             # New file — blank workbook, will save to this path on :w
             workbook.filepath = filepath
 
-    app = PySheetApp(workbook=workbook)
+    app = PySheetApp(workbook=workbook, config=config)
     if args.theme:
         app._startup_theme = args.theme
 

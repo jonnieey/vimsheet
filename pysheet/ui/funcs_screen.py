@@ -90,9 +90,11 @@ def _build_funcs_text(filter_term: str = "") -> str:
             name_col = primary.ljust(col_w)
             sig_col = f"({sig_str})" if sig_str else "()"
             alias_col = f"  [dim]aka {', '.join(aliases)}[/dim]" if aliases else ""
-            lines.append(
-                f"  [bold green]{name_col}[/bold green] [yellow]{sig_col}[/yellow]{alias_col}"
+            row_str = (
+                f"  [bold chartreuse]{name_col}[/bold chartreuse]"
+                f" [yellow]{sig_col}[/yellow]{alias_col}"
             )
+            lines.append(row_str)
         lines.append("")
 
     total = len(entries)
@@ -109,11 +111,11 @@ class FuncsScreen(VimModalScreen):
         align: center middle;
     }
     FuncsScreen > VerticalScroll {
+        width: 84%;
+        height: 92%;
         background: $surface;
-        border: thick $primary;
+        border: round $primary;
         padding: 1 2;
-        width: 72;
-        height: 90%;
     }
     FuncsScreen > VerticalScroll > Static {
         width: auto;
