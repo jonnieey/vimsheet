@@ -76,6 +76,8 @@ _ALL_COMMANDS = sorted(
         "r",
         "recalc",
         "renamesheet",
+        "cs",
+        "rs",
         "replace",
         "replaceall",
         "rowgroup",

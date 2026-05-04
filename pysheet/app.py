@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -549,6 +550,17 @@ class PySheetApp(App[None]):
                     self._cmd_replace_all(parts[1], parts[2])
                 else:
                     self.status_bar.show_message("Usage: :replaceall <pattern> <replacement>")
+            case _ if re.match(r"^(?:[A-Za-z]+,[A-Za-z]+)?cs", parts[0]) and "/" in cmd:
+                self._cmd_col_substitute(cmd)
+            case _ if re.match(r"^(?:\d+,\d+)?rs", parts[0]) and "/" in cmd:
+                self._cmd_row_substitute(cmd)
+            case _ if (
+                len(parts) == 2
+                and ":" in parts[0]
+                and re.match(r"^(?:cs|rs)", parts[1], re.IGNORECASE)
+                and "/" in parts[1]
+            ):
+                self._cmd_range_substitute(parts[0], parts[1])
 
             # ---- Plot ----
             case "plot":
@@ -1210,7 +1222,7 @@ class PySheetApp(App[None]):
 
     def _cmd_replace_all(self, pattern: str, replacement: str) -> None:
         """Replace all occurrences and show the count."""
-        state = SearchState(pattern=pattern, replace=replacement)
+        state = SearchState(pattern=pattern, replace=replacement, whole_cell=True)
         self._search_state = state
         searcher = Searcher(self.workbook.active_sheet)
         count = searcher.replace_all(state)
@@ -1218,6 +1230,179 @@ class PySheetApp(App[None]):
             self.workbook.modified = True
             self.grid.refresh_grid()
         self.status_bar.show_message(f"Replaced {count} occurrence(s)")
+
+    # Matches :cs in all column-targeting forms.
+    # Group 1: col range start (e.g. "A" from "A,C")
+    # Group 2: col range end   (e.g. "C")
+    # Group 3: optional col-spec (letter(s) or 1-based number)
+    # Group 4: pattern
+    # Group 5: replacement
+    # Group 6: flags (g = regex global replace; absent = whole-cell literal match)
+    _CS_RE = re.compile(
+        r"^(?:([A-Za-z]+),([A-Za-z]+))?" r"cs" r"([A-Za-z]+|\d+)?" r"/(.+?)" r"/(.*?)" r"/([gi]*)$",
+        re.IGNORECASE,
+    )
+
+    # Matches :rs in all row-targeting forms.
+    # Group 1: row range start (1-based, e.g. "1" from "1,3")
+    # Group 2: row range end   (1-based, e.g. "3")
+    # Group 3: optional row-spec (1-based number)
+    # Group 4: pattern
+    # Group 5: replacement
+    # Group 6: flags (g = regex global replace; absent = whole-cell literal match)
+    _RS_RE = re.compile(
+        r"^(?:(\d+),(\d+))?" r"rs" r"(\d+)?" r"/(.+?)" r"/(.*?)" r"/([gi]*)$",
+        re.IGNORECASE,
+    )
+
+    def _cmd_col_substitute(self, cmd: str) -> None:
+        """Handle column substitute commands.
+
+        Without /g — whole-cell literal match (cell must equal pat exactly):
+          :cs/pat/repl/         current column
+          :csB/pat/repl/        column B
+          :cs2/pat/repl/        column 2 (1-based)
+          :A,Ccs/pat/repl/      columns A through C
+
+        With /g — regex global replace within each cell value:
+          :cs/pat/repl/g        current column
+          :csB/pat/repl/g       column B
+        """
+        from pysheet.model.range import col_letters_to_index
+
+        m = self._CS_RE.match(cmd)
+        if not m:
+            self.status_bar.show_message("Usage: :cs/pat/repl/  :cs/pat/repl/g  :csB/…  :A,Ccs/…")
+            return
+
+        col_start_str, col_end_str, col_spec, pattern, replacement, flags = m.groups()
+        flags = flags or ""
+        global_flag = "g" in flags.lower()
+
+        sheet = self.workbook.active_sheet
+
+        if col_start_str and col_end_str:
+            c1 = col_letters_to_index(col_start_str.upper())
+            c2 = col_letters_to_index(col_end_str.upper())
+            cols = list(range(min(c1, c2), max(c1, c2) + 1))
+        elif col_spec:
+            if col_spec.isdigit():
+                cols = [int(col_spec) - 1]
+            else:
+                cols = [col_letters_to_index(col_spec.upper())]
+        else:
+            cols = [self.cursor_col]
+
+        # /g → regex global replace; no /g → whole-cell literal match
+        state = SearchState(
+            pattern=pattern,
+            replace=replacement,
+            use_regex=global_flag,
+            whole_cell=not global_flag,
+        )
+        self._search_state = state
+        searcher = Searcher(sheet)
+        count = searcher.replace_in_cols(state, cols)
+
+        if count:
+            self.workbook.modified = True
+            self.grid.refresh_grid()
+
+        col_labels = ", ".join(chr(ord("A") + c) if c < 26 else f"col{c + 1}" for c in cols)
+        self.status_bar.show_message(f"cs: {count} substitution(s) in column(s) {col_labels}")
+
+    def _cmd_row_substitute(self, cmd: str) -> None:
+        """Handle row substitute commands.
+
+        Without /g — whole-cell literal match (cell must equal pat exactly):
+          :rs/pat/repl/         current row
+          :rs3/pat/repl/        row 3 (1-based)
+          :1,3rs/pat/repl/      rows 1 through 3
+
+        With /g — regex global replace within each cell value:
+          :rs/pat/repl/g        current row
+        """
+        m = self._RS_RE.match(cmd)
+        if not m:
+            self.status_bar.show_message("Usage: :rs/pat/repl/  :rs/pat/repl/g  :rs3/…  :1,3rs/…")
+            return
+
+        row_start_str, row_end_str, row_spec, pattern, replacement, flags = m.groups()
+        flags = flags or ""
+        global_flag = "g" in flags.lower()
+
+        sheet = self.workbook.active_sheet
+
+        if row_start_str and row_end_str:
+            r1 = int(row_start_str) - 1
+            r2 = int(row_end_str) - 1
+            rows = list(range(min(r1, r2), max(r1, r2) + 1))
+        elif row_spec:
+            rows = [int(row_spec) - 1]
+        else:
+            rows = [self.cursor_row]
+
+        state = SearchState(
+            pattern=pattern,
+            replace=replacement,
+            use_regex=global_flag,
+            whole_cell=not global_flag,
+        )
+        self._search_state = state
+        searcher = Searcher(sheet)
+        count = searcher.replace_in_rows(state, rows)
+
+        if count:
+            self.workbook.modified = True
+            self.grid.refresh_grid()
+
+        row_labels = ", ".join(str(r + 1) for r in rows)
+        self.status_bar.show_message(f"rs: {count} substitution(s) in row(s) {row_labels}")
+
+    _RANGE_SUB_RE = re.compile(r"^(cs|rs)/(.+?)/(.*?)/([gi]*)$", re.IGNORECASE)
+
+    def _cmd_range_substitute(self, range_str: str, sub_cmd: str) -> None:
+        """Handle range-prefixed substitute: :C10:D10 cs/pat/repl/[g].
+
+        The range constrains both rows and columns.
+        """
+        from pysheet.model.range import CellRange
+
+        m = self._RANGE_SUB_RE.match(sub_cmd)
+        if not m:
+            self.status_bar.show_message("Usage: :A1:B5 cs/pat/repl/  or  :A1:B5 rs/pat/repl/g")
+            return
+
+        kind, pattern, replacement, flags = m.groups()
+        flags = flags or ""
+        global_flag = "g" in flags.lower()
+
+        try:
+            cr = CellRange.from_a1(range_str.upper())
+        except Exception:
+            self.status_bar.show_message(f"Invalid range: {range_str!r}")
+            return
+
+        rows = list(range(cr.start_row, cr.end_row + 1))
+        cols = list(range(cr.start_col, cr.end_col + 1))
+
+        state = SearchState(
+            pattern=pattern,
+            replace=replacement,
+            use_regex=global_flag,
+            whole_cell=not global_flag,
+        )
+        self._search_state = state
+        searcher = Searcher(self.workbook.active_sheet)
+        count = searcher.replace_in_range(state, rows, cols)
+
+        if count:
+            self.workbook.modified = True
+            self.grid.refresh_grid()
+
+        self.status_bar.show_message(
+            f"{kind.lower()}: {count} substitution(s) in {range_str.upper()}"
+        )
 
     def _cmd_fill(self, cr: Any, args: list[str]) -> None:
         """Fill a CellRange with a constant, sequence, or string with optional transform.

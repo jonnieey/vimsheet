@@ -18,6 +18,7 @@ class SearchState:
     replace: str = ""
     case_sensitive: bool = False
     use_regex: bool = False
+    whole_cell: bool = False  # anchor match to entire cell value (used by :replace)
     current_match: tuple[int, int] | None = None  # (row, col)
     matches: list[tuple[int, int]] = field(default_factory=list)
 
@@ -37,12 +38,7 @@ class Searcher:
         pattern = state.pattern
         if not state.use_regex:
             pattern = re.escape(pattern)
-            # Prevent partial-word matches (e.g. "3" matching inside "13").
-            # Word boundaries work for alphanumeric patterns; otherwise anchor
-            # the whole cell value with ^ … $ so "13" is never altered by :replace 3 5.
-            if re.fullmatch(r"\w+", state.pattern):
-                pattern = r"\b" + pattern + r"\b"
-            else:
+            if state.whole_cell:
                 pattern = "^" + pattern + "$"
         flags = 0 if state.case_sensitive else re.IGNORECASE
         return re.compile(pattern, flags)
@@ -134,9 +130,10 @@ class Searcher:
         # Wrap around: return the last match.
         return matches[-1]
 
-    def replace_one(self, state: SearchState, row: int, col: int) -> bool:
+    def replace_one(self, state: SearchState, row: int, col: int, max_subs: int = 0) -> bool:
         """Replace text in (row, col) using state.replace.
 
+        max_subs=0 replaces all occurrences; max_subs=1 replaces only the first.
         Returns True if a replacement was made.
         """
         cell = self._sheet.get_cell(row, col)
@@ -147,13 +144,13 @@ class Searcher:
 
         # Prefer replacing in the formula if present; fall back to display.
         if cell.formula:
-            new_text, count = regex.subn(state.replace, cell.formula)
-            if count:
+            new_text, n = regex.subn(state.replace, cell.formula, count=max_subs)
+            if n:
                 self._sheet.set_cell_value(row, col, new_text, formula=new_text)
                 return True
         else:
-            new_text, count = regex.subn(state.replace, cell.display)
-            if count:
+            new_text, n = regex.subn(state.replace, cell.display, count=max_subs)
+            if n:
                 self._sheet.set_cell_value(row, col, new_text)
                 return True
 
@@ -169,4 +166,52 @@ class Searcher:
         for row, col in positions:
             if self.replace_one(state, row, col):
                 count += 1
+        return count
+
+    def replace_in_cols(self, state: SearchState, cols: list[int], max_subs: int = 0) -> int:
+        """Replace in the given column indices only.
+
+        max_subs=0 replaces all occurrences per cell; max_subs=1 replaces the first.
+        Returns the number of cells where a replacement was made.
+        """
+        sheet = self._sheet
+        if not sheet.cells:
+            return 0
+        count = 0
+        for r in range(sheet.max_row + 1):
+            for c in cols:
+                if self.replace_one(state, r, c, max_subs=max_subs):
+                    count += 1
+        return count
+
+    def replace_in_range(
+        self, state: SearchState, rows: list[int], cols: list[int], max_subs: int = 0
+    ) -> int:
+        """Replace within a specific row+col intersection.
+
+        Returns the number of cells where a replacement was made.
+        """
+        if not self._sheet.cells:
+            return 0
+        count = 0
+        for r in rows:
+            for c in cols:
+                if self.replace_one(state, r, c, max_subs=max_subs):
+                    count += 1
+        return count
+
+    def replace_in_rows(self, state: SearchState, rows: list[int], max_subs: int = 0) -> int:
+        """Replace in the given row indices only.
+
+        max_subs=0 replaces all occurrences per cell; max_subs=1 replaces the first.
+        Returns the number of cells where a replacement was made.
+        """
+        sheet = self._sheet
+        if not sheet.cells:
+            return 0
+        count = 0
+        for r in rows:
+            for c in range(sheet.max_col + 1):
+                if self.replace_one(state, r, c, max_subs=max_subs):
+                    count += 1
         return count
