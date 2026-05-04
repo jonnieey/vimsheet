@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pysheet.model.sheet import Sheet
+from vimsheet.model.sheet import Sheet
 
 
 class TestRowGroups:
@@ -58,14 +58,14 @@ class TestColGroups:
 
 class TestJsonRoundTrip:
     def test_groups_preserved_in_json(self, tmp_path):
-        from pysheet.io.json_adapter import JSONAdapter
-        from pysheet.model.workbook import Workbook
+        from vimsheet.io.json_adapter import JSONAdapter
+        from vimsheet.model.workbook import Workbook
 
         wb = Workbook.blank()
         wb.active_sheet.row_groups.append((2, 5))
         wb.active_sheet.col_groups.append((1, 3))
 
-        path = tmp_path / "groups.pysheet"
+        path = tmp_path / "groups.vimsheet"
         JSONAdapter().write(wb, path)
 
         wb2 = JSONAdapter().read(path)

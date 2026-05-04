@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from pysheet.app import PySheetApp
-from pysheet.controller.mode import Mode
 from tests.conftest import make_workbook
+from vimsheet.app import VimSheetApp
+from vimsheet.controller.mode import Mode
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -14,19 +14,19 @@ from tests.conftest import make_workbook
 
 
 @pytest.fixture
-def app() -> PySheetApp:
-    return PySheetApp(workbook=make_workbook())
+def app() -> VimSheetApp:
+    return VimSheetApp(workbook=make_workbook())
 
 
 @pytest.fixture
-def app_with_data() -> PySheetApp:
+def app_with_data() -> VimSheetApp:
     wb = make_workbook(
         data=[
             ["Hello", 42],
             ["World", 99],
         ]
     )
-    return PySheetApp(workbook=wb)
+    return VimSheetApp(workbook=wb)
 
 
 # ---------------------------------------------------------------------------
@@ -35,7 +35,7 @@ def app_with_data() -> PySheetApp:
 
 
 @pytest.mark.asyncio
-async def test_typing_builds_insert_buffer(app: PySheetApp) -> None:
+async def test_typing_builds_insert_buffer(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         assert app.mode == Mode.INSERT
@@ -47,7 +47,7 @@ async def test_typing_builds_insert_buffer(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_backspace_removes_last_char(app: PySheetApp) -> None:
+async def test_backspace_removes_last_char(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         for ch in "abc":
@@ -67,7 +67,7 @@ async def test_backspace_removes_last_char(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_left_right_moves_insert_cursor(app: PySheetApp) -> None:
+async def test_left_right_moves_insert_cursor(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         for ch in "abc":
@@ -86,7 +86,7 @@ async def test_left_right_moves_insert_cursor(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_left_clamps_at_zero(app: PySheetApp) -> None:
+async def test_left_clamps_at_zero(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         await pilot.press("left")
@@ -100,7 +100,7 @@ async def test_left_clamps_at_zero(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_enter_commits_and_moves_down(app: PySheetApp) -> None:
+async def test_enter_commits_and_moves_down(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         for ch in "hello":
@@ -128,7 +128,7 @@ async def test_enter_commits_and_moves_down(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_tab_commits_and_moves_right(app: PySheetApp) -> None:
+async def test_tab_commits_and_moves_right(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         for ch in "data":
@@ -153,7 +153,7 @@ async def test_tab_commits_and_moves_right(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_escape_cancels_insert(app: PySheetApp) -> None:
+async def test_escape_cancels_insert(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         for ch in "test":
@@ -176,7 +176,7 @@ async def test_escape_cancels_insert(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_ctrl_u_clears_buffer(app: PySheetApp) -> None:
+async def test_ctrl_u_clears_buffer(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         for ch in "clearme":
@@ -196,7 +196,7 @@ async def test_ctrl_u_clears_buffer(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_numeric_value_stored_as_int(app: PySheetApp) -> None:
+async def test_numeric_value_stored_as_int(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         for ch in "42":
@@ -211,10 +211,10 @@ async def test_numeric_value_stored_as_int(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_string_value_stored_correctly(app: PySheetApp) -> None:
+async def test_string_value_stored_correctly(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
-        for ch in "pysheet":
+        for ch in "vimsheet":
             await pilot.press(ch)
         await pilot.press("enter")
         await pilot.pause()
@@ -222,11 +222,11 @@ async def test_string_value_stored_correctly(app: PySheetApp) -> None:
         sheet = app.workbook.active_sheet
         cell = sheet.get_cell(0, 0)
         assert cell is not None
-        assert cell.value == "pysheet"
+        assert cell.value == "vimsheet"
 
 
 @pytest.mark.asyncio
-async def test_insert_mode_cursor_position_after_entry(app: PySheetApp) -> None:
+async def test_insert_mode_cursor_position_after_entry(app: VimSheetApp) -> None:
     """After entering insert mode via =, cursor starts at position 0."""
     async with app.run_test() as pilot:
         await pilot.press("=")
@@ -235,7 +235,7 @@ async def test_insert_mode_cursor_position_after_entry(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_typing_mid_buffer_inserts_at_cursor(app: PySheetApp) -> None:
+async def test_typing_mid_buffer_inserts_at_cursor(app: VimSheetApp) -> None:
     """Chars typed at a non-end cursor position are inserted at that position."""
     async with app.run_test() as pilot:
         await pilot.press("=")

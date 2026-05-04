@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from pysheet.model.workbook import Workbook
-from pysheet.scripting.engine import ScriptEngine
+from vimsheet.model.workbook import Workbook
+from vimsheet.scripting.engine import ScriptEngine
 
 # ---------------------------------------------------------------------------
 # ScriptEngine.run_file
@@ -62,7 +62,7 @@ class TestRoundTrip:
     def test_json_round_trip(self, tmp_path: Path):
         engine = ScriptEngine()
         engine.run_string("set A1 = 42\nset B1 = hello")
-        out = tmp_path / "data.pysheet"
+        out = tmp_path / "data.vimsheet"
         engine.run_string(f"save {out}")
         engine2 = ScriptEngine()
         engine2.run_string(f"open {out}")
@@ -72,7 +72,7 @@ class TestRoundTrip:
     def test_formula_preserved_in_json(self, tmp_path: Path):
         engine = ScriptEngine()
         engine.run_string("set A1 = 5\nset B1 = 10\nformula C1 =A1+B1")
-        out = tmp_path / "formulas.pysheet"
+        out = tmp_path / "formulas.vimsheet"
         engine.run_string(f"save {out}")
         engine2 = ScriptEngine()
         engine2.run_string(f"open {out}")
@@ -89,7 +89,7 @@ class TestRoundTrip:
 
 class TestDiff:
     def test_identical_files_no_diff(self, tmp_path: Path, capsys):
-        from pysheet.io.csv_adapter import CSVAdapter
+        from vimsheet.io.csv_adapter import CSVAdapter
 
         wb = Workbook.blank()
         wb.active_sheet.set_cell_value(0, 0, "hello")
@@ -97,15 +97,15 @@ class TestDiff:
         CSVAdapter().write(wb, path)
 
         # Diff identical files
-        sys.argv = ["pysheet", "--diff", str(path), str(path)]
-        from pysheet.__main__ import _run_diff
+        sys.argv = ["vimsheet", "--diff", str(path), str(path)]
+        from vimsheet.__main__ import _run_diff
 
         _run_diff(str(path), str(path))
         out = capsys.readouterr().out
         assert "0 difference(s)" in out
 
     def test_different_files_finds_changes(self, tmp_path: Path, capsys):
-        from pysheet.io.csv_adapter import CSVAdapter
+        from vimsheet.io.csv_adapter import CSVAdapter
 
         wb_a = Workbook.blank()
         wb_a.active_sheet.set_cell_value(0, 0, "hello")
@@ -117,7 +117,7 @@ class TestDiff:
         path_b = tmp_path / "b.csv"
         CSVAdapter().write(wb_b, path_b)
 
-        from pysheet.__main__ import _run_diff
+        from vimsheet.__main__ import _run_diff
 
         with pytest.raises(SystemExit) as exc_info:
             _run_diff(str(path_a), str(path_b))

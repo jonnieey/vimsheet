@@ -1,10 +1,10 @@
-"""Unit tests for pysheet.model.cell (Cell and CellFormat)."""
+"""Unit tests for vimsheet.model.cell (Cell and CellFormat)."""
 
 from __future__ import annotations
 
 from datetime import datetime
 
-from pysheet.model.cell import Cell, CellFormat
+from vimsheet.model.cell import Cell, CellFormat
 
 # ---------------------------------------------------------------------------
 # CellFormat tests

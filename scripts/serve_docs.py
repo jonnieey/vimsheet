@@ -14,14 +14,14 @@ MD_EXTENSIONS = ["extra", "toc", "tables", "fenced_code", "codehilite"]
 NAV_HTML = """
 <nav style="background:#1a1a2e;padding:8px 16px;margin-bottom:16px;border-radius:6px;">
   <a href="/" style="color:#e94560;font-weight:bold;margin-right:16px;">Home</a>
-  <span style="color:#888;">PySheet Docs</span>
+  <span style="color:#888;">VimSheet Docs</span>
 </nav>
 """
 
 FOOTER_HTML = """
 <hr>
 <footer style="color:#888;font-size:0.85em;padding:8px 0;">
-  PySheet Documentation
+  VimSheet Documentation
 </footer>
 """
 
@@ -105,7 +105,7 @@ def render_md_to_html(md_path: str) -> str:
     html_body = markdown.markdown(md_text, extensions=MD_EXTENSIONS)
     html_body = rewrite_md_links(html_body)
     title_match = re.search(r"<h1>(.+?)</h1>", html_body)
-    title = title_match.group(1) if title_match else "PySheet Docs"
+    title = title_match.group(1) if title_match else "VimSheet Docs"
     return HTML_TEMPLATE.format(
         title=title,
         nav=NAV_HTML,
@@ -152,7 +152,7 @@ class DocHandler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     host = "0.0.0.0"
     port = 8080
-    print(f"Serving PySheet docs at http://localhost:{port}")
+    print(f"Serving VimSheet docs at http://localhost:{port}")
     print(f"  Directory: {DOCS_DIR}")
     httpd = http.server.HTTPServer((host, port), DocHandler)
     try:

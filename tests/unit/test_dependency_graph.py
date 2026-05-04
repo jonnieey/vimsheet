@@ -1,8 +1,8 @@
-"""Unit tests for pysheet.formula.dependency.DependencyGraph."""
+"""Unit tests for vimsheet.formula.dependency.DependencyGraph."""
 
 import pytest
 
-from pysheet.formula.dependency import CycleError, DependencyGraph
+from vimsheet.formula.dependency import CycleError, DependencyGraph
 
 A = (0, 0)
 B = (0, 1)

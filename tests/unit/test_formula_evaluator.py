@@ -1,14 +1,14 @@
-"""Unit tests for pysheet.formula.evaluator.Evaluator."""
+"""Unit tests for vimsheet.formula.evaluator.Evaluator."""
 
 
-from pysheet.formula.evaluator import (
+from vimsheet.formula.evaluator import (
     CIRC,
     DIV0,
     NAME,
     TYPE_ERR,
     Evaluator,
 )
-from pysheet.model.sheet import Sheet
+from vimsheet.model.sheet import Sheet
 
 
 def make_sheet(**cells) -> Sheet:
@@ -18,7 +18,7 @@ def make_sheet(**cells) -> Sheet:
     """
     sheet = Sheet(name="test")
     for addr, val in cells.items():
-        from pysheet.model.range import a1_to_rowcol
+        from vimsheet.model.range import a1_to_rowcol
 
         r, c = a1_to_rowcol(addr)
         if isinstance(val, str) and val.startswith("="):
@@ -197,10 +197,10 @@ class TestErrors:
 class TestCircular:
     def test_self_reference(self):
         sheet = Sheet(name="t")
-        from pysheet.model.range import a1_to_rowcol
+        from vimsheet.model.range import a1_to_rowcol
 
         r, c = a1_to_rowcol("A1")
-        sheet.cells[(r, c)] = __import__("pysheet.model.cell", fromlist=["Cell"]).Cell(
+        sheet.cells[(r, c)] = __import__("vimsheet.model.cell", fromlist=["Cell"]).Cell(
             row=r, col=c, formula="=A1"
         )
         ev = Evaluator(sheet)
@@ -218,7 +218,7 @@ class TestCollectDeps:
         sheet = Sheet(name="t")
         ev = Evaluator(sheet)
         deps = ev.collect_deps("=A1")
-        from pysheet.model.range import a1_to_rowcol
+        from vimsheet.model.range import a1_to_rowcol
 
         assert a1_to_rowcol("A1") in deps
 
@@ -226,7 +226,7 @@ class TestCollectDeps:
         sheet = Sheet(name="t")
         ev = Evaluator(sheet)
         deps = ev.collect_deps("=SUM(A1:A3)")
-        from pysheet.model.range import a1_to_rowcol
+        from vimsheet.model.range import a1_to_rowcol
 
         assert a1_to_rowcol("A1") in deps
         assert a1_to_rowcol("A2") in deps

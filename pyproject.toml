@@ -1,5 +1,5 @@
 [project]
-name = "pysheet"
+name = "vimsheet"
 version = "0.1.0"
 description = "A vim-like TUI spreadsheet for the terminal"
 requires-python = ">=3.11"
@@ -28,7 +28,7 @@ dev = [
 ]
 
 [project.scripts]
-pysheet = "pysheet.__main__:main"
+vimsheet = "vimsheet.__main__:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -47,12 +47,12 @@ dependencies = [
 ]
 
 [tool.hatch.envs.default.scripts]
-run = "pysheet {args}"
+run = "vimsheet {args}"
 test = "pytest tests/unit tests/integration {args}"
 test-e2e = "pytest tests/e2e {args}"
 test-all = "pytest {args}"
-lint = "ruff check pysheet tests"
-typecheck = "mypy pysheet"
+lint = "ruff check vimsheet tests"
+typecheck = "mypy vimsheet"
 cov = "coverage run -m pytest tests/unit tests/integration && coverage report"
 
 [tool.ruff]

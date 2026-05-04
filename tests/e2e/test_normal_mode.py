@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from pysheet.app import PySheetApp
-from pysheet.controller.mode import Mode
 from tests.conftest import make_workbook
+from vimsheet.app import VimSheetApp
+from vimsheet.controller.mode import Mode
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -14,13 +14,13 @@ from tests.conftest import make_workbook
 
 
 @pytest.fixture
-def app() -> PySheetApp:
+def app() -> VimSheetApp:
     """App backed by a blank workbook."""
-    return PySheetApp(workbook=make_workbook())
+    return VimSheetApp(workbook=make_workbook())
 
 
 @pytest.fixture
-def app_with_data() -> PySheetApp:
+def app_with_data() -> VimSheetApp:
     """App with a small data block."""
     wb = make_workbook(
         data=[
@@ -29,7 +29,7 @@ def app_with_data() -> PySheetApp:
             ["Gamma", 30, "note3"],
         ]
     )
-    return PySheetApp(workbook=wb)
+    return VimSheetApp(workbook=wb)
 
 
 # ---------------------------------------------------------------------------
@@ -38,7 +38,7 @@ def app_with_data() -> PySheetApp:
 
 
 @pytest.mark.asyncio
-async def test_x_clears_cell_content(app_with_data: PySheetApp) -> None:
+async def test_x_clears_cell_content(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         sheet = app_with_data.workbook.active_sheet
         # A1 should have "Alpha"
@@ -52,7 +52,7 @@ async def test_x_clears_cell_content(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_x_on_empty_cell_does_not_raise(app: PySheetApp) -> None:
+async def test_x_on_empty_cell_does_not_raise(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         # Empty cell — x should not crash
         await pilot.press("x")
@@ -66,7 +66,7 @@ async def test_x_on_empty_cell_does_not_raise(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_yy_then_p_pastes_one_row_below(app_with_data: PySheetApp) -> None:
+async def test_yy_then_p_pastes_one_row_below(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         sheet = app_with_data.workbook.active_sheet
         # Yank A1 ("Alpha")
@@ -91,21 +91,21 @@ async def test_yy_then_p_pastes_one_row_below(app_with_data: PySheetApp) -> None
 
 
 @pytest.mark.asyncio
-async def test_equals_enters_insert_mode(app: PySheetApp) -> None:
+async def test_equals_enters_insert_mode(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         assert app.mode == Mode.INSERT
 
 
 @pytest.mark.asyncio
-async def test_e_enters_edit_mode(app: PySheetApp) -> None:
+async def test_e_enters_edit_mode(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("e")
         assert app.mode == Mode.EDIT
 
 
 @pytest.mark.asyncio
-async def test_v_enters_visual_mode(app: PySheetApp) -> None:
+async def test_v_enters_visual_mode(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("v")
         assert app.mode == Mode.VISUAL
@@ -117,7 +117,7 @@ async def test_v_enters_visual_mode(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_ir_inserts_row_and_shifts_data_down(app_with_data: PySheetApp) -> None:
+async def test_ir_inserts_row_and_shifts_data_down(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         sheet = app_with_data.workbook.active_sheet
         # Original row 0 has "Alpha"
@@ -141,7 +141,7 @@ async def test_ir_inserts_row_and_shifts_data_down(app_with_data: PySheetApp) ->
 
 
 @pytest.mark.asyncio
-async def test_dr_deletes_row_and_shifts_up(app_with_data: PySheetApp) -> None:
+async def test_dr_deletes_row_and_shifts_up(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         sheet = app_with_data.workbook.active_sheet
         # Row 0 = "Alpha", row 1 = "Beta"
@@ -163,7 +163,7 @@ async def test_dr_deletes_row_and_shifts_up(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_fb_toggles_bold_on_cell(app_with_data: PySheetApp) -> None:
+async def test_fb_toggles_bold_on_cell(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         sheet = app_with_data.workbook.active_sheet
         cell_before = sheet.get_cell(0, 0)
@@ -184,7 +184,7 @@ async def test_fb_toggles_bold_on_cell(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_u_undoes_x_clear(app_with_data: PySheetApp) -> None:
+async def test_u_undoes_x_clear(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         sheet = app_with_data.workbook.active_sheet
         original_value = sheet.get_cell(0, 0).value  # "Alpha"
@@ -207,7 +207,7 @@ async def test_u_undoes_x_clear(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_ctrl_r_redoes_after_undo(app_with_data: PySheetApp) -> None:
+async def test_ctrl_r_redoes_after_undo(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         sheet = app_with_data.workbook.active_sheet
 
@@ -233,7 +233,7 @@ async def test_ctrl_r_redoes_after_undo(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_mark_set_and_jump(app_with_data: PySheetApp) -> None:
+async def test_mark_set_and_jump(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         # Move to row 2
         await pilot.press("j")
@@ -264,7 +264,7 @@ async def test_mark_set_and_jump(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_ZQ_quits_app(app: PySheetApp) -> None:
+async def test_ZQ_quits_app(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("Z")
         await pilot.press("Q")

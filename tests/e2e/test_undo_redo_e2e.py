@@ -4,23 +4,23 @@ from __future__ import annotations
 
 import pytest
 
-from pysheet.app import PySheetApp
 from tests.conftest import make_workbook
+from vimsheet.app import VimSheetApp
 
 
 @pytest.fixture
-def app() -> PySheetApp:
-    return PySheetApp(workbook=make_workbook())
+def app() -> VimSheetApp:
+    return VimSheetApp(workbook=make_workbook())
 
 
 @pytest.fixture
-def app_with_data() -> PySheetApp:
+def app_with_data() -> VimSheetApp:
     wb = make_workbook(data=[["Alpha", 10], ["Beta", 20], ["Gamma", 30]])
-    return PySheetApp(workbook=wb)
+    return VimSheetApp(workbook=wb)
 
 
 @pytest.mark.asyncio
-async def test_insert_value_is_undoable(app: PySheetApp) -> None:
+async def test_insert_value_is_undoable(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         # Type a value
         await pilot.press("=")
@@ -40,7 +40,7 @@ async def test_insert_value_is_undoable(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_undo_stack_can_undo_flag(app: PySheetApp) -> None:
+async def test_undo_stack_can_undo_flag(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         assert not app.undo_stack.can_undo
 
@@ -54,7 +54,7 @@ async def test_undo_stack_can_undo_flag(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_redo_after_undo(app: PySheetApp) -> None:
+async def test_redo_after_undo(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         for ch in "7":
@@ -76,7 +76,7 @@ async def test_redo_after_undo(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_multiple_sequential_undos(app_with_data: PySheetApp) -> None:
+async def test_multiple_sequential_undos(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         sheet = app_with_data.workbook.active_sheet
 
@@ -107,7 +107,7 @@ async def test_multiple_sequential_undos(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_new_action_clears_redo_stack(app: PySheetApp) -> None:
+async def test_new_action_clears_redo_stack(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
         await pilot.press("1")
@@ -128,7 +128,7 @@ async def test_new_action_clears_redo_stack(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_insert_row_is_undoable(app_with_data: PySheetApp) -> None:
+async def test_insert_row_is_undoable(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         sheet = app_with_data.workbook.active_sheet
         assert sheet.get_cell(0, 0).value == "Alpha"
@@ -148,7 +148,7 @@ async def test_insert_row_is_undoable(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_row_is_undoable(app_with_data: PySheetApp) -> None:
+async def test_delete_row_is_undoable(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         sheet = app_with_data.workbook.active_sheet
         assert sheet.get_cell(0, 0).value == "Alpha"

@@ -1,9 +1,9 @@
-"""Unit tests for pysheet.controller.search (Searcher and SearchState)."""
+"""Unit tests for vimsheet.controller.search (Searcher and SearchState)."""
 
 from __future__ import annotations
 
-from pysheet.controller.search import Searcher, SearchState
-from pysheet.model.sheet import Sheet
+from vimsheet.controller.search import Searcher, SearchState
+from vimsheet.model.sheet import Sheet
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -176,18 +176,18 @@ class TestReplaceOne:
         sheet = Sheet(name="R")
         sheet.set_cell_value(0, 0, "Hello World")
         searcher = Searcher(sheet)
-        state = SearchState(pattern="World", replace="PySheet")
+        state = SearchState(pattern="World", replace="VimSheet")
         replaced = searcher.replace_one(state, 0, 0)
         assert replaced is True
         cell = sheet.get_cell(0, 0)
         assert cell is not None
-        assert "PySheet" in (cell.display or "")
+        assert "VimSheet" in (cell.display or "")
 
     def test_replace_one_no_match_returns_false(self) -> None:
         sheet = Sheet(name="R")
         sheet.set_cell_value(0, 0, "Hello World")
         searcher = Searcher(sheet)
-        state = SearchState(pattern="zzz", replace="PySheet")
+        state = SearchState(pattern="zzz", replace="VimSheet")
         replaced = searcher.replace_one(state, 0, 0)
         assert replaced is False
 

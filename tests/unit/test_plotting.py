@@ -1,9 +1,9 @@
-"""Unit tests for pysheet.plotting.chart."""
+"""Unit tests for vimsheet.plotting.chart."""
 
 from __future__ import annotations
 
-from pysheet.model.workbook import Workbook
-from pysheet.plotting.chart import ChartSpec, render_chart
+from vimsheet.model.workbook import Workbook
+from vimsheet.plotting.chart import ChartSpec, render_chart
 
 
 def make_sheet_with_data():
@@ -46,7 +46,7 @@ class TestRenderChart:
 
     def test_ascii_fallback(self):
         """Force ASCII fallback by using _render_ascii directly."""
-        from pysheet.plotting.chart import _render_ascii
+        from vimsheet.plotting.chart import _render_ascii
 
         data = [["Jan", 100], ["Feb", 150], ["Mar", 90]]
         spec = ChartSpec(chart_type="bar", width=40)
@@ -68,7 +68,7 @@ class TestRenderChart:
         assert isinstance(result, str)
 
     def test_title_included_in_ascii(self):
-        from pysheet.plotting.chart import _render_ascii
+        from vimsheet.plotting.chart import _render_ascii
 
         data = [["A", 1], ["B", 2]]
         spec = ChartSpec(title="My Title", width=40)

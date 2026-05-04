@@ -1,11 +1,11 @@
-"""Unit tests for pysheet.model.config.Config."""
+"""Unit tests for vimsheet.model.config.Config."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from pysheet.model.config import Config
+from vimsheet.model.config import Config
 
 
 class TestConfigDefaults:

@@ -1,10 +1,10 @@
-"""Unit tests for pysheet.model.range."""
+"""Unit tests for vimsheet.model.range."""
 
 from __future__ import annotations
 
 import pytest
 
-from pysheet.model.range import (
+from vimsheet.model.range import (
     CellRange,
     NamedRangeRegistry,
     a1_to_rowcol,

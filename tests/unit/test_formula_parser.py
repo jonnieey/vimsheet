@@ -1,8 +1,8 @@
-"""Unit tests for pysheet.formula.parser."""
+"""Unit tests for vimsheet.formula.parser."""
 
 import pytest
 
-from pysheet.formula.ast_nodes import (
+from vimsheet.formula.ast_nodes import (
     BinaryNode,
     BoolNode,
     CellRefNode,
@@ -14,7 +14,7 @@ from pysheet.formula.ast_nodes import (
     StringNode,
     UnaryNode,
 )
-from pysheet.formula.parser import parse_formula
+from vimsheet.formula.parser import parse_formula
 
 # ---------------------------------------------------------------------------
 # Literals

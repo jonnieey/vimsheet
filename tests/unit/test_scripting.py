@@ -1,9 +1,9 @@
-"""Unit tests for pysheet.scripting.engine.ScriptEngine."""
+"""Unit tests for vimsheet.scripting.engine.ScriptEngine."""
 
 from __future__ import annotations
 
-from pysheet.model.workbook import Workbook
-from pysheet.scripting.engine import ScriptEngine
+from vimsheet.model.workbook import Workbook
+from vimsheet.scripting.engine import ScriptEngine
 
 
 def make_engine(script: str = "", file: str | None = None) -> ScriptEngine:

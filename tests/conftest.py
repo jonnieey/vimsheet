@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
-from pysheet.app import PySheetApp
-from pysheet.model.sheet import Sheet
-from pysheet.model.workbook import Workbook
+from vimsheet.app import VimSheetApp
+from vimsheet.model.sheet import Sheet
+from vimsheet.model.workbook import Workbook
 
 # ---------------------------------------------------------------------------
 # Low-level fixtures
@@ -39,7 +39,7 @@ def make_sheet(data: dict[str, Any], name: str = "Sheet1") -> Sheet:
     """
     sheet = Sheet(name=name)
     for addr, value in data.items():
-        from pysheet.model.range import a1_to_rowcol
+        from vimsheet.model.range import a1_to_rowcol
 
         r, c = a1_to_rowcol(addr)
         if isinstance(value, str) and value.startswith("="):
@@ -88,14 +88,14 @@ def make_workbook(
 
 
 @pytest.fixture
-def app(blank_workbook: Workbook) -> PySheetApp:
-    """Return a PySheetApp instance backed by a blank workbook."""
-    return PySheetApp(workbook=blank_workbook)
+def app(blank_workbook: Workbook) -> VimSheetApp:
+    """Return a VimSheetApp instance backed by a blank workbook."""
+    return VimSheetApp(workbook=blank_workbook)
 
 
 @pytest.fixture
-def app_with_data() -> PySheetApp:
-    """Return a PySheetApp pre-populated with sample data."""
+def app_with_data() -> VimSheetApp:
+    """Return a VimSheetApp pre-populated with sample data."""
     wb = make_workbook(
         data=[
             ["Name", "Q1", "Q2", "Total"],
@@ -103,4 +103,4 @@ def app_with_data() -> PySheetApp:
             ["Beta", 9800, 11450, "=@SUM(B3:C3)"],
         ]
     )
-    return PySheetApp(workbook=wb)
+    return VimSheetApp(workbook=wb)

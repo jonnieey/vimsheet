@@ -1,10 +1,10 @@
-"""Unit tests for pysheet.model.undo."""
+"""Unit tests for vimsheet.model.undo."""
 
 from __future__ import annotations
 
-from pysheet.model.range import CellRange
-from pysheet.model.sheet import Sheet
-from pysheet.model.undo import (
+from vimsheet.model.range import CellRange
+from vimsheet.model.sheet import Sheet
+from vimsheet.model.undo import (
     ClearCellCommand,
     CompositeCommand,
     DeleteColCommand,

@@ -1,10 +1,10 @@
-"""Unit tests for pysheet.model.validation."""
+"""Unit tests for vimsheet.model.validation."""
 
 from __future__ import annotations
 
 import datetime
 
-from pysheet.model.validation import SheetValidation, ValidationRule
+from vimsheet.model.validation import SheetValidation, ValidationRule
 
 
 class TestValidationRule:
@@ -119,7 +119,7 @@ class TestSheetValidation:
         assert msg == ""
 
     def test_sheet_has_validation(self):
-        from pysheet.model.workbook import Workbook
+        from vimsheet.model.workbook import Workbook
 
         wb = Workbook.blank()
         sheet = wb.active_sheet

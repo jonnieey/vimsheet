@@ -4,24 +4,24 @@ from __future__ import annotations
 
 import pytest
 
-from pysheet.app import PySheetApp
-from pysheet.controller.mode import Mode
 from tests.conftest import make_workbook
+from vimsheet.app import VimSheetApp
+from vimsheet.controller.mode import Mode
 
 
 @pytest.fixture
-def app_with_data() -> PySheetApp:
+def app_with_data() -> VimSheetApp:
     wb = make_workbook(data=[["Hello"], ["World"]])
-    return PySheetApp(workbook=wb)
+    return VimSheetApp(workbook=wb)
 
 
 @pytest.fixture
-def app() -> PySheetApp:
-    return PySheetApp(workbook=make_workbook())
+def app() -> VimSheetApp:
+    return VimSheetApp(workbook=make_workbook())
 
 
 @pytest.mark.asyncio
-async def test_e_loads_cell_content(app_with_data: PySheetApp) -> None:
+async def test_e_loads_cell_content(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("e")
         assert app_with_data.mode == Mode.EDIT
@@ -29,14 +29,14 @@ async def test_e_loads_cell_content(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_e_places_cursor_at_end(app_with_data: PySheetApp) -> None:
+async def test_e_places_cursor_at_end(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("e")
         assert app_with_data._edit_cursor == len("Hello")
 
 
 @pytest.mark.asyncio
-async def test_E_places_cursor_at_start(app_with_data: PySheetApp) -> None:
+async def test_E_places_cursor_at_start(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("E")
         assert app_with_data.mode == Mode.EDIT
@@ -44,7 +44,7 @@ async def test_E_places_cursor_at_start(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_enter_commits_edit(app_with_data: PySheetApp) -> None:
+async def test_enter_commits_edit(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("e")
         # In edit normal sub-mode, press Enter to commit
@@ -54,7 +54,7 @@ async def test_enter_commits_edit(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_escape_commits_edit(app_with_data: PySheetApp) -> None:
+async def test_escape_commits_edit(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("e")
         await pilot.press("escape")
@@ -63,7 +63,7 @@ async def test_escape_commits_edit(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_i_enters_insert_submode_and_typing_works(app_with_data: PySheetApp) -> None:
+async def test_i_enters_insert_submode_and_typing_works(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("E")  # cursor at beginning
         await pilot.press("i")  # enter insert sub-mode
@@ -72,7 +72,7 @@ async def test_i_enters_insert_submode_and_typing_works(app_with_data: PySheetAp
 
 
 @pytest.mark.asyncio
-async def test_A_appends_at_end(app_with_data: PySheetApp) -> None:
+async def test_A_appends_at_end(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("e")
         await pilot.press("A")  # insert sub-mode at end
@@ -81,7 +81,7 @@ async def test_A_appends_at_end(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_x_deletes_char_under_cursor_in_edit(app_with_data: PySheetApp) -> None:
+async def test_x_deletes_char_under_cursor_in_edit(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("E")  # cursor at start
         await pilot.press("x")  # delete 'H'
@@ -89,7 +89,7 @@ async def test_x_deletes_char_under_cursor_in_edit(app_with_data: PySheetApp) ->
 
 
 @pytest.mark.asyncio
-async def test_u_in_edit_restores_original(app_with_data: PySheetApp) -> None:
+async def test_u_in_edit_restores_original(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("e")
         await pilot.press("i")  # insert sub-mode
@@ -104,7 +104,7 @@ async def test_u_in_edit_restores_original(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_edit_empty_cell(app: PySheetApp) -> None:
+async def test_edit_empty_cell(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("e")
         assert app.mode == Mode.EDIT

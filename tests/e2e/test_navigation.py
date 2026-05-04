@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from pysheet.app import PySheetApp
-from pysheet.controller.mode import Mode
 from tests.conftest import make_workbook
+from vimsheet.app import VimSheetApp
+from vimsheet.controller.mode import Mode
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -14,13 +14,13 @@ from tests.conftest import make_workbook
 
 
 @pytest.fixture
-def app() -> PySheetApp:
+def app() -> VimSheetApp:
     """App backed by a blank workbook."""
-    return PySheetApp(workbook=make_workbook())
+    return VimSheetApp(workbook=make_workbook())
 
 
 @pytest.fixture
-def app_with_data() -> PySheetApp:
+def app_with_data() -> VimSheetApp:
     """App with a 5-row × 3-col data block."""
     wb = make_workbook(
         data=[
@@ -31,7 +31,7 @@ def app_with_data() -> PySheetApp:
             ["Delta", 40, "d"],
         ]
     )
-    return PySheetApp(workbook=wb)
+    return VimSheetApp(workbook=wb)
 
 
 # ---------------------------------------------------------------------------
@@ -40,35 +40,35 @@ def app_with_data() -> PySheetApp:
 
 
 @pytest.mark.asyncio
-async def test_hjkl_right(app: PySheetApp) -> None:
+async def test_hjkl_right(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("l")
         assert app.cursor == (0, 1)
 
 
 @pytest.mark.asyncio
-async def test_hjkl_down(app: PySheetApp) -> None:
+async def test_hjkl_down(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("j")
         assert app.cursor == (1, 0)
 
 
 @pytest.mark.asyncio
-async def test_hjkl_up_at_top_clamps(app: PySheetApp) -> None:
+async def test_hjkl_up_at_top_clamps(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("k")
         assert app.cursor_row == 0  # can't go above row 0
 
 
 @pytest.mark.asyncio
-async def test_hjkl_left_at_start_clamps(app: PySheetApp) -> None:
+async def test_hjkl_left_at_start_clamps(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("h")
         assert app.cursor_col == 0  # can't go left of col 0
 
 
 @pytest.mark.asyncio
-async def test_hjkl_sequence(app: PySheetApp) -> None:
+async def test_hjkl_sequence(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("l")  # (0,1)
         await pilot.press("j")  # (1,1)
@@ -78,7 +78,7 @@ async def test_hjkl_sequence(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_arrow_keys(app: PySheetApp) -> None:
+async def test_arrow_keys(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("right")
         assert app.cursor_col == 1
@@ -96,14 +96,14 @@ async def test_arrow_keys(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_G_goes_to_last_row(app_with_data: PySheetApp) -> None:
+async def test_G_goes_to_last_row(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("G")
         assert app_with_data.cursor_row == app_with_data.workbook.active_sheet.max_row
 
 
 @pytest.mark.asyncio
-async def test_gg_goes_to_first_row(app_with_data: PySheetApp) -> None:
+async def test_gg_goes_to_first_row(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("G")  # go to bottom
         await pilot.press("g")
@@ -117,7 +117,7 @@ async def test_gg_goes_to_first_row(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_zero_goes_to_col_a(app: PySheetApp) -> None:
+async def test_zero_goes_to_col_a(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("l")
         await pilot.press("l")
@@ -126,7 +126,7 @@ async def test_zero_goes_to_col_a(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_dollar_goes_to_last_used_col(app_with_data: PySheetApp) -> None:
+async def test_dollar_goes_to_last_used_col(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("$")
         assert app_with_data.cursor_col == app_with_data.workbook.active_sheet.max_col
@@ -138,7 +138,7 @@ async def test_dollar_goes_to_last_used_col(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_ctrl_home(app_with_data: PySheetApp) -> None:
+async def test_ctrl_home(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("G")
         await pilot.press("$")
@@ -147,7 +147,7 @@ async def test_ctrl_home(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_ctrl_end(app_with_data: PySheetApp) -> None:
+async def test_ctrl_end(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("ctrl+end")
         sheet = app_with_data.workbook.active_sheet
@@ -160,7 +160,7 @@ async def test_ctrl_end(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_goto_cell_address(app_with_data: PySheetApp) -> None:
+async def test_goto_cell_address(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("g")
         await pilot.press("o")
@@ -171,7 +171,7 @@ async def test_goto_cell_address(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_goto_a1(app_with_data: PySheetApp) -> None:
+async def test_goto_a1(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         await pilot.press("G")
         await pilot.press("g")
@@ -188,7 +188,7 @@ async def test_goto_a1(app_with_data: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_navigation_stays_in_normal_mode(app: PySheetApp) -> None:
+async def test_navigation_stays_in_normal_mode(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         for key in ("h", "j", "k", "l", "G", "0", "$"):
             await pilot.press(key)
@@ -203,7 +203,7 @@ async def test_navigation_stays_in_normal_mode(app: PySheetApp) -> None:
 @pytest.mark.asyncio
 async def test_gt_goes_to_next_sheet() -> None:
     wb = make_workbook(sheets={"S1": {"A1": 1}, "S2": {"A1": 2}})
-    app = PySheetApp(workbook=wb)
+    app = VimSheetApp(workbook=wb)
     async with app.run_test() as pilot:
         assert app.workbook.active_sheet_idx == 0
         await pilot.press("g")
@@ -215,7 +215,7 @@ async def test_gt_goes_to_next_sheet() -> None:
 async def test_gT_goes_to_prev_sheet() -> None:
     wb = make_workbook(sheets={"S1": {"A1": 1}, "S2": {"A1": 2}})
     wb.active_sheet_idx = 1
-    app = PySheetApp(workbook=wb)
+    app = VimSheetApp(workbook=wb)
     async with app.run_test() as pilot:
         await pilot.press("g")
         await pilot.press("T")
@@ -228,7 +228,7 @@ async def test_gT_goes_to_prev_sheet() -> None:
 
 
 @pytest.mark.asyncio
-async def test_visual_mode_entry_and_exit(app: PySheetApp) -> None:
+async def test_visual_mode_entry_and_exit(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         assert app.mode == Mode.NORMAL
         await pilot.press("v")
@@ -238,7 +238,7 @@ async def test_visual_mode_entry_and_exit(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_visual_mode_cursor_moves(app: PySheetApp) -> None:
+async def test_visual_mode_cursor_moves(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("v")
         assert app.mode == Mode.VISUAL
@@ -249,7 +249,7 @@ async def test_visual_mode_cursor_moves(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_visual_selection_range(app: PySheetApp) -> None:
+async def test_visual_selection_range(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("v")
         await pilot.press("j")
@@ -263,7 +263,7 @@ async def test_visual_selection_range(app: PySheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_visual_line_mode(app: PySheetApp) -> None:
+async def test_visual_line_mode(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("V")
         assert app.mode == Mode.VISUAL_LINE

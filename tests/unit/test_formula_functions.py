@@ -1,16 +1,16 @@
-"""Unit tests for pysheet built-in formula functions."""
+"""Unit tests for vimsheet built-in formula functions."""
 
 import datetime
 
-from pysheet.formula.evaluator import Evaluator
-from pysheet.model.sheet import Sheet
+from vimsheet.formula.evaluator import Evaluator
+from vimsheet.model.sheet import Sheet
 
 
 def ev(formula: str, **cells) -> object:
     """Evaluate *formula* in a sheet pre-populated with *cells*."""
     sheet = Sheet(name="t")
     for addr, val in cells.items():
-        from pysheet.model.range import a1_to_rowcol
+        from vimsheet.model.range import a1_to_rowcol
 
         r, c = a1_to_rowcol(addr)
         sheet.set_cell_value(r, c, val)
