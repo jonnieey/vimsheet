@@ -3,8 +3,21 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
+
+
+def _user_data_dir() -> Path:
+    """Return the OS-appropriate user data directory (no external deps)."""
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming"
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share"
+    return Path(base)
 
 
 @dataclass
@@ -27,6 +40,27 @@ class Config:
     enter_moves: str = "down"  # "down" | "right" | "none"
     decimal_separator: str = "."
     thousands_separator: str = ","
+    scripts_dir: str = ""
+    functions_file: str = ""
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def get_scripts_dir(self) -> Path:
+        """Return the resolved scripts directory, creating it if needed."""
+        if self.scripts_dir:
+            p = Path(self.scripts_dir).expanduser()
+        else:
+            p = _user_data_dir() / "pysheet" / "scripts"
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    def get_functions_file(self) -> Path:
+        """Return the resolved path to the auto-load functions registry file."""
+        if self.functions_file:
+            return Path(self.functions_file).expanduser()
+        return self.get_scripts_dir() / "functions"
 
     # ------------------------------------------------------------------
     # Persistence

@@ -147,6 +147,7 @@ class PySheetApp(App[None]):
         self._sync_status_bar()
         self.grid.focus()
         self._trigger_fetch_cells()
+        self._load_script_functions()
 
     def on_unmount(self) -> None:
         self.fetch_manager.cancel_all()
@@ -1348,13 +1349,12 @@ class PySheetApp(App[None]):
         import json
         import subprocess
         import sys as _sys
-        from pathlib import Path as _Path
 
         from pysheet.model.range import CellRange, a1_to_rowcol, rowcol_to_a1
 
-        script = _Path(script_path)
+        script = self._resolve_script_path(script_path)
         if not script.exists():
-            self.status_bar.show_message(f"Script not found: {script_path}")
+            self.status_bar.show_message(f"Script not found: {script}")
             return
 
         sheet = self.workbook.active_sheet
@@ -1451,19 +1451,48 @@ class PySheetApp(App[None]):
 
     _script_funcs: dict[str, str] = {}
 
-    def _register_script_func(self, name: str, script_path: str) -> None:
-        """Register *script_path* as formula function *name*."""
+    def _resolve_script_path(self, script_path: str) -> Path:
+        """Resolve *script_path*, falling back to scripts_dir for relative paths."""
         from pathlib import Path as _Path
 
-        script = _Path(script_path)
+        p = _Path(script_path).expanduser()
+        if not p.is_absolute():
+            p = self.config.get_scripts_dir() / p
+        return p
+
+    def _register_script_func(self, name: str, script_path: str, *, silent: bool = False) -> None:
+        """Register *script_path* as formula function *name*."""
+        script = self._resolve_script_path(script_path)
         if not script.exists():
-            self.status_bar.show_message(f"Script not found: {script_path}")
+            msg = f"Script not found: {script}"
+            if not silent:
+                self.status_bar.show_message(msg)
             return
         self._script_funcs[name] = str(script)
         from pysheet.formula.functions.registry import register_script_function
 
         register_script_function(name, str(script))
-        self.status_bar.show_message(f"Registered function: @{name}")
+        if not silent:
+            self.status_bar.show_message(f"Registered function: @{name}")
+
+    def _load_script_functions(self) -> None:
+        """Auto-register functions listed in the functions file at startup."""
+        funcs_file = self.config.get_functions_file()
+        if not funcs_file.exists():
+            return
+        loaded = 0
+        for _, raw in enumerate(funcs_file.read_text(encoding="utf-8").splitlines(), 1):
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split(None, 1)
+            if len(parts) != 2:
+                continue
+            name, path = parts[0].upper(), parts[1]
+            self._register_script_func(name, path, silent=True)
+            loaded += 1
+        if loaded:
+            self.status_bar.show_message(f"Auto-loaded {loaded} script function(s)")
 
     def _get_script_func_names(self) -> set[str]:
         return set(self._script_funcs.keys())
