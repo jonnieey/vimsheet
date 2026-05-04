@@ -37,6 +37,13 @@ class Searcher:
         pattern = state.pattern
         if not state.use_regex:
             pattern = re.escape(pattern)
+            # Prevent partial-word matches (e.g. "3" matching inside "13").
+            # Word boundaries work for alphanumeric patterns; otherwise anchor
+            # the whole cell value with ^ … $ so "13" is never altered by :replace 3 5.
+            if re.fullmatch(r"\w+", state.pattern):
+                pattern = r"\b" + pattern + r"\b"
+            else:
+                pattern = "^" + pattern + "$"
         flags = 0 if state.case_sensitive else re.IGNORECASE
         return re.compile(pattern, flags)
 
