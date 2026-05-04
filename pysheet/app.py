@@ -101,8 +101,15 @@ class PySheetApp(App[None]):
         # ---- Deleted sheet undo buffer ----
         self._deleted_sheets: list[tuple[int, Any]] = []
 
+        # ---- Buffer list (each entry is a Workbook) ----
+        self._buffers: list[Workbook] = [self.workbook]
+        self._active_buf_idx: int = 0
+
         # ---- Autosave timer handle ----
         self._autosave_handle: Any = None
+
+        # ---- Inline yes/no confirmation (set by _ask_confirm) ----
+        self._pending_confirm: tuple[str, Any] | None = None  # (prompt_text, callback)
 
         # ---- Macro replay guard (prevents recursive self-calling macros) ----
         self._replaying_macros: set[str] = set()
@@ -236,6 +243,18 @@ class PySheetApp(App[None]):
 
         key = _char(event)
 
+        # Intercept pending y/n confirmation before all other routing
+        if self._pending_confirm is not None:
+            _, callback = self._pending_confirm
+            if key == "y":
+                self._pending_confirm = None
+                self.status_bar.set_persistent_message("")
+                callback()
+            else:
+                self._pending_confirm = None
+                self.status_bar.show_message("Cancelled")
+            return
+
         match self.mode:
             case Mode.NORMAL:
                 self.normal_handler.handle(key)
@@ -318,12 +337,31 @@ class PySheetApp(App[None]):
         match parts[0]:
             # ---- File operations ----
             case "q" | "quit":
-                if self.workbook.modified:
-                    self.status_bar.show_message("Unsaved changes — use :q! to force quit")
+                unsaved = [(i, wb) for i, wb in enumerate(self._buffers) if wb.modified]
+                if unsaved:
+                    names = ", ".join(
+                        str(wb.filepath.name if wb.filepath else f"buf {i + 1}")
+                        for i, wb in unsaved
+                    )
+                    plural = "buffers have" if len(unsaved) > 1 else "buffer has"
+                    self.status_bar.show_message(
+                        f"{len(unsaved)} {plural} unsaved changes: {names} — use :q! to force quit"
+                    )
                 else:
                     self.exit()
             case "q!":
-                self.exit()
+                n_total = len(self._buffers)
+                unsaved = [(i, wb) for i, wb in enumerate(self._buffers) if wb.modified]
+                buf_word = "buffer" if n_total == 1 else "buffers"
+                if unsaved:
+                    names = ", ".join(
+                        str(wb.filepath.name if wb.filepath else f"buf {i + 1}")
+                        for i, wb in unsaved
+                    )
+                    msg = f"Close {n_total} {buf_word}? " f"{len(unsaved)} unsaved: {names}"
+                else:
+                    msg = f"Close {n_total} {buf_word}?"
+                self._ask_confirm(msg, self.exit)
             case "wq" | "x":
                 self._save_and_quit()
             case "w" | "write":
@@ -333,6 +371,28 @@ class PySheetApp(App[None]):
                     self._open_file(Path(parts[1]))
                 else:
                     self.status_bar.show_message("Usage: :e <file>")
+            case "sp" | "split":
+                if len(parts) >= 2:
+                    self._cmd_split(parts[1])
+                else:
+                    self.status_bar.show_message("Usage: :sp <file>")
+            case "buffers" | "bufs" | "ls":
+                self._cmd_buffers()
+            case "buffer" | "buf":
+                if len(parts) >= 2:
+                    try:
+                        self._switch_buffer(int(parts[1]) - 1)
+                    except ValueError:
+                        self.status_bar.show_message("Usage: :buf <n>")
+                else:
+                    name = str(self.workbook.filepath) if self.workbook.filepath else "[No Name]"
+                    self.status_bar.show_message(
+                        f"Buffer {self._active_buf_idx + 1}/{len(self._buffers)}: {name}"
+                    )
+            case "bd" | "bdel" | "bdelete":
+                self._cmd_bdelete(force=False)
+            case "bd!" | "bdel!" | "bdelete!":
+                self._cmd_bdelete(force=True)
             case "ex" | "export":
                 # :ex <file>          — export by extension
                 # :ex <format> <file> — export with explicit format
@@ -1845,6 +1905,83 @@ class PySheetApp(App[None]):
     # Helpers
     # -----------------------------------------------------------------------
 
+    # -----------------------------------------------------------------------
+    # Inline confirmation prompt
+    # -----------------------------------------------------------------------
+
+    def _ask_confirm(self, message: str, callback: Any) -> None:
+        """Show *message* in the status bar and wait for y / n / Enter."""
+        self._pending_confirm = (message, callback)
+        self.status_bar.set_persistent_message(f"{message} [y/N]: ")
+
+    # -----------------------------------------------------------------------
+    # Buffer management
+    # -----------------------------------------------------------------------
+
+    def _switch_buffer(self, idx: int) -> None:
+        if not (0 <= idx < len(self._buffers)):
+            self.status_bar.show_message(f"No buffer {idx + 1}")
+            return
+        self._active_buf_idx = idx
+        self.workbook = self._buffers[idx]
+        self.grid.workbook = self.workbook
+        self.undo_stack.clear()
+        self._on_sheet_changed()
+        name = self.workbook.filepath.name if self.workbook.filepath else "[No Name]"
+        self.status_bar.show_message(f"Buffer {idx + 1}: {name}")
+
+    def _cmd_split(self, path_str: str) -> None:
+        """Open *path_str* as a new buffer and make it active."""
+        from pysheet.io.registry import get_adapter
+
+        path = Path(path_str)
+        try:
+            if path.exists():
+                adapter = get_adapter(path)
+                wb = adapter.read(path)
+                wb._bind_sheets()
+            else:
+                wb = Workbook.blank()
+                wb.filepath = path
+            self._buffers.append(wb)
+            self._active_buf_idx = len(self._buffers) - 1
+            self.workbook = wb
+            self.grid.workbook = self.workbook
+            self.undo_stack.clear()
+            self._on_sheet_changed()
+            self._trigger_fetch_cells()
+            label = path.name if path.exists() else f"{path.name} [new]"
+            self.status_bar.show_message(f"Buffer {self._active_buf_idx + 1}: {label}")
+        except Exception as exc:
+            self.status_bar.show_message(f"Split error: {exc}")
+
+    def _cmd_buffers(self) -> None:
+        """Show the buffer list overlay."""
+        from pysheet.ui.buffers_screen import BuffersScreen
+
+        self.push_screen(BuffersScreen(self._buffers, self._active_buf_idx))
+
+    def _cmd_bdelete(self, force: bool = False) -> None:
+        """Close the active buffer."""
+        wb = self._buffers[self._active_buf_idx]
+        if wb.modified and not force:
+            self.status_bar.show_message("Unsaved changes — use :bd! to force close")
+            return
+        if len(self._buffers) == 1:
+            self.status_bar.show_message("Last buffer — use :q to quit")
+            return
+        closed_name = str(wb.filepath) if wb.filepath else "[No Name]"
+        self._buffers.pop(self._active_buf_idx)
+        self._active_buf_idx = min(self._active_buf_idx, len(self._buffers) - 1)
+        self.workbook = self._buffers[self._active_buf_idx]
+        self.grid.workbook = self.workbook
+        self.undo_stack.clear()
+        self._on_sheet_changed()
+        name = self.workbook.filepath.name if self.workbook.filepath else "[No Name]"
+        self.status_bar.show_message(
+            f"Closed: {closed_name}  →  Buffer {self._active_buf_idx + 1}: {name}"
+        )
+
     def _save_and_quit(self) -> None:
         self._save_file(None)
         self.exit()
@@ -1874,6 +2011,7 @@ class PySheetApp(App[None]):
             adapter = get_adapter(path)
             self.workbook = adapter.read(path)
             self.workbook._bind_sheets()
+            self._buffers[self._active_buf_idx] = self.workbook
             self.grid.workbook = self.workbook
             self.undo_stack.clear()
             self._on_sheet_changed()
