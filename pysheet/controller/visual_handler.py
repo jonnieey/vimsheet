@@ -20,6 +20,14 @@ class VisualHandler:
     def handle(self, key: str) -> None:
         app = self._app
 
+        # ---- Digit prefix: buffer digits for count-aware operations ----
+        if key.isdigit() and not app._visual_chord and (key != "0" or app._key_buffer):
+            app._key_buffer += key
+            app.status_bar.set_persistent_message(app._key_buffer)
+            return
+        count = int(app._key_buffer) if app._key_buffer.isdigit() and app._key_buffer else 1
+        app._key_buffer = ""
+
         # ---- Active chord: handle second key before navigation ----
         chord = app._visual_chord
         if chord and key != "escape":
@@ -143,6 +151,16 @@ class VisualHandler:
                 app._visual_chord = "f"
                 return
 
+            # --- Increment / decrement all numeric cells in selection ---
+            case "ctrl+a":
+                sel = app.grid.visual_selection()
+                if sel:
+                    app.normal_handler._increment_cells(list(sel.iter_cells()), count)
+            case "ctrl+x":
+                sel = app.grid.visual_selection()
+                if sel:
+                    app.normal_handler._increment_cells(list(sel.iter_cells()), -count)
+
             # --- Enter command mode with range pre-filled ---
             case ":":
                 sel = app.grid.visual_selection()
@@ -151,6 +169,7 @@ class VisualHandler:
                 return
 
         app._visual_chord = ""
+        app.status_bar.set_persistent_message("")
         app._sync_formula_bar()
         app._sync_status_bar()
 

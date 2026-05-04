@@ -42,6 +42,18 @@ class NormalHandler:
                 app.status_bar.set_persistent_message(s)
                 return
 
+            # <n>ctrl+a / <n>ctrl+x — add/subtract n from current cell
+            case s if s.endswith("ctrl+a") and s[: -len("ctrl+a")].isdigit():
+                self._increment_cell(int(s[: -len("ctrl+a")]))
+                app._key_buffer = ""
+                app.status_bar.set_persistent_message("")
+                return
+            case s if s.endswith("ctrl+x") and s[: -len("ctrl+x")].isdigit():
+                self._increment_cell(-int(s[: -len("ctrl+x")]))
+                app._key_buffer = ""
+                app.status_bar.set_persistent_message("")
+                return
+
             # nG — jump to row n
             case s if len(s) >= 2 and s[:-1].isdigit() and s[-1] == "G":
                 app.grid.move_cursor(max(0, int(s[:-1]) - 1), app.cursor_col)
@@ -431,6 +443,12 @@ class NormalHandler:
                 else:
                     self._paste(after=False)
 
+            # ---- Increment / decrement cell value --------------------------
+            case "ctrl+a":
+                self._increment_cell(1)
+            case "ctrl+x":
+                self._increment_cell(-1)
+
             # ---- Column resize ---------------------------------------------
             case "+":
                 col = app.cursor_col
@@ -601,6 +619,35 @@ class NormalHandler:
         app.grid.refresh_grid()
         app.status_bar.show_message("Row cut (dd)")
         app._last_action = ("delete_row", r)
+
+    def _increment_cell(self, delta: int) -> None:
+        """Add *delta* to the numeric value of the current cell."""
+        app = self._app
+        self._increment_cells([(app.cursor_row, app.cursor_col)], delta)
+        app._sync_formula_bar()
+
+    def _increment_cells(self, cells: list[tuple[int, int]], delta: int) -> None:
+        """Add *delta* to every numeric cell in *cells*, silently skipping non-numeric ones."""
+        from pysheet.model.undo import CompositeCommand, SetCellCommand
+
+        app = self._app
+        sheet = app.workbook.active_sheet
+        cmds = []
+        for r, c in cells:
+            cell = sheet.get_cell(r, c)
+            current = cell.value if cell else None
+            try:
+                num = float(current)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                continue
+            new_val: int | float = num + delta
+            if new_val == int(new_val):
+                new_val = int(new_val)
+            cmds.append(SetCellCommand(sheet, r, c, new_val))
+        if cmds:
+            app.undo_stack.push(CompositeCommand(cmds))  # type: ignore[arg-type]
+            app.workbook.modified = True
+            app.grid.refresh_grid()
 
     def _paste_formula(self, formula: str) -> None:
         """Paste a formula string into the current cell (from P after range-func yank)."""
