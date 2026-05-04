@@ -73,6 +73,7 @@ class PySheetApp(App[None]):
         self._edit_chord: str = ""  # pending chord in Edit normal sub-mode
         self._visual_chord: str = ""  # pending chord in Visual mode
         self._pre_command_mode: Mode | None = None  # visual mode saved on entering command
+        self._yanked_formula: str | None = None  # formula string for P paste
 
         # ---- Registers / marks ----
         self._default_register: list[list[Any]] = []
@@ -949,6 +950,9 @@ class PySheetApp(App[None]):
             ].upper() in self._get_script_func_names():
                 # :<range> <FUNCNAME>  — apply registered script function to range in place
                 self._apply_script_func_to_range(parts[0].upper(), parts[1].upper())
+            case _ if len(parts) == 2 and ":" in parts[0] and parts[1].isalpha():
+                # :<range> <BUILTIN>  — yank =FUNC(range); p=value P=formula
+                self._cmd_range_func(parts[0].upper(), parts[1].upper())
             # ---- Fetch range commands: <range> fetchstop / fetchnow ----
             case _ if len(parts) == 2 and parts[1].lower() == "fetchstop":
                 self._cmd_fetchstop_range(parts[0].upper())
@@ -1350,6 +1354,22 @@ class PySheetApp(App[None]):
         self._insert_align = align
         self.mode = Mode.INSERT
         self._sync_formula_bar()
+
+    # -----------------------------------------------------------------------
+    # Range formula yank  (<range> FUNCNAME)
+    # -----------------------------------------------------------------------
+
+    def _cmd_range_func(self, range_str: str, func_name: str) -> None:
+        """Yank =FUNC(range) — p pastes computed value, P pastes the formula."""
+        from pysheet.formula.evaluator import Evaluator
+        from pysheet.model.undo import YankedCell
+
+        formula = f"={func_name}({range_str})"
+        ev = Evaluator(self.workbook.active_sheet, self.workbook)
+        value = ev.eval_formula(formula)
+        self._default_register = [[YankedCell(value=value, formula=None)]]
+        self._yanked_formula = formula
+        self.status_bar.show_message(f"Yanked {func_name}={value}  (p=value  P=formula)")
 
     # -----------------------------------------------------------------------
     # External scripts

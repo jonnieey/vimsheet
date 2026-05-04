@@ -426,7 +426,10 @@ class NormalHandler:
             case "p":
                 self._paste(after=True)
             case "P":
-                self._paste(after=False)
+                if app._yanked_formula and not app._pending_register:
+                    self._paste_formula(app._yanked_formula)
+                else:
+                    self._paste(after=False)
 
             # ---- Column resize ---------------------------------------------
             case "+":
@@ -598,6 +601,18 @@ class NormalHandler:
         app.grid.refresh_grid()
         app.status_bar.show_message("Row cut (dd)")
         app._last_action = ("delete_row", r)
+
+    def _paste_formula(self, formula: str) -> None:
+        """Paste a formula string into the current cell (from P after range-func yank)."""
+        from pysheet.model.undo import SetCellCommand
+
+        app = self._app
+        r, c = app.cursor_row, app.cursor_col
+        cmd = SetCellCommand(app.workbook.active_sheet, r, c, formula, new_formula=formula)
+        app.undo_stack.push(cmd)
+        app.workbook.modified = True
+        app.grid.refresh_grid()
+        app._yanked_formula = None
 
     def _paste(self, after: bool = True) -> None:
         from pysheet.model.undo import PasteCommand
