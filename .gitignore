@@ -9,4 +9,5 @@ egg-info/
 .coverage
 .gp.md
 .python-version
-docs/
+docs/build/
+docs/source/reference/_autosummary/
