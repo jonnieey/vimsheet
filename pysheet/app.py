@@ -283,9 +283,13 @@ class PySheetApp(App[None]):
         """Write the current command buffer to both the formula bar and status bar."""
         prompt = f":{self._command_buffer}"
         self.status_bar.set_persistent_message(prompt)
-        # Also show in formula bar content area (reliable fallback)
         with contextlib.suppress(Exception):
-            self.formula_bar.formula_text = prompt
+            self.formula_bar.update_cell(
+                self.formula_bar.cell_address,
+                prompt,
+                self.formula_bar.is_locked,
+                cursor_pos=len(prompt),
+            )
 
     def _handle_command_key(self, key: str) -> None:
         match key:
@@ -2114,6 +2118,7 @@ class PySheetApp(App[None]):
                 cursor_pos = self._edit_cursor
             case Mode.COMMAND:
                 content = f":{self._command_buffer}"
+                cursor_pos = len(content)  # block cursor at end of command buffer
             case _:
                 content = (cell.formula or cell.display or "") if cell else ""
         locked = cell.locked if cell else False
