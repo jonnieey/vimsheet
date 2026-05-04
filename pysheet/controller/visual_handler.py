@@ -20,6 +20,25 @@ class VisualHandler:
     def handle(self, key: str) -> None:
         app = self._app
 
+        # ---- goto address accumulator (go<addr><Enter>) — checked before digit buffer ----
+        if app._visual_goto_buf is not None:
+            if key == "escape":
+                app._visual_goto_buf = None
+                app.status_bar.set_persistent_message("")
+            elif key in ("enter", "\r", "\n"):
+                self._goto_extend(app._visual_goto_buf)
+                app._visual_goto_buf = None
+                app.status_bar.set_persistent_message("")
+            elif key == "backspace":
+                app._visual_goto_buf = app._visual_goto_buf[:-1]
+                app.status_bar.show_message(f"go: {app._visual_goto_buf}")
+            elif len(key) == 1 and key.isprintable():
+                app._visual_goto_buf += key
+                app.status_bar.show_message(f"go: {app._visual_goto_buf}")
+            app._sync_formula_bar()
+            app._sync_status_bar()
+            return
+
         # ---- Digit prefix: buffer digits for count-aware operations ----
         if key.isdigit() and not app._visual_chord and (key != "0" or app._key_buffer):
             app._key_buffer += key
@@ -34,6 +53,9 @@ class VisualHandler:
             app._visual_chord = ""
             if chord == "g" and key == "g":
                 app.grid.move_to_first_row()
+            elif chord == "g" and key == "o":
+                app._visual_goto_buf = ""
+                app.status_bar.show_message("go: ")
             elif chord == "f":
                 sel = app.grid.visual_selection()
                 if sel:
@@ -320,6 +342,17 @@ class VisualHandler:
         app.grid.visual_anchor_col += dc
         app.grid.move_cursor(app.cursor_row + dr, app.cursor_col + dc)
         app.grid.refresh_grid()
+
+    def _goto_extend(self, addr: str) -> None:
+        """Move cursor to *addr*, extending the visual selection (anchor stays fixed)."""
+        from pysheet.model.range import a1_to_rowcol
+
+        app = self._app
+        try:
+            r, c = a1_to_rowcol(addr.strip().upper())
+            app.grid.move_cursor(r, c)
+        except ValueError:
+            app.status_bar.show_message(f"Invalid address: {addr!r}")
 
     def _paste_into_selection(self, cell_range: CellRange) -> None:
         """Paste yanked data into the visual selection.

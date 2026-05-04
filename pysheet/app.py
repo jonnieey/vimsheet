@@ -72,6 +72,7 @@ class PySheetApp(App[None]):
         self._edit_cursor: int = 0
         self._edit_chord: str = ""  # pending chord in Edit normal sub-mode
         self._visual_chord: str = ""  # pending chord in Visual mode
+        self._visual_goto_buf: str | None = None  # accumulates address after "go" in visual
         self._pre_command_mode: Mode | None = None  # visual mode saved on entering command
         self._yanked_formula: str | None = None  # formula string for P paste
 
