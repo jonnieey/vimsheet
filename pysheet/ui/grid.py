@@ -64,6 +64,7 @@ class GridWidget(ScrollView):
     mode: reactive[Mode] = reactive(Mode.NORMAL)
     visual_anchor_row: reactive[int] = reactive(0)
     visual_anchor_col: reactive[int] = reactive(0)
+    show_visual: reactive[bool] = reactive(False)
 
     def __init__(self, workbook: Workbook, config: Any = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -283,7 +284,7 @@ class GridWidget(ScrollView):
         return " "
 
     def _in_visual_selection(self, row: int, col: int) -> bool:
-        if not self.mode.is_visual():
+        if not (self.mode.is_visual() or self.show_visual):
             return False
         r1 = min(self.visual_anchor_row, self.cursor_row)
         r2 = max(self.visual_anchor_row, self.cursor_row)

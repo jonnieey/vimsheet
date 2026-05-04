@@ -72,6 +72,7 @@ class PySheetApp(App[None]):
         self._edit_cursor: int = 0
         self._edit_chord: str = ""  # pending chord in Edit normal sub-mode
         self._visual_chord: str = ""  # pending chord in Visual mode
+        self._pre_command_mode: Mode | None = None  # visual mode saved on entering command
 
         # ---- Registers / marks ----
         self._default_register: list[list[Any]] = []
@@ -249,6 +250,9 @@ class PySheetApp(App[None]):
     # -----------------------------------------------------------------------
 
     def _enter_command_mode(self, prefix: str = "") -> None:
+        if self.mode.is_visual():
+            self._pre_command_mode = self.mode
+            self.grid.show_visual = True
         self._command_buffer = prefix
         self.mode = Mode.COMMAND
         self._show_command_prompt()
@@ -265,13 +269,20 @@ class PySheetApp(App[None]):
         match key:
             case "escape":
                 self._cmd_completer.reset()
-                self.mode = Mode.NORMAL
+                if self._pre_command_mode is not None:
+                    self.mode = self._pre_command_mode
+                    self._pre_command_mode = None
+                else:
+                    self.grid.show_visual = False
+                    self.mode = Mode.NORMAL
                 self._command_buffer = ""
                 self.status_bar.set_persistent_message("")
             case "enter":
                 self._cmd_completer.reset()
                 cmd = self._command_buffer.strip()
                 self._command_buffer = ""
+                self._pre_command_mode = None
+                self.grid.show_visual = False
                 self.mode = Mode.NORMAL
                 self._dispatch_command(cmd)
             case "tab":
