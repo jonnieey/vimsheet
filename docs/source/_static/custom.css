@@ -1,0 +1,47 @@
+/* PySheet Documentation Custom Styles */
+
+.wy-nav-content {
+    max-width: 900px;
+}
+
+.rst-content table.docutils {
+    width: 100%;
+}
+
+.rst-content table.docutils td,
+.rst-content table.docutils th {
+    padding: 8px 12px;
+}
+
+.rst-content .highlight {
+    border-radius: 4px;
+}
+
+div.admonition {
+    border-radius: 4px;
+}
+
+/* Version badge in sidebar */
+.wy-side-nav-search .version {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Keyboard shortcut styling */
+kbd {
+    background-color: #f8f9fa;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+    color: #24292f;
+    display: inline-block;
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1.4;
+    padding: 2px 6px;
+    white-space: nowrap;
+}
+
+/* PySheet logo placeholder */
+.wy-side-nav-search {
+    background-color: #2c3e50;
+}

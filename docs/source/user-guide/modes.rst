@@ -1,0 +1,79 @@
+.. _user-guide/modes:
+
+Modes
+=====
+
+PySheet uses a modal interface inspired by Vim. Each mode provides a
+different set of keybindings for interacting with the spreadsheet.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Mode
+     - Description
+     - Entry Key
+   * - NORMAL
+     - Navigate, select cells, copy/paste
+     - ``Escape`` (from any mode)
+   * - INSERT
+     - Type values and formulas into cells
+     - ``i``
+   * - EDIT
+     - Edit an existing cell's content
+     - ``e``
+   * - VISUAL
+     - Select ranges with keyboard
+     - ``v``
+   * - VISUAL LINE
+     - Select full rows
+     - ``V``
+   * - VISUAL BLOCK
+     - Select rectangular block
+     - ``Ctrl+v``
+   * - COMMAND
+     - Execute ``:commands``
+     - ``:``
+
+Normal Mode
+-----------
+
+Default mode on startup. Use Vim-style keys to move the cursor around the
+grid. Press ``:`` to enter a command, ``i`` to insert, ``v`` for visual
+selection.
+
+Insert Mode
+-----------
+
+Type directly into the active cell. Press ``Escape`` to return to NORMAL
+mode. Tab moves to the next cell to the right.
+
+Edit Mode
+---------
+
+Edit the contents of the current cell without overwriting it. The cursor
+appears inside the cell's formula bar at the top. Press ``Escape`` to
+confirm changes and return to NORMAL mode.
+
+Visual Modes
+------------
+
+Select ranges using keyboard motions:
+
+* ``v`` then ``h`` / ``j`` / ``k`` / ``l`` — expand selection
+* ``V`` — select entire rows
+* ``Ctrl+v`` — select rectangular block
+* ``y`` — yank (copy) selection
+* ``d`` — delete selection
+* ``x`` — cut selection
+
+Command Mode
+------------
+
+Press ``:`` to open the command line. Available commands include:
+
+* ``:w`` — save
+* ``:e`` — open
+* ``:q`` — quit
+* ``:sort`` — sort range
+* ``:fill`` — fill range
+* ``:set`` — set option
