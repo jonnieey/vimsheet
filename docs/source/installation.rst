@@ -3,7 +3,7 @@
 Installation
 ============
 
-PySheet requires **Python 3.11 or later**.
+VimSheet requires **Python 3.11 or later**.
 
 Stable Release
 --------------
@@ -12,13 +12,13 @@ Install from PyPI:
 
 .. code-block:: console
 
-   $ pip install pysheet
+   $ pip install vimsheet
 
 With full optional dependencies (plotting, HTTP fetch, Excel .xls support):
 
 .. code-block:: console
 
-   $ pip install pysheet[full]
+   $ pip install vimsheet[full]
 
 Development Version
 -------------------
@@ -27,8 +27,8 @@ Clone and install from source:
 
 .. code-block:: console
 
-   $ git clone https://github.com/pysheet/pysheet.git
-   $ cd pysheet
+   $ git clone https://github.com/vimsheet/vimsheet.git
+   $ cd vimsheet
    $ pip install -e ".[dev]"
 
 Verify Installation
@@ -36,10 +36,10 @@ Verify Installation
 
 .. code-block:: console
 
-   $ pysheet --version
-   PySheet 0.1.0
+   $ vimsheet --version
+   VimSheet 0.1.0
 
-   $ pysheet --help
+   $ vimsheet --help
 
 Dependencies
 ------------

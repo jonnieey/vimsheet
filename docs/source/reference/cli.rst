@@ -5,7 +5,7 @@ Command-Line Interface
 
 .. code-block:: console
 
-   $ pysheet [OPTIONS] [FILE]
+   $ vimsheet [OPTIONS] [FILE]
 
 Options
 -------
@@ -21,8 +21,40 @@ Options
      - Show version and exit
    * - ``--help``
      - Show help message and exit
-   * - ``--config PATH``
-     - Path to config file (default: ``~/.config/pysheet/config.toml``)
+   * - ``--script SCRIPT``
+     - Run a script file non-interactively
+   * - ``--nocurses``
+     - Pipeline mode — read from stdin, write to stdout
+   * - ``--output FILE``
+     - Output file for pipeline or script mode
+   * - ``--diff FILE_A FILE_B``
+     - Side-by-side cell diff of two spreadsheet files
+   * - ``--watch``
+     - Auto-reload the file on change
+   * - ``--set KEY=VALUE``
+     - Override a configuration option (repeatable)
+   * - ``--theme THEME``
+     - Startup theme (e.g., ``dark``, ``nord``, ``gruvbox``)
+
+Pipeline Mode
+-------------
+
+Non-interactive mode reads data from stdin and writes results to stdout:
+
+.. code-block:: console
+
+   $ cat data.csv | vimsheet --nocurses --script transform.pys
+   $ cat data.csv | vimsheet --nocurses "=SUM(A:A)" > result.txt
+   $ vimsheet --nocurses --script my_script.pys --output result.xlsx
+
+Diff Mode
+---------
+
+Compare two spreadsheet files cell by cell:
+
+.. code-block:: console
+
+   $ vimsheet --diff original.xlsx modified.xlsx
 
 Environment Variables
 ---------------------
@@ -32,12 +64,20 @@ Environment Variables
 
    * - Variable
      - Description
-   * - ``PYSHOOK_CONFIG``
-     - Path to configuration file
    * - ``TERM``
      - Terminal type (for color support)
    * - ``COLORTERM``
      - Color capability hint
+
+Configuration
+-------------
+
+VimSheet stores its configuration at ``~/.config/vimsheet/config.json``.
+Override with ``--set key=value`` at runtime:
+
+.. code-block:: console
+
+   $ vimsheet --set theme=nord --set autocalc=false
 
 Exit Codes
 ----------

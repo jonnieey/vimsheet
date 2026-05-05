@@ -3,7 +3,7 @@
 Formulas
 ========
 
-PySheet supports a full-featured formula engine with over 80 built-in
+VimSheet supports a full-featured formula engine with over 100 built-in
 functions and dependency tracking.
 
 Entering Formulas
@@ -63,7 +63,7 @@ Operators
 Dependency Tracking
 -------------------
 
-PySheet automatically builds a dependency graph when you enter formulas.
+VimSheet automatically builds a dependency graph when you enter formulas.
 When a cell's value changes, all dependent cells are recalculated in
 topological order. This ensures correct results even with complex chains
 of dependencies.
@@ -75,6 +75,26 @@ of dependencies.
    A3 = A2 + A1        → 30
    Changing A1 to 20 → A2=40, A3=60
 
-Circular references are detected and reported as errors.
+Circular references are detected and reported as ``#CIRC`` errors.
+
+HTTP Data Fetching
+------------------
+
+Fetch live data from the web with the ``@FETCH`` function:
+
+.. code-block:: text
+
+   =FETCH("https://api.example.com/data")
+   =FETCH("https://api.example.com/data", 60, "$.temperature")
+   =FETCH("https://api.example.com/data", 300, "results[0].value")
+
+The function takes:
+- **url** — the URL to fetch
+- **refresh_seconds** (optional) — how often to refresh in the background
+- **json_path** (optional) — dot/bracket notation to extract a specific value
+
+Array and object responses automatically spill into adjacent cells.
+Use ``:fetchlist`` to see all active fetches, ``:fetchnow`` to
+immediately refresh, and ``:fetchstop`` to stop all background fetches.
 
 See :ref:`reference/functions` for the complete function reference.

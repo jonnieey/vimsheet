@@ -3,7 +3,7 @@
 Scripting
 =========
 
-Extend and automate PySheet with external scripts.
+Extend and automate VimSheet with external scripts.
 
 .. list-table::
    :header-rows: 1

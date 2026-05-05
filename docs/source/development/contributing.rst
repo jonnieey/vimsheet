@@ -10,8 +10,8 @@ Development Setup
 
 .. code-block:: console
 
-   $ git clone https://github.com/pysheet/pysheet.git
-   $ cd pysheet
+   $ git clone https://github.com/vimsheet/vimsheet.git
+   $ cd vimsheet
    $ pip install -e ".[dev]"
    $ pre-commit install
 
@@ -22,14 +22,14 @@ We use Ruff for linting and formatting:
 
 .. code-block:: console
 
-   $ ruff check pysheet tests
-   $ ruff format pysheet tests
+   $ ruff check vimsheet tests
+   $ ruff format vimsheet tests
 
 Type checking with MyPy:
 
 .. code-block:: console
 
-   $ mypy pysheet
+   $ mypy vimsheet
 
 Running Tests
 -------------

@@ -3,7 +3,7 @@
 Architecture
 ============
 
-High-level overview of the PySheet codebase.
+High-level overview of the VimSheet codebase.
 
 Component Overview
 ------------------
@@ -11,7 +11,7 @@ Component Overview
 .. code-block:: text
 
    ┌─────────────────────────────────────────┐
-   │              PySheetApp                  │
+   │             VimSheetApp                  │
    │  (textual.app.App - main application)   │
    ├─────────┬─────────┬──────────┬──────────┤
    │  Model   │  UI     │Controller│  I/O     │
@@ -22,13 +22,14 @@ Component Overview
    │Range    │ Tabs    │ Visual   │ HTML     │
    │Undo     │ Help    │ Command  │ Markdown │
    │Config   │ Chart   │ Search   │ LaTeX    │
+   │Validation│ Tabs   │ Macro    │ XLS      │
    └─────────┴─────────┴──────────┴──────────┘
-        │         │          │          │
-        └─────────┴──────────┴──────────┘
-                    │
-           Formula Engine
-        (Tokenizer → Parser →
-         AST → Evaluator)
+         │         │          │          │
+         └─────────┴──────────┴──────────┘
+                     │
+            Formula Engine          Fetch
+         (Tokenizer → Parser →   (HTTP Data
+          AST → Evaluator)        Fetcher)
 
 Key Design Decisions
 --------------------
@@ -41,12 +42,20 @@ Key Design Decisions
   a new format means implementing a single class.
 * **Textual framework**: The UI is built on Textual, a Python TUI
   framework with async event loop and reactive widgets.
+* **Adapter pattern**: File I/O uses a pluggable ``FormatAdapter`` system.
+  Adding a new format means implementing a single class that extends
+  :py:class:`vimsheet.io.base.FormatAdapter`.
+* **Macro system**: Keystroke macros recorded with ``q{a-z}`` are stored
+  in named registers and replayed with ``@{a-z}``.
+* **Background HTTP fetch**: ``@FETCH()`` runs in a background thread
+  with configurable refresh intervals. Results are cached and pushed
+  to cells when updated.
 
 Data Flow
 ---------
 
 #. User presses a key.
-#. ``PySheetApp`` routes the key to the current mode handler.
+#. ``VimSheetApp`` routes the key to the current mode handler.
 #. The handler performs operations on the model (workbook/sheet/cell).
 #. The model emits change events.
 #. UI widgets reactively update to reflect the new state.

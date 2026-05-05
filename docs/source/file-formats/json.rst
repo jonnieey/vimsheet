@@ -4,6 +4,7 @@ JSON
 ====
 
 JSON format for interoperability with web services and scripting.
+VimSheet supports two JSON formats.
 
 Loading JSON
 ------------
@@ -12,7 +13,7 @@ Loading JSON
 
    :e data.json
 
-JSON is expected as a 2D array of rows:
+**Plain JSON** (``.json``) — a 2D array of rows:
 
 .. code-block:: json
 
@@ -22,7 +23,7 @@ JSON is expected as a 2D array of rows:
      ["Bob", 25, "London"]
    ]
 
-Or as an array of objects (with headers from keys):
+Or as an array of objects (headers inferred from keys):
 
 .. code-block:: json
 
@@ -31,9 +32,26 @@ Or as an array of objects (with headers from keys):
      {"Name": "Bob", "Age": 25, "City": "London"}
    ]
 
+**Native VimSheet format** (``.vimsheet``) — preserves formulas, formatting,
+multiple sheets, and all workbook state:
+
+.. code-block:: json
+
+   {
+     "sheets": [
+       {
+         "name": "Sheet1",
+         "cells": {
+           "A1": {"value": "Hello", "formula": null, "fmt": {"bold": true}}
+         }
+       }
+     ]
+   }
+
 Saving JSON
 -----------
 
 .. code-block:: console
 
-   :w output.json
+   :w output.json          Plain JSON (values only)
+   :w output.vimsheet      Native format (formulas + formatting)

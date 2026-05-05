@@ -3,7 +3,7 @@
 Testing
 =======
 
-PySheet has a multi-tier testing strategy.
+VimSheet has a multi-tier testing strategy.
 
 Test Structure
 --------------

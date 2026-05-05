@@ -3,7 +3,7 @@
 Plotting
 ========
 
-PySheet can render charts directly in the terminal.
+VimSheet can render charts directly in the terminal.
 
 .. list-table::
    :header-rows: 1

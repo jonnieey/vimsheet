@@ -3,7 +3,7 @@
 Reference
 =========
 
-Complete reference documentation for PySheet.
+Complete reference documentation for VimSheet.
 
 .. list-table::
    :header-rows: 1

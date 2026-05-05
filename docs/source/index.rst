@@ -1,15 +1,15 @@
-=================================
-PySheet — Terminal Spreadsheet
-=================================
+===================================
+VimSheet — Terminal Spreadsheet
+===================================
 
-**PySheet** is a vim-like TUI spreadsheet for the terminal. Built with
+**VimSheet** is a vim-like TUI spreadsheet for the terminal. Built with
 `Textual <https://textual.textualize.io/>`__, it brings spreadsheet editing
 into the terminal with modal keybindings, a full formula engine, multi-sheet
 workbooks, file I/O, and terminal charting.
 
 Start here:
 
-* :ref:`installation` — install PySheet
+* :ref:`installation` — install VimSheet
 * :ref:`quickstart` — run your first spreadsheet in under a minute
 * :ref:`user-guide/index` — learn all features
 * :ref:`reference/api` — API documentation

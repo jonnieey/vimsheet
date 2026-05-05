@@ -3,7 +3,7 @@
 File Formats
 ============
 
-PySheet supports reading and writing multiple spreadsheet file formats.
+VimSheet supports reading and writing multiple spreadsheet file formats.
 
 .. list-table::
    :header-rows: 1

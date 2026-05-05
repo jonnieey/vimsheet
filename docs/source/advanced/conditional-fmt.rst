@@ -5,33 +5,43 @@ Conditional Formatting
 
 Apply formatting rules that depend on cell values.
 
-Rule Types
-----------
+Operators
+---------
 
 .. list-table::
    :header-rows: 1
 
-   * - Rule Type
+   * - Operator
      - Description
      - Example
-   * - ``highlight``
-     - Highlight cells matching criteria
-     - ``>100`` → green bg
-   * - ``color_scale``
-     - Gradient scale across range
-     - Low→high → red→yellow→green
-   * - ``data_bar``
-     - Bar chart within cells
-     - Length proportional to value
+   * - ``gt``
+     - Greater than
+     - ``gt 50``
+   * - ``lt``
+     - Less than
+     - ``lt 0``
+   * - ``eq``
+     - Equal to
+     - ``eq "Done"``
+   * - ``ne``
+     - Not equal
+     - ``ne "Pending"``
+   * - ``ge``
+     - Greater or equal
+     - ``ge 100``
+   * - ``le``
+     - Less or equal
+     - ``le 50``
 
 Defining Rules
 --------------
 
 .. code-block:: console
 
-   :cf add A1:A10 highlight ">100" bg=green fg=white
-   :cf add B1:B10 color_scale min_color=red max_color=green
-   :cf add C1:C10 data_bar color=blue
+   :cond A1:A10 gt 50 color #ff0000 bg #ffcccc
+   :cond B1:B10 le 100 bold
+   :cond C1:C10 eq "Complete" bg #00ff00
+   :cond clear
 
 Managing Rules
 --------------
@@ -41,11 +51,7 @@ Managing Rules
 
    * - Command
      - Description
-   * - ``:cf add <range> <type> <args>``
+   * - ``:cond <range> <op> <value> [options]``
      - Add conditional formatting rule
-   * - ``:cf list``
-     - List all rules
-   * - ``:cf remove <index>``
-     - Remove a rule by index
-   * - ``:cf clear [range]``
-     - Clear rules
+   * - ``:cond clear``
+     - Clear all conditional formatting rules

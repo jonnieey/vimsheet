@@ -3,7 +3,7 @@
 Changelog
 =========
 
-Release notes for PySheet.
+Release notes for VimSheet.
 
 0.1.0 — 2026-01-15
 ------------------

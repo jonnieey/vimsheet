@@ -3,7 +3,7 @@
 Modes
 =====
 
-PySheet uses a modal interface inspired by Vim. Each mode provides a
+VimSheet uses a modal interface inspired by Vim. Each mode provides a
 different set of keybindings for interacting with the spreadsheet.
 
 .. list-table::
@@ -67,13 +67,8 @@ Select ranges using keyboard motions:
 * ``x`` — cut selection
 
 Command Mode
-------------
+-----------
 
-Press ``:`` to open the command line. Available commands include:
-
-* ``:w`` — save
-* ``:e`` — open
-* ``:q`` — quit
-* ``:sort`` — sort range
-* ``:fill`` — fill range
-* ``:set`` — set option
+Press ``:`` to open the command line and type commands. Tab-completion
+is available for commands, file paths, sheet names, and theme names.
+See :ref:`reference/commands` for the full command reference.

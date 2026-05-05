@@ -77,3 +77,20 @@ Press ``'`` followed by the same letter to jump back.
 
    ma    Set marker 'a' at current cell
    'a    Jump to marker 'a'
+
+Goto Address
+------------
+
+Press ``go`` followed by a cell address and ``Enter`` to jump directly:
+
+.. code-block:: text
+
+   goZ100<Enter>    Go to cell Z100
+   goB5<Enter>      Go to cell B5
+
+Use ``:{n}`` as a command to jump to row *n*:
+
+.. code-block:: text
+
+   :42    Go to row 42
+   :1     Go to row 1 (top of sheet)

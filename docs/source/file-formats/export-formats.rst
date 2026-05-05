@@ -3,7 +3,7 @@
 Export Formats
 ==============
 
-PySheet can export spreadsheets to presentation formats.
+VimSheet can export spreadsheets to presentation formats.
 
 HTML
 ----

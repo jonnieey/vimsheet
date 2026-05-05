@@ -8,7 +8,7 @@ Tips for working with large spreadsheets efficiently.
 Large Datasets
 --------------
 
-PySheet is optimized for responsive editing. For best performance:
+VimSheet is optimized for responsive editing. For best performance:
 
 * Use CSV format for large datasets (faster than XLSX).
 * Avoid excessive conditional formatting rules.
@@ -19,14 +19,15 @@ Configuration
 
 Adjust these settings to improve performance:
 
-.. code-block:: toml
+Configuration values (set via ``:set`` or ``~/.config/vimsheet/config.json``):
 
-   [performance]
-   max_rows = 10000
-   max_cols = 256
-   undo_limit = 100
-   recalc_on_idle = true
-   recalc_idle_ms = 500
+.. code-block:: json
+
+   {
+     "max_undo": 100,
+     "autocalc": true,
+     "scroll_speed": 3
+   }
 
 Cache Settings
 --------------

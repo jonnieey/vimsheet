@@ -13,14 +13,14 @@ Create a Python file and register functions:
 .. code-block:: python
 
    # my_functions.py
-   from pysheet.formula.functions.registry import registry
+   from vimsheet.formula.functions.registry import register
 
-   @registry.register("DISCOUNT", min_args=2, max_args=2)
+   @register("DISCOUNT", min_args=2, max_args=2)
    def discount(price: float, rate: float) -> float:
        """Apply a discount rate to a price."""
        return price * (1 - rate)
 
-   @registry.register("GREET", min_args=1, max_args=1)
+   @register("GREET", min_args=1, max_args=1)
    def greet(name: str) -> str:
        """Return a greeting string."""
        return f"Hello, {name}!"
@@ -28,12 +28,25 @@ Create a Python file and register functions:
 Loading Functions
 -----------------
 
-Load your functions at startup via the config file:
+Set the path to your custom functions file in the config:
 
-.. code-block:: toml
+.. code-block:: console
 
-   [scripting]
-   init_scripts = ["~/.pysheet/my_functions.py"]
+   :set functions_file=~/.config/vimsheet/my_functions.py
+
+Or via the config JSON file at ``~/.config/vimsheet/config.json``:
+
+.. code-block:: json
+
+   {
+     "functions_file": "/home/user/.vimsheet/functions.py"
+   }
+
+Alternatively, use ``:func`` at runtime to register a script:
+
+.. code-block:: console
+
+   :func /path/to/script.py
 
 Now use them in formulas:
 

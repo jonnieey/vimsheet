@@ -3,7 +3,7 @@
 Undo and Redo
 =============
 
-PySheet maintains a full history of changes to your spreadsheet.
+VimSheet maintains a full history of changes to your spreadsheet.
 
 Undo Operations
 ---------------
@@ -14,13 +14,18 @@ Undo Operations
    * - Key / Command
      - Description
    * - ``u``
-     - Undo last change
+      - Undo last change
    * - ``Ctrl+r``
-     - Redo last undone change
+      - Redo last undone change
    * - ``:undo``
-     - Undo last change
+      - Undo last change
    * - ``:redo``
-     - Redo last undone change
+      - Redo last undone change
+   * - ``.``
+      - Repeat the last change
+
+The undo stack holds up to 1000 changes by default (configurable
+via ``max_undo`` in the config).
 
 The undo stack tracks all types of modifications:
 

@@ -10,9 +10,9 @@ Defining Named Ranges
 
 .. code-block:: console
 
-   :range define SalesData A1:B100
-   :range define TaxRate C1
-   :range list
+   :name SalesData A1:B100
+   :name TaxRate C1
+   :name
 
 Using Named Ranges
 ------------------
@@ -33,14 +33,12 @@ Managing Named Ranges
 
    * - Command
      - Description
-   * - ``:range define <name> <range>``
+   * - ``:name <NAME> <range>``
      - Create or update a named range
-   * - ``:range delete <name>``
-     - Delete a named range
-   * - ``:range list``
-     - List all named ranges
-   * - ``:range jump <name>``
-     - Jump to a named range
+   * - ``:name <NAME>``
+     - Show the range or value of a named range
+   * - ``:name``
+     - List all named ranges (use ``:name`` with no arguments as a command to show current usage)
 
 Scope
 -----

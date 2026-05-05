@@ -3,17 +3,20 @@
 Scripting Protocol
 ==================
 
-PySheet exposes a JSON-based protocol for external scripts to
+VimSheet exposes a JSON-based protocol for external scripts to
 interact with a running instance.
 
 Communication
 -------------
 
-Scripts communicate with PySheet via stdin/stdout using newline-delimited
+Scripts communicate with VimSheet via stdin/stdout using newline-delimited
 JSON messages.
 
-Protocol Version
-----------------
+Communication
+-------------
+
+Scripts communicate with VimSheet via stdin/stdout using newline-delimited
+JSON messages (one JSON object per line).
 
 Message format:
 
@@ -54,6 +57,18 @@ Available Methods
    * - ``exec_command``
      - ``command``
      - Execute a ``:command``
+
+Using External Scripts
+----------------------
+
+In visual mode, press ``!`` or use the range-prefix syntax to pipe a
+selection through an external script:
+
+.. code-block:: console
+
+   :A1:B10!/path/to/script.py
+
+Protocol version 1. Newline-delimited JSON on stdin/stdout.
 
 Example
 -------

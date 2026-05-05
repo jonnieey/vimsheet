@@ -3,7 +3,7 @@
 Search and Replace
 ==================
 
-PySheet includes a powerful regex-based search and replace engine.
+VimSheet includes a powerful regex-based search and replace engine.
 
 Searching
 ---------
@@ -47,8 +47,32 @@ Replace
    :%s/old/new/g
    :%s/\d+/[&]/g
 
-The ``:s`` command supports capture groups and backreferences:
+Column and Row Substitution
+----------------------------
+
+Search and replace within a single column or row:
+
+.. code-block:: console
+
+   :cs/old/new/g       Replace in current column
+   :rs/old/new/g       Replace in current row
+   :5,10rs/old/new/g   Replace in rows 5 through 10
+
+The replace commands support capture groups and backreferences:
 
 .. code-block:: console
 
    :%s/(\w+)-(\w+)/$2_$1/g
+   :rs/^(\d{4})-(\d{2})/$2\/$1/g
+
+Search Modes
+------------
+
+.. code-block:: text
+
+   /pattern         Forward search (from cursor)
+   ?pattern         Backward search (from cursor)
+   *                Search forward for word under cursor
+   #                Search backward for word under cursor
+   n                Next match
+   N                Previous match

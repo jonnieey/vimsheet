@@ -24,12 +24,13 @@ Saving
 Options
 -------
 
-Configure CSV behavior in your config file:
+Configure CSV behavior in your config file (``~/.config/vimsheet/config.json``):
 
-.. code-block:: toml
+.. code-block:: json
 
-   [csv]
-   delimiter = ","
-   quotechar = "\""
-   encoding = "utf-8"
-   has_header = true
+   {
+     "csv_delimiter": ",",
+     "csv_quotechar": "\"",
+     "csv_encoding": "utf-8",
+     "csv_has_header": true
+   }

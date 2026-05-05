@@ -3,7 +3,7 @@
 Development
 ===========
 
-Guide for developers contributing to PySheet.
+Guide for developers contributing to VimSheet.
 
 .. list-table::
    :header-rows: 1

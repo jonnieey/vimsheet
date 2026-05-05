@@ -3,17 +3,17 @@
 Quickstart
 ==========
 
-Launch PySheet from your terminal:
+Launch VimSheet from your terminal:
 
 .. code-block:: console
 
-   $ pysheet
+   $ vimsheet
 
 You will see an empty spreadsheet grid with a status bar at the bottom.
 
 .. note::
 
-   PySheet starts in **NORMAL** mode (like Vim). Press ``i`` to enter
+   VimSheet starts in **NORMAL** mode (like Vim). Press ``i`` to enter
    **INSERT** mode and start typing into cells.
 
 Your First Spreadsheet

@@ -33,7 +33,7 @@ Requires the ``xlrd`` optional dependency:
 
 .. code-block:: console
 
-   $ pip install pysheet[full]
+   $ pip install vimsheet[full]
 
 Limitations
 -----------

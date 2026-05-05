@@ -3,8 +3,8 @@
 User Guide
 ==========
 
-Welcome to the PySheet user guide. These pages cover everything you need
-to know to use PySheet effectively.
+Welcome to the VimSheet user guide. These pages cover everything you need
+to know to use VimSheet effectively.
 
 .. list-table::
    :header-rows: 1

@@ -8,19 +8,20 @@ Record and replay keystroke sequences to automate repetitive tasks.
 Recording
 ---------
 
-Start recording:
+Start recording by pressing ``q`` followed by a register name:
 
 .. code-block:: text
 
-   q[a-z]     Start recording to register 'a'
+   qa     Start recording to register 'a'
+   q0     Start recording to register '0'
 
 All subsequent keystrokes are recorded until you stop.
 
-Stop recording:
+Stop recording by pressing ``q`` while not in a recording context:
 
 .. code-block:: text
 
-   q          Stop recording
+   q      Stop recording
 
 Playback
 --------

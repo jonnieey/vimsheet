@@ -3,9 +3,9 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../.."))
 
-project = "PySheet"
-copyright = "2026, PySheet Contributors"
-author = "PySheet Contributors"
+project = "VimSheet"
+copyright = "2026, VimSheet Contributors"
+author = "VimSheet Contributors"
 version = "0.1.0"
 release = "0.1.0"
 
@@ -42,7 +42,7 @@ add_module_names = True
 default_role = "py:obj"
 
 rst_epilog = """
-.. |pysheet| replace:: **PySheet**
+.. |vimsheet| replace:: **VimSheet**
 .. |version| replace:: 0.1.0
 """
 
@@ -91,9 +91,9 @@ suppress_warnings = [
 nitpicky = False
 
 extlinks = {
-    "issue": ("https://github.com/pysheet/pysheet/issues/%s", "GH#%s"),
-    "pr": ("https://github.com/pysheet/pysheet/pull/%s", "PR #%s"),
-    "commit": ("https://github.com/pysheet/pysheet/commit/%s", "commit %s"),
+    "issue": ("https://github.com/vimsheet/vimsheet/issues/%s", "GH#%s"),
+    "pr": ("https://github.com/vimsheet/vimsheet/pull/%s", "PR #%s"),
+    "commit": ("https://github.com/vimsheet/vimsheet/commit/%s", "commit %s"),
 }
 
 numfig = True
@@ -125,12 +125,12 @@ html_use_index = True
 html_split_index = False
 html_context = {
     "display_github": True,
-    "github_user": "pysheet",
-    "github_repo": "pysheet",
+    "github_user": "vimsheet",
+    "github_repo": "vimsheet",
     "github_version": "main",
     "conf_py_path": "/docs/source/",
 }
-htmlhelp_basename = "PySheetDoc"
+htmlhelp_basename = "VimSheetDoc"
 
 latex_elements = {
     "papersize": "a4paper",
@@ -142,7 +142,7 @@ latex_elements = {
     "fncychap": "\\usepackage[Bjornstrup]{fncychap}",
 }
 latex_documents = [
-    (master_doc, "PySheet.tex", "PySheet Documentation", author, "manual", False),
+    (master_doc, "VimSheet.tex", "VimSheet Documentation", author, "manual", False),
 ]
 latex_logo = ""
 latex_show_pagerefs = True
@@ -150,7 +150,7 @@ latex_show_urls = "footnote"
 latex_use_xindy = True
 
 man_pages = [
-    (master_doc, "pysheet", "PySheet Documentation", [author], 1),
+    (master_doc, "vimsheet", "VimSheet Documentation", [author], 1),
 ]
 
 texinfo_documents = [
@@ -159,7 +159,7 @@ texinfo_documents = [
         "PySheet",
         "PySheet Documentation",
         author,
-        "PySheet",
+        "VimSheet",
         "A vim-like TUI spreadsheet for the terminal",
         "Miscellaneous",
         False,

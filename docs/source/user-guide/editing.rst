@@ -21,8 +21,8 @@ Editing Existing Cells
 #. Modify the content using terminal editing keys.
 #. Press ``Enter`` to confirm your changes.
 
-Copy and Paste
---------------
+Copy, Cut, and Paste
+--------------------
 
 .. list-table::
    :header-rows: 1
@@ -30,23 +30,107 @@ Copy and Paste
    * - Key
      - Action
    * - ``yy``
-     - Yank (copy) current cell
+      - Yank (copy) current cell
    * - ``y`` (visual)
-     - Yank selected range
+      - Yank selected range
    * - ``p``
-     - Paste below/right
+      - Paste below/right of cursor
    * - ``P``
-     - Paste above/left
+      - Paste above/left of cursor
    * - ``dd``
-     - Delete (cut) current cell
+      - Delete (cut) current cell
    * - ``d`` (visual)
-     - Delete selected range
+      - Delete selected range
    * - ``x``
-     - Cut current cell
-   * - ``u``
-     - Undo
-   * - ``Ctrl+r``
-     - Redo
+      - Cut current cell content
+   * - ``D``
+      - Delete cell content (keeps formula)
+   * - ``C``
+      - Clear cell and enter INSERT mode
+
+Registers
+---------
+
+VimSheet supports named registers. Prefix any yank or paste with
+``"{reg}`` to use a specific register:
+
+.. code-block:: text
+
+   "ayy        Yank cell into register 'a'
+   "aP         Paste from register 'a'
+   "bdd        Cut cell into register 'b'
+
+The unnamed register (``""``) stores the last yank or delete.
+The numbered registers (``"0`` through ``"9``) store the last 10
+deletions.
+
+Increment and Decrement
+-----------------------
+
+Quickly adjust numeric values using these normal mode keys:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Key
+     - Action
+   * - ``Ctrl+a``
+     - Increment the number under the cursor by 1
+   * - ``Ctrl+x``
+     - Decrement the number under the cursor by 1
+   * - ``5 Ctrl+a``
+     - Increment the number under the cursor by 5
+
+Valueize
+--------
+
+Replace a formula with its current computed value:
+
+.. code-block:: text
+
+   rv   Replace formula in current cell with its current value
+
+Locking Cells
+-------------
+
+Prevent a cell from being edited:
+
+.. code-block:: text
+
+   rl   Lock current cell (read-only)
+   ru   Unlock current cell
+
+Cell Comments
+-------------
+
+Add a note to any cell:
+
+.. code-block:: console
+
+   :comment This is a note about this cell
+   :comment        Show the comment on the current cell
+
+Data Validation
+---------------
+
+Restrict the type of data that can be entered into a cell:
+
+.. code-block:: console
+
+   :validate list yes,no,maybe
+   :validate number gt 0
+   :validate integer between 1 100
+   :validate clear          Remove validation
+
+Cell History
+------------
+
+VimSheet tracks changes to cell values. View the history:
+
+.. code-block:: console
+
+   :history           Show history for current cell
+   :history B5        Show history for cell B5
 
 Fill Operations
 ---------------
