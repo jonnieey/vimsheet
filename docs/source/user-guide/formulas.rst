@@ -39,6 +39,26 @@ Cell References
    * - ``Sheet2!A1``
      - Cross-sheet reference
 
+Paste Behavior
+--------------
+
+When you yank a formula cell and paste with ``p``, cell references are
+adjusted relative to the destination cell:
+
+* **Relative row** (e.g. ``A1``) — row number is set to the
+  destination cell's row: yanking ``=B2`` from D1 and pasting to D3
+  produces ``=B3``.
+* **Relative column** (e.g. ``A1``) — column letter is shifted by the
+  column offset between source and destination: yanking ``=B2`` from D1
+  and pasting to E1 produces ``=C2``.
+* **Absolute** (e.g. ``$A$1``) — never changed.
+* **Mixed** — the locked part is preserved, the unlocked part is
+  adjusted: ``$A1`` keeps column ``A`` but the row is set to the
+  destination row; ``A$1`` keeps row ``1`` but the column shifts.
+
+Pasting with ``P`` pastes the formula exactly as yanked — no adjustment
+is applied.
+
 Operators
 ---------
 

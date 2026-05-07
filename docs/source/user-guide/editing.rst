@@ -34,9 +34,9 @@ Copy, Cut, and Paste
    * - ``y`` (visual)
       - Yank selected range
    * - ``p``
-      - Paste below/right of cursor
+      - Paste at cursor with formula adjustment
    * - ``P``
-      - Paste above/left of cursor
+      - Paste at cursor without formula adjustment
    * - ``dd``
       - Delete (cut) current cell
    * - ``d`` (visual)
