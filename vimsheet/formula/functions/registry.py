@@ -5,22 +5,79 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-_REGISTRY: dict[str, Callable[..., Any]] = {}
+# Module-name fragment → category mapping (auto-detected from __module__)
+_CATEGORY_MODULES: dict[str, list[str]] = {
+    "math": ["math_funcs"],
+    "text": ["text_funcs"],
+    "logic": ["logic_funcs"],
+    "date": ["date_funcs"],
+    "lookup": ["lookup_funcs"],
+    "web": ["net_funcs"],
+}
 
 
-def register(*names: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Decorator: register a function under one or more uppercase names."""
+class FunctionMeta:
+    """Metadata wrapper for a registered formula function."""
+
+    __slots__ = ("fn", "names", "category", "_is_script_func", "desc")
+
+    def __init__(
+        self,
+        fn: Callable,
+        names: tuple[str, ...],
+        category: str = "other",
+        _is_script_func: bool = False,
+        desc: str = "",
+    ):
+        self.fn = fn
+        self.names = names
+        self.category = category
+        self._is_script_func = _is_script_func
+        self.desc = desc
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate attribute access to the wrapped function."""
+        if name == "__wrapped__":
+            return self.fn
+        return getattr(self.fn, name)
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self.fn(*args, **kwargs)
+
+
+def _detect_category(fn: Callable) -> str:
+    """Auto-detect category from the function's module name."""
+    module = getattr(fn, "__module__", "")
+    for cat, patterns in _CATEGORY_MODULES.items():
+        if any(p in module for p in patterns):
+            return cat
+    return "other"
+
+
+_REGISTRY: dict[str, FunctionMeta] = {}
+
+
+def register(
+    *names: str, category: str | None = None, desc: str = ""
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Decorator: register a function under one or more uppercase names.
+
+    If *category* is None, it is auto-detected from the function's module name.
+    *desc* is a brief one-line description shown in the help screen.
+    """
 
     def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
+        cat = category if category is not None else _detect_category(fn)
+        meta = FunctionMeta(fn=fn, names=names, category=cat, desc=desc)
         for name in names:
-            _REGISTRY[name.upper()] = fn
+            _REGISTRY[name.upper()] = meta
         return fn
 
     return decorator
 
 
-def get(name: str) -> Callable[..., Any] | None:
-    """Return the function registered under *name* (case-insensitive), or None."""
+def get(name: str) -> FunctionMeta | None:
+    """Return the FunctionMeta registered under *name* (case-insensitive), or None."""
     return _REGISTRY.get(name.upper())
 
 
@@ -29,8 +86,8 @@ def all_names() -> list[str]:
     return sorted(_REGISTRY.keys())
 
 
-def all_functions() -> dict[str, Any]:
-    """Return a copy of the registry mapping name → callable."""
+def all_functions() -> dict[str, FunctionMeta]:
+    """Return a copy of the registry mapping name → FunctionMeta."""
     return dict(_REGISTRY)
 
 
@@ -128,5 +185,7 @@ def register_script_function(name: str, script_path: str) -> None:
         except Exception as exc:
             return f"#SCRIPT:{exc}"
 
-    _script_fn._is_script_func = True  # type: ignore[attr-defined]
-    _REGISTRY[name.upper()] = _script_fn
+    meta = FunctionMeta(
+        fn=_script_fn, names=(name.upper(),), category="other", _is_script_func=True
+    )
+    _REGISTRY[name.upper()] = meta

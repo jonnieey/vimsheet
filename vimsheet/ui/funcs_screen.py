@@ -30,25 +30,25 @@ def _build_funcs_text(filter_term: str = "") -> str:
     # Build name → (category, signature_str) mapping
     # Multiple names may map to the same fn (aliases); track by fn id to show aliases together
     seen_fn_ids: dict[int, list[str]] = {}
-    for name, fn in sorted(fns.items()):
-        seen_fn_ids.setdefault(id(fn), []).append(name)
+    for name, meta in sorted(fns.items()):
+        seen_fn_ids.setdefault(id(meta.fn), []).append(name)
 
     # Build entries: (category, primary_name, aliases, sig_str)
     entries: list[tuple[str, str, list[str], str]] = []
     processed: set[int] = set()
-    for _, fn in sorted(fns.items()):
-        fn_id = id(fn)
+    for _, meta in sorted(fns.items()):
+        fn_id = id(meta.fn)
         if fn_id in processed:
             continue
         processed.add(fn_id)
         names = sorted(seen_fn_ids[fn_id])
         primary = names[0]
         aliases = names[1:]
-        module = getattr(fn, "__module__", "")
+        module = meta.__module__
         category = next((k for k in _CATEGORY_ORDER if k in module), "other")
 
         try:
-            sig = inspect.signature(fn)
+            sig = inspect.signature(meta)
             params = []
             for pname, p in sig.parameters.items():
                 if pname.startswith("_"):

@@ -21,7 +21,7 @@ def _flat2d(v: Any) -> list[list[Any]]:
     return [[v]]
 
 
-@register("VLOOKUP")
+@register("VLOOKUP", desc="Vertical lookup in table")
 def fn_vlookup(val: Any, range_val: Any, col: Any, approx: Any = True) -> Any:
     table = _flat2d(range_val)
     try:
@@ -52,7 +52,7 @@ def fn_vlookup(val: Any, range_val: Any, col: Any, approx: Any = True) -> Any:
     return last_match
 
 
-@register("HLOOKUP")
+@register("HLOOKUP", desc="Horizontal lookup in table")
 def fn_hlookup(val: Any, range_val: Any, row_num: Any, approx: Any = True) -> Any:
     table = _flat2d(range_val)
     try:
@@ -85,7 +85,7 @@ def fn_hlookup(val: Any, range_val: Any, row_num: Any, approx: Any = True) -> An
     return NA
 
 
-@register("INDEX")
+@register("INDEX", desc="Value at row,col in range")
 def fn_index(range_val: Any, row_num: Any, col_num: Any = 1) -> Any:
     table = _flat2d(range_val)
     try:
@@ -100,7 +100,7 @@ def fn_index(range_val: Any, row_num: Any, col_num: Any = 1) -> Any:
     return row[c]
 
 
-@register("MATCH")
+@register("MATCH", desc="Position of value in range")
 def fn_match(val: Any, range_val: Any, match_type: Any = 1) -> Any:
     flat = []
     for row in _flat2d(range_val):
@@ -135,7 +135,7 @@ def fn_match(val: Any, range_val: Any, match_type: Any = 1) -> Any:
         return best + 1 if best >= 0 else NA
 
 
-@register("XLOOKUP")
+@register("XLOOKUP", desc="Modern lookup with fallback")
 def fn_xlookup(val: Any, lookup: Any, ret: Any, miss: Any = NA) -> Any:
     lu = []
     for row in _flat2d(lookup):
@@ -149,7 +149,7 @@ def fn_xlookup(val: Any, lookup: Any, ret: Any, miss: Any = NA) -> Any:
     return miss
 
 
-@register("CHOOSE")
+@register("CHOOSE", desc="Pick value by index")
 def fn_choose(idx: Any, *vals: Any) -> Any:
     try:
         i = int(idx) - 1
@@ -160,35 +160,35 @@ def fn_choose(idx: Any, *vals: Any) -> Any:
         return TYPE_ERR
 
 
-@register("ROW")
+@register("ROW", desc="Row number of reference")
 def fn_row(cell: Any = None) -> Any:
     # When called without args in evaluator, row context is injected externally
     return 1  # placeholder; evaluator injects context
 
 
-@register("COL")
+@register("COL", desc="Column number of reference")
 def fn_col(cell: Any = None) -> Any:
     return 1  # placeholder
 
 
-@register("ROWS")
+@register("ROWS", desc="Count of rows in range")
 def fn_rows(range_val: Any) -> Any:
     return len(_flat2d(range_val))
 
 
-@register("COLS")
+@register("COLS", desc="Count of columns in range")
 def fn_cols(range_val: Any) -> Any:
     table = _flat2d(range_val)
     return max(len(row) for row in table) if table else 0
 
 
-@register("OFFSET")
+@register("OFFSET", desc="Range offset from reference")
 def fn_offset(ref: Any, rows: Any, cols: Any, h: Any = 1, w: Any = 1) -> Any:
     # Returns a marker dict; evaluator resolves the actual range
     return {"__offset__": (ref, rows, cols, h, w)}
 
 
-@register("INDIRECT")
+@register("INDIRECT", desc="Reference from text")
 def fn_indirect(addr: Any) -> Any:
     # Returns a marker; evaluator resolves
     return {"__indirect__": str(addr)}

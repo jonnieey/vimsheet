@@ -26,12 +26,12 @@ def _truthy(v: Any) -> bool:
     return v is not None
 
 
-@register("IF")
+@register("IF", desc="Conditional. =IF(A1>5,'yes','no')")
 def fn_if(cond: Any, t: Any, f: Any = False) -> Any:
     return t if _truthy(cond) else f
 
 
-@register("IFS")
+@register("IFS", desc="Multiple conditions. =IFS(A1>5,'big',A1>0,'small')")
 def fn_ifs(*args: Any) -> Any:
     if len(args) % 2 != 0:
         return ERR
@@ -41,37 +41,37 @@ def fn_ifs(*args: Any) -> Any:
     return NA
 
 
-@register("AND")
+@register("AND", desc="True if all args true")
 def fn_and(*args: Any) -> Any:
     return all(_truthy(a) for a in args)
 
 
-@register("OR")
+@register("OR", desc="True if any arg true")
 def fn_or(*args: Any) -> Any:
     return any(_truthy(a) for a in args)
 
 
-@register("NOT")
+@register("NOT", desc="Invert boolean")
 def fn_not(cond: Any) -> Any:
     return not _truthy(cond)
 
 
-@register("XOR")
+@register("XOR", desc="True if odd count of true")
 def fn_xor(*args: Any) -> Any:
     return sum(1 for a in args if _truthy(a)) % 2 == 1
 
 
-@register("IFERROR")
+@register("IFERROR", desc="Fallback on error")
 def fn_iferror(expr: Any, fallback: Any) -> Any:
     return fallback if _is_error(expr) else expr
 
 
-@register("IFNA")
+@register("IFNA", desc="Fallback on #N/A")
 def fn_ifna(expr: Any, fallback: Any) -> Any:
     return fallback if expr == NA else expr
 
 
-@register("SWITCH")
+@register("SWITCH", desc="Match value to cases")
 def fn_switch(expr: Any, *args: Any) -> Any:
     # SWITCH(expr, val1, result1, val2, result2, ...[, default])
     i = 0
@@ -86,31 +86,31 @@ def fn_switch(expr: Any, *args: Any) -> Any:
     return default if default is not None else NA
 
 
-@register("TRUE")
+@register("TRUE", desc="Returns TRUE")
 def fn_true() -> Any:
     return True
 
 
-@register("FALSE")
+@register("FALSE", desc="Returns FALSE")
 def fn_false() -> Any:
     return False
 
 
-@register("ISBLANK")
+@register("ISBLANK", desc="True if empty")
 def fn_isblank(cell: Any) -> Any:
     return cell is None or cell == ""
 
 
-@register("ISNUMBER")
+@register("ISNUMBER", desc="True if numeric")
 def fn_isnumber(cell: Any) -> Any:
     return isinstance(cell, int | float) and not isinstance(cell, bool)
 
 
-@register("ISTEXT")
+@register("ISTEXT", desc="True if text")
 def fn_istext(cell: Any) -> Any:
     return isinstance(cell, str) and not _is_error(cell)
 
 
-@register("ISERROR")
+@register("ISERROR", desc="True if error value")
 def fn_iserror(cell: Any) -> Any:
     return _is_error(cell)

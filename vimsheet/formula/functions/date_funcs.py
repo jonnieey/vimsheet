@@ -25,17 +25,17 @@ def _to_date(v: Any) -> datetime.date | None:
     return None
 
 
-@register("TODAY")
+@register("TODAY", desc="Current date")
 def fn_today() -> Any:
     return datetime.date.today()
 
 
-@register("NOW")
+@register("NOW", desc="Current date+time")
 def fn_now() -> Any:
     return datetime.datetime.now()
 
 
-@register("DATE")
+@register("DATE", desc="Create date from y,m,d")
 def fn_date(y: Any, m: Any, d: Any) -> Any:
     try:
         return datetime.date(int(y), int(m), int(d))
@@ -43,7 +43,7 @@ def fn_date(y: Any, m: Any, d: Any) -> Any:
         return ERR
 
 
-@register("TIME")
+@register("TIME", desc="Create time from h,m,s")
 def fn_time(h: Any, m: Any, s: Any) -> Any:
     try:
         return datetime.time(int(h), int(m), int(s))
@@ -51,46 +51,46 @@ def fn_time(h: Any, m: Any, s: Any) -> Any:
         return ERR
 
 
-@register("YEAR")
+@register("YEAR", desc="Extract year from date")
 def fn_year(date: Any) -> Any:
     d = _to_date(date)
     return d.year if d else TYPE_ERR
 
 
-@register("MONTH")
+@register("MONTH", desc="Extract month (1-12)")
 def fn_month(date: Any) -> Any:
     d = _to_date(date)
     return d.month if d else TYPE_ERR
 
 
-@register("DAY")
+@register("DAY", desc="Extract day of month")
 def fn_day(date: Any) -> Any:
     d = _to_date(date)
     return d.day if d else TYPE_ERR
 
 
-@register("HOUR")
+@register("HOUR", desc="Extract hour (0-23)")
 def fn_hour(dt: Any) -> Any:
     if isinstance(dt, datetime.datetime | datetime.time):
         return dt.hour
     return TYPE_ERR
 
 
-@register("MINUTE")
+@register("MINUTE", desc="Extract minute (0-59)")
 def fn_minute(dt: Any) -> Any:
     if isinstance(dt, datetime.datetime | datetime.time):
         return dt.minute
     return TYPE_ERR
 
 
-@register("SECOND")
+@register("SECOND", desc="Extract second (0-59)")
 def fn_second(dt: Any) -> Any:
     if isinstance(dt, datetime.datetime | datetime.time):
         return dt.second
     return TYPE_ERR
 
 
-@register("DATEDIF")
+@register("DATEDIF", desc="Days/months/years between")
 def fn_datedif(d1: Any, d2: Any, unit: Any) -> Any:
     date1, date2 = _to_date(d1), _to_date(d2)
     if not date1 or not date2:
@@ -106,7 +106,7 @@ def fn_datedif(d1: Any, d2: Any, unit: Any) -> Any:
             return ERR
 
 
-@register("EDATE")
+@register("EDATE", desc="Date +/- N months")
 def fn_edate(date: Any, months: Any) -> Any:
     d = _to_date(date)
     if not d:
@@ -123,7 +123,7 @@ def fn_edate(date: Any, months: Any) -> Any:
         return ERR
 
 
-@register("EOMONTH")
+@register("EOMONTH", desc="Last day of month N months away")
 def fn_eomonth(date: Any, months: Any) -> Any:
     result = fn_edate(date, months)
     if isinstance(result, str):
@@ -135,7 +135,7 @@ def fn_eomonth(date: Any, months: Any) -> Any:
     )
 
 
-@register("WEEKDAY")
+@register("WEEKDAY", desc="Day of week (1=Mon)")
 def fn_weekday(date: Any) -> Any:
     d = _to_date(date)
     if not d:
@@ -143,7 +143,7 @@ def fn_weekday(date: Any) -> Any:
     return d.isoweekday()  # 1=Monday … 7=Sunday
 
 
-@register("WEEKNUM")
+@register("WEEKNUM", desc="Week number of year")
 def fn_weeknum(date: Any) -> Any:
     d = _to_date(date)
     if not d:
@@ -151,7 +151,7 @@ def fn_weeknum(date: Any) -> Any:
     return d.isocalendar()[1]
 
 
-@register("NETWORKDAYS")
+@register("NETWORKDAYS", desc="Workdays between dates")
 def fn_networkdays(d1: Any, d2: Any) -> Any:
     date1, date2 = _to_date(d1), _to_date(d2)
     if not date1 or not date2:

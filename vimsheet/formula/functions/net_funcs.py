@@ -12,7 +12,7 @@ from vimsheet.formula.functions.registry import register
 _fetch_context: tuple[Any, int, int] | None = None  # (FetchManager, row, col)
 
 
-@register("FETCH")
+@register("FETCH", desc="Fetch URL asynchronously. =FETCH('https://...')")
 def fn_fetch(url: Any, refresh_seconds: Any = None, json_path: Any = "") -> Any:
     """=@FETCH(url, [refresh_seconds], [json_path])
 

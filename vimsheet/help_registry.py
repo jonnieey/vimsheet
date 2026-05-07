@@ -1,40 +1,175 @@
-"""Help registry — collects key-binding and command entries for the help screen.
+"""Help registry — manages sections, subgroups, and renders help content.
 
 Usage (at module level in any feature file):
-    from vimsheet.help_registry import register_help
-    register_help("SECTION NAME", "key or :cmd", "what it does")
+    from vimsheet.help_registry import register_section, register_help
+    register_section("NAV", "Nav", order=10)
+    register_help("NAV", "h / j / k / l", "Move cursor", subgroup="Cursor", order=10)
 
-Formula functions are auto-populated from the formula registry at render time.
+Formula functions are auto-populated from the formula registry.
 """
 
 from __future__ import annotations
 
 import inspect
+from typing import Any
 
-_SECTION_KEYS: list[str] = []  # insertion-order section names
-_ENTRIES: dict[str, list[tuple[str, str, int]]] = {}  # section → [(binding, desc, order)]
+_SECTION_ORDER: list[str] = []  # insertion order of section keys
+_SECTIONS: dict[str, str] = {}  # section key → short label
+_ENTRIES: dict[
+    str, list[tuple[str, str, int, str]]
+] = {}  # section → [(binding, desc, order, subgroup)]
+
+# Human-readable category labels for formula function tabs
+_CATEGORY_LABELS: dict[str, str] = {
+    "math": "Math",
+    "text": "Text",
+    "logic": "Logic",
+    "date": "Date",
+    "lookup": "Lookup",
+    "web": "Web",
+    "other": "Other",
+}
+
+# Built-in sections
+_BUILTIN_SECTIONS = [
+    ("NAV", "Nav", "Navigation"),
+    ("EDIT", "Edit", "Editing"),
+    ("ROWS", "R/C", "Rows & Columns"),
+    ("VIS", "Vis", "Visual Mode"),
+    ("MARKS", "Marks", "Marks & Search"),
+    ("CMD", "Cmd", "Command Mode"),
+    ("MACRO", "Macro", "Macros"),
+    ("FUNC", "Func", "Formula Functions"),
+]
 
 
-def register_help(section: str, binding: str, description: str, *, order: int = 0) -> None:
-    """Register a single help entry under *section*."""
+def register_section(key: str, label: str, order: int = 0) -> None:
+    """Register a help section (tab)."""
+    if key not in _SECTIONS:
+        _SECTIONS[key] = label
+        _SECTION_ORDER.append(key)
+
+
+def register_help(
+    section: str,
+    binding: str,
+    description: str,
+    *,
+    order: int = 0,
+    subgroup: str = "",
+) -> None:
+    """Register a help entry under *section* with optional *subgroup*."""
+    if section not in _SECTIONS:
+        register_section(section, section)
     if section not in _ENTRIES:
-        _SECTION_KEYS.append(section)
         _ENTRIES[section] = []
-    _ENTRIES[section].append((binding, description, order))
+    _ENTRIES[section].append((binding, description, order, subgroup))
 
 
-def _formula_section() -> str:
-    """Build the FORMULA FUNCTIONS section from the live registry."""
+# ── Tab & entry accessors ──────────────────────────────────────────────────
+
+
+def get_tabs() -> list[tuple[str, str]]:
+    """Return [(section_key, compact_label)] in registration order + function categories."""
+    import vimsheet.help_entries  # noqa: F401 — ensure entries are loaded
+
+    keys = list(dict.fromkeys(_SECTION_ORDER))  # deduplicate, preserve order
+    return [(k, _SECTIONS.get(k, k)) for k in keys]
+
+
+def get_entries(section: str) -> dict[str, list[tuple[str, str]]]:
+    """Return {subgroup_name: [(binding, description)]} for a section."""
+    groups: dict[str, list[tuple[str, str]]] = {}
+    for binding, desc, _, subgroup in _ENTRIES.get(section, []):
+        sg = subgroup or "_default"
+        if sg not in groups:
+            groups[sg] = []
+        groups[sg].append((binding, desc))
+    return groups
+
+
+def get_func_categories() -> list[tuple[str, str]]:
+    """Return [(category_key, label)] for formula function tabs."""
+    from vimsheet.formula.functions.registry import all_functions
+
+    cats: dict[str, str] = {}
+    for meta in all_functions().values():
+        if not meta._is_script_func:
+            cats[meta.category] = _CATEGORY_LABELS.get(meta.category, meta.category.title())
+    return sorted(cats.items())
+
+
+# ── Rendering ──────────────────────────────────────────────────────────────
+
+
+def build_section(section: str, collapsed_groups: set[str] | None = None) -> str:
+    """Build Rich markup for one section with collapsible subgroup headers."""
+    rich, _ = section_lines(section, collapsed_groups)
+    return rich
+
+
+def section_lines(
+    section: str, collapsed_groups: set[str] | None = None
+) -> tuple[str, list[tuple[int, str]]]:
+    """Return (rich_markup, [(line_index, binding), ...]) for a section.
+
+    line_index is the 0-based line number in rich_markup.
+    """
+    from rich.markup import escape
+
+    import vimsheet.help_entries  # noqa: F401
+
+    groups = get_entries(section)
+    collapsed = collapsed_groups or set()
+    lines: list[str] = []
+    positions: list[tuple[int, str]] = []
+    bind_w = max((len(b) for grp in groups.values() for b, _ in grp), default=0) + 2
+
+    for sg_name in sorted(groups.keys(), key=lambda k: (k == "_default", k)):
+        sg_label = sg_name if sg_name != "_default" else ""
+        items = groups[sg_name]
+        is_collapsed = sg_name in collapsed
+        if sg_label:
+            toggle = "[green]▼[/green]" if not is_collapsed else "[green]▶[/green]"
+            lines.append(f"\n{toggle} [bold]{escape(sg_label)}[/bold]")
+        if not is_collapsed:
+            for binding, desc in items:
+                lines.append(f"  [white]{escape(binding).ljust(bind_w)}[/white] {desc}")
+                positions.append((len(lines) - 1, binding))
+    return "\n".join(lines), positions
+
+
+def build_func_category(category: str, collapsed: bool = False) -> str:
+    """Build Rich markup for one formula function category."""
     from rich.markup import escape
 
     from vimsheet.formula.functions.registry import all_functions
 
-    # Pass 1 — collect (sig_plain, desc) for every function
-    entries: list[tuple[str, str]] = []
-    for name, fn in sorted(all_functions().items()):
-        if getattr(fn, "_is_script_func", False):
-            continue
-        sig = inspect.signature(fn)
+    fns = sorted(
+        (name, meta)
+        for name, meta in all_functions().items()
+        if meta.category == category and not meta._is_script_func
+    )
+    if not fns:
+        return ""
+
+    lines: list[str] = []
+    col_w = max((len(name) + 2 for name, _ in fns), default=20)
+
+    for name, meta in fns:
+        sig = _format_func_sig(name, meta)
+        desc = _func_desc(meta)
+        padded = f"[chartreuse]{escape(sig.ljust(col_w))}[/chartreuse]"
+        if desc:
+            padded += f" [dim]{desc}[/dim]"
+        lines.append(f"  {padded}")
+    return "\n".join(lines)
+
+
+def _format_func_sig(name: str, meta: Any) -> str:
+    """Format a function signature like =@SUM(a,b,...)."""
+    try:
+        sig = inspect.signature(meta)
         parts: list[str] = []
         for pname, p in sig.parameters.items():
             if p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD):
@@ -42,63 +177,83 @@ def _formula_section() -> str:
             elif p.default is inspect.Parameter.empty:
                 parts.append(pname)
             else:
-                # Angle brackets — square brackets clash with Rich markup
                 parts.append(f"<{pname}>")
-        sig_plain = f"=@{name}({','.join(parts)})"
-
-        desc = ""
-        if fn.__doc__:
-            for line in fn.__doc__.strip().splitlines():
-                line = line.strip()
-                if line and not line.startswith("=@"):
-                    desc = escape(line[:48])
-                    break
-        entries.append((sig_plain, desc))
-
-    # Pass 2 — determine column width and render two-per-row with uniform padding
-    col_w = max((len(s) for s, _ in entries), default=20) + 2
-    lines: list[str] = ["\n[bold cyan]FORMULA FUNCTIONS[/bold cyan]"]
-    row: list[str] = []
-
-    for sig_plain, desc in entries:
-        padded = sig_plain.ljust(col_w)
-        cell = f"[chartreuse]{escape(padded)}[/chartreuse]"
-        if desc:
-            cell += f" [dim]{desc}[/dim]"
-        row.append(cell)
-        if len(row) == 2:
-            lines.append("  " + "  ".join(row))
-            row = []
-    if row:
-        lines.append("  " + row[0])
-    return "\n".join(lines)
+        return f"=@{name}({','.join(parts)})"
+    except Exception:
+        return f"=@{name}()"
 
 
-def build_help_text() -> str:
-    """Render the full help text with Rich markup."""
-    from rich.markup import escape
+def _func_desc(meta: Any) -> str:
+    """Extract first line of docstring from the wrapped function, or use meta.desc."""
+    # Prefer meta.desc (from @register(desc="..."))
+    if hasattr(meta, "desc") and meta.desc:
+        return meta.desc
+    # Fallback to wrapped function's docstring
+    source = meta.fn if hasattr(meta, "fn") else meta
+    doc = source.__doc__ if hasattr(source, "__doc__") else None
+    if doc:
+        for line in doc.strip().splitlines():
+            line = line.strip()
+            if line and not line.startswith("=@"):
+                from rich.markup import escape
 
-    # Ensure entries file is loaded (idempotent — Python caches the import)
+                return escape(line[:60])
+    return ""
+
+
+# ── Search ─────────────────────────────────────────────────────────────────
+
+
+def build_search_index(query: str) -> dict[str, int]:
+    """Return {section_key: match_count} for all tabs.
+
+    Matches against both binding and description text (case-insensitive).
+    """
     import vimsheet.help_entries  # noqa: F401
 
-    # Global binding column width so descriptions align across all sections
-    bind_w = (
-        max(
-            (len(b) for section_entries in _ENTRIES.values() for b, _, _ in section_entries),
-            default=0,
-        )
-        + 2
-    )
+    q = query.lower()
+    counts: dict[str, int] = {}
+    for section, entries in _ENTRIES.items():
+        total = 0
+        for binding, desc, _, _ in entries:
+            if q in binding.lower() or q in desc.lower():
+                total += 1
+        if total:
+            counts[section] = total
 
-    lines: list[str] = []
-    for section in _SECTION_KEYS:
-        lines.append(f"[bold cyan]{section}[/bold cyan]")
-        entries = sorted(_ENTRIES[section], key=lambda t: t[2])
-        for binding, desc, _ in entries:
-            padded = escape(binding).ljust(bind_w)
-            lines.append(f"  [white]{padded}[/white] {desc}")
-        lines.append("")
+    # Search formula function names
+    from vimsheet.formula.functions.registry import all_functions
 
-    lines.append(_formula_section())
-    lines.append("\n[dim]Press q, Escape, or Space to close[/dim]")
-    return "\n".join(lines)
+    func_count = 0
+    for name in all_functions():
+        if q in name.lower():
+            func_count += 1
+    if func_count:
+        counts["FUNC"] = counts.get("FUNC", 0) + func_count
+
+    return counts
+
+
+def search_matches(query: str) -> list[tuple[str, str, str, int]]:
+    """Return [(section_key, subgroup, binding, order_index)] for all matches.
+
+    order_index is the registration order for stable sorting.
+    """
+    import vimsheet.help_entries  # noqa: F401
+
+    q = query.lower()
+    results: list[tuple[str, str, str, int]] = []
+    for section, entries in _ENTRIES.items():
+        for binding, desc, order, subgroup in entries:
+            line = f"{binding}  {desc}"
+            if q in line.lower():
+                results.append((section, subgroup, binding, order))
+
+    # Search formula function names
+    from vimsheet.formula.functions.registry import all_functions
+
+    for name, meta in sorted(all_functions().items()):
+        if q in name.lower() and not meta._is_script_func:
+            results.append(("FUNC", "Formula", name, 0))
+
+    return results

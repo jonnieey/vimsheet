@@ -49,13 +49,13 @@ def _flat(args: list[Any]) -> list[Any]:
 # ---------------------------------------------------------------------------
 
 
-@register("SUM")
+@register("SUM", desc="Sum of values. =SUM(1,2,3)→6")
 def fn_sum(*args: Any) -> Any:
     nums = _nums(_flat(list(args)))
     return sum(nums)
 
 
-@register("AVG", "AVERAGE")
+@register("AVG", "AVERAGE", desc="Average of values")
 def fn_avg(*args: Any) -> Any:
     nums = _nums(_flat(list(args)))
     if not nums:
@@ -63,29 +63,29 @@ def fn_avg(*args: Any) -> Any:
     return sum(nums) / len(nums)
 
 
-@register("COUNT")
+@register("COUNT", desc="Count of numeric values")
 def fn_count(*args: Any) -> Any:
     return len(_nums(_flat(list(args))))
 
 
-@register("COUNTA")
+@register("COUNTA", desc="Count of non-empty cells")
 def fn_counta(*args: Any) -> Any:
     return sum(1 for v in _flat(list(args)) if v is not None and v != "")
 
 
-@register("MIN")
+@register("MIN", desc="Minimum value")
 def fn_min(*args: Any) -> Any:
     nums = _nums(_flat(list(args)))
     return min(nums) if nums else NA
 
 
-@register("MAX")
+@register("MAX", desc="Maximum value")
 def fn_max(*args: Any) -> Any:
     nums = _nums(_flat(list(args)))
     return max(nums) if nums else NA
 
 
-@register("PROD", "PRODUCT")
+@register("PROD", "PRODUCT", desc="Product of values")
 def fn_prod(*args: Any) -> Any:
     nums = _nums(_flat(list(args)))
     result = 1.0
@@ -94,7 +94,7 @@ def fn_prod(*args: Any) -> Any:
     return result
 
 
-@register("STDDEV", "STDEV")
+@register("STDDEV", "STDEV", desc="Sample standard deviation")
 def fn_stddev(*args: Any) -> Any:
     nums = _nums(_flat(list(args)))
     if len(nums) < 2:
@@ -102,7 +102,7 @@ def fn_stddev(*args: Any) -> Any:
     return statistics.pstdev(nums)
 
 
-@register("STDEVS")
+@register("STDEVS", desc="Population std deviation")
 def fn_stdevs(*args: Any) -> Any:
     nums = _nums(_flat(list(args)))
     if len(nums) < 2:
@@ -110,7 +110,7 @@ def fn_stdevs(*args: Any) -> Any:
     return statistics.stdev(nums)
 
 
-@register("VAR")
+@register("VAR", desc="Sample variance")
 def fn_var(*args: Any) -> Any:
     nums = _nums(_flat(list(args)))
     if len(nums) < 2:
@@ -118,7 +118,7 @@ def fn_var(*args: Any) -> Any:
     return statistics.pvariance(nums)
 
 
-@register("VARS")
+@register("VARS", desc="Population variance")
 def fn_vars(*args: Any) -> Any:
     nums = _nums(_flat(list(args)))
     if len(nums) < 2:
@@ -126,7 +126,7 @@ def fn_vars(*args: Any) -> Any:
     return statistics.variance(nums)
 
 
-@register("MEDIAN")
+@register("MEDIAN", desc="Median value")
 def fn_median(*args: Any) -> Any:
     nums = sorted(_nums(_flat(list(args))))
     if not nums:
@@ -134,7 +134,7 @@ def fn_median(*args: Any) -> Any:
     return statistics.median(nums)
 
 
-@register("MODE")
+@register("MODE", desc="Most frequent value")
 def fn_mode(*args: Any) -> Any:
     nums = _nums(_flat(list(args)))
     if not nums:
@@ -145,7 +145,7 @@ def fn_mode(*args: Any) -> Any:
         return NA
 
 
-@register("PERCENTILE")
+@register("PERCENTILE", desc="Value at percentile")
 def fn_percentile(range_val: Any, n: Any) -> Any:
     nums = sorted(_nums(_flat([range_val])))
     if not nums:
@@ -162,7 +162,7 @@ def fn_percentile(range_val: Any, n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("SUMIF")
+@register("SUMIF", desc="Sum values matching condition")
 def fn_sumif(range_val: Any, criteria: Any, sum_range: Any = None) -> Any:
     flat = _flat([range_val])
     sums = _flat([sum_range]) if sum_range is not None else flat
@@ -175,12 +175,12 @@ def fn_sumif(range_val: Any, criteria: Any, sum_range: Any = None) -> Any:
     return total
 
 
-@register("COUNTIF")
+@register("COUNTIF", desc="Count values matching condition")
 def fn_countif(range_val: Any, criteria: Any) -> Any:
     return sum(1 for v in _flat([range_val]) if _criteria_match(v, criteria))
 
 
-@register("AVERAGEIF")
+@register("AVERAGEIF", desc="Average values matching condition")
 def fn_averageif(range_val: Any, criteria: Any, avg_range: Any = None) -> Any:
     flat = _flat([range_val])
     avgs = _flat([avg_range]) if avg_range is not None else flat
@@ -195,7 +195,7 @@ def fn_averageif(range_val: Any, criteria: Any, avg_range: Any = None) -> Any:
     return sum(nums) / len(nums)
 
 
-@register("SUBTOTAL")
+@register("SUBTOTAL", desc="Aggregate with filter support")
 def fn_subtotal(func_num: Any, range_val: Any) -> Any:
     nums = _nums(_flat([range_val]))
     try:
@@ -224,7 +224,7 @@ def fn_subtotal(func_num: Any, range_val: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 
-@register("ABS")
+@register("ABS", desc="Absolute value")
 def fn_abs(n: Any) -> Any:
     try:
         return abs(float(n))
@@ -232,7 +232,7 @@ def fn_abs(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("CEIL", "CEILING")
+@register("CEIL", "CEILING", desc="Round up to multiple")
 def fn_ceil(n: Any, sig: Any = 1) -> Any:
     try:
         s = float(sig) if sig != 1 else 1.0
@@ -241,7 +241,7 @@ def fn_ceil(n: Any, sig: Any = 1) -> Any:
         return TYPE_ERR
 
 
-@register("FLOOR")
+@register("FLOOR", desc="Round down to multiple")
 def fn_floor(n: Any, sig: Any = 1) -> Any:
     try:
         s = float(sig) if sig != 1 else 1.0
@@ -250,7 +250,7 @@ def fn_floor(n: Any, sig: Any = 1) -> Any:
         return TYPE_ERR
 
 
-@register("ROUND")
+@register("ROUND", desc="Round to N digits")
 def fn_round(n: Any, d: Any) -> Any:
     try:
         return round(float(n), int(d))
@@ -258,7 +258,7 @@ def fn_round(n: Any, d: Any) -> Any:
         return TYPE_ERR
 
 
-@register("ROUNDUP")
+@register("ROUNDUP", desc="Round up away from zero")
 def fn_roundup(n: Any, d: Any) -> Any:
     try:
         factor = 10 ** int(d)
@@ -267,7 +267,7 @@ def fn_roundup(n: Any, d: Any) -> Any:
         return TYPE_ERR
 
 
-@register("ROUNDDOWN")
+@register("ROUNDDOWN", desc="Round down toward zero")
 def fn_rounddown(n: Any, d: Any) -> Any:
     try:
         factor = 10 ** int(d)
@@ -276,7 +276,7 @@ def fn_rounddown(n: Any, d: Any) -> Any:
         return TYPE_ERR
 
 
-@register("SQRT")
+@register("SQRT", desc="Square root")
 def fn_sqrt(n: Any) -> Any:
     try:
         v = float(n)
@@ -287,7 +287,7 @@ def fn_sqrt(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("POW", "POWER")
+@register("POW", "POWER", desc="Number raised to power")
 def fn_pow(base: Any, exp: Any) -> Any:
     try:
         return float(base) ** float(exp)
@@ -295,7 +295,7 @@ def fn_pow(base: Any, exp: Any) -> Any:
         return TYPE_ERR
 
 
-@register("EXP")
+@register("EXP", desc="e raised to the power")
 def fn_exp(n: Any) -> Any:
     try:
         return math.exp(float(n))
@@ -303,7 +303,7 @@ def fn_exp(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("LOG")
+@register("LOG", desc="Logarithm (base N)")
 def fn_log(n: Any, base: Any = math.e) -> Any:
     try:
         b = float(base) if base != math.e else math.e
@@ -315,7 +315,7 @@ def fn_log(n: Any, base: Any = math.e) -> Any:
         return TYPE_ERR
 
 
-@register("LOG10")
+@register("LOG10", desc="Base-10 logarithm")
 def fn_log10(n: Any) -> Any:
     try:
         v = float(n)
@@ -326,7 +326,7 @@ def fn_log10(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("LN")
+@register("LN", desc="Natural logarithm")
 def fn_ln(n: Any) -> Any:
     try:
         v = float(n)
@@ -337,7 +337,7 @@ def fn_ln(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("SIN")
+@register("SIN", desc="Sine (radians)")
 def fn_sin(n: Any) -> Any:
     try:
         return math.sin(float(n))
@@ -345,7 +345,7 @@ def fn_sin(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("COS")
+@register("COS", desc="Cosine (radians)")
 def fn_cos(n: Any) -> Any:
     try:
         return math.cos(float(n))
@@ -353,7 +353,7 @@ def fn_cos(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("TAN")
+@register("TAN", desc="Tangent (radians)")
 def fn_tan(n: Any) -> Any:
     try:
         return math.tan(float(n))
@@ -361,7 +361,7 @@ def fn_tan(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("ASIN")
+@register("ASIN", desc="Arc sine (radians)")
 def fn_asin(n: Any) -> Any:
     try:
         return math.asin(float(n))
@@ -369,7 +369,7 @@ def fn_asin(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("ACOS")
+@register("ACOS", desc="Arc cosine (radians)")
 def fn_acos(n: Any) -> Any:
     try:
         return math.acos(float(n))
@@ -377,7 +377,7 @@ def fn_acos(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("ATAN")
+@register("ATAN", desc="Arc tangent (radians)")
 def fn_atan(n: Any) -> Any:
     try:
         return math.atan(float(n))
@@ -385,7 +385,7 @@ def fn_atan(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("ATAN2")
+@register("ATAN2", desc="Angle from x,y coordinates")
 def fn_atan2(y: Any, x: Any) -> Any:
     try:
         return math.atan2(float(y), float(x))
@@ -393,7 +393,7 @@ def fn_atan2(y: Any, x: Any) -> Any:
         return TYPE_ERR
 
 
-@register("HYPOT")
+@register("HYPOT", desc="Hypotenuse of triangle")
 def fn_hypot(x: Any, y: Any) -> Any:
     try:
         return math.hypot(float(x), float(y))
@@ -401,7 +401,7 @@ def fn_hypot(x: Any, y: Any) -> Any:
         return TYPE_ERR
 
 
-@register("MOD")
+@register("MOD", desc="Remainder after division")
 def fn_mod(n: Any, d: Any) -> Any:
     try:
         dv = float(d)
@@ -412,12 +412,12 @@ def fn_mod(n: Any, d: Any) -> Any:
         return TYPE_ERR
 
 
-@register("RAND")
+@register("RAND", desc="Random number 0-1")
 def fn_rand() -> Any:
     return random.random()
 
 
-@register("RANDBETWEEN")
+@register("RANDBETWEEN", desc="Random int between bounds")
 def fn_randbetween(lo: Any, hi: Any) -> Any:
     try:
         return random.randint(int(lo), int(hi))
@@ -425,7 +425,7 @@ def fn_randbetween(lo: Any, hi: Any) -> Any:
         return TYPE_ERR
 
 
-@register("SIGN")
+@register("SIGN", desc="Sign (-1, 0, 1)")
 def fn_sign(n: Any) -> Any:
     try:
         v = float(n)
@@ -434,7 +434,7 @@ def fn_sign(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("INT")
+@register("INT", desc="Integer part (floor)")
 def fn_int(n: Any) -> Any:
     try:
         return int(float(n))
@@ -442,7 +442,7 @@ def fn_int(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("TRUNC")
+@register("TRUNC", desc="Truncate decimal places")
 def fn_trunc(n: Any, m: Any = 0) -> Any:
     try:
         factor = 10 ** int(m)
@@ -452,7 +452,7 @@ def fn_trunc(n: Any, m: Any = 0) -> Any:
         return TYPE_ERR
 
 
-@register("FACT", "FACTORIAL")
+@register("FACT", "FACTORIAL", desc="Factorial of N")
 def fn_fact(n: Any) -> Any:
     try:
         return math.factorial(int(n))
@@ -460,7 +460,7 @@ def fn_fact(n: Any) -> Any:
         return TYPE_ERR
 
 
-@register("GCD")
+@register("GCD", desc="Greatest common divisor")
 def fn_gcd(a: Any, b: Any) -> Any:
     try:
         return math.gcd(int(a), int(b))
@@ -468,7 +468,7 @@ def fn_gcd(a: Any, b: Any) -> Any:
         return TYPE_ERR
 
 
-@register("LCM")
+@register("LCM", desc="Least common multiple")
 def fn_lcm(a: Any, b: Any) -> Any:
     try:
         return math.lcm(int(a), int(b))
@@ -476,17 +476,17 @@ def fn_lcm(a: Any, b: Any) -> Any:
         return TYPE_ERR
 
 
-@register("PI")
+@register("PI", desc="Value of pi")
 def fn_pi() -> Any:
     return math.pi
 
 
-@register("E")
+@register("E", desc="Euler's number")
 def fn_e() -> Any:
     return math.e
 
 
-@register("DTR", "RADIANS")
+@register("DTR", "RADIANS", desc="Degrees to radians")
 def fn_dtr(deg: Any) -> Any:
     try:
         return math.radians(float(deg))
@@ -494,7 +494,7 @@ def fn_dtr(deg: Any) -> Any:
         return TYPE_ERR
 
 
-@register("RTD", "DEGREES")
+@register("RTD", "DEGREES", desc="Radians to degrees")
 def fn_rtd(rad: Any) -> Any:
     try:
         return math.degrees(float(rad))
