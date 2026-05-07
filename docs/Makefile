@@ -9,7 +9,7 @@ BUILDDIR      = build
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile clean html-strict linkcheck coverage doctest epub latexpdf serve
+.PHONY: help Makefile clean build-html linkcheck coverage doctest epub latexpdf serve
 
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -19,7 +19,7 @@ clean:
 	rm -rf $(SOURCEDIR)/_autosummary
 	rm -rf $(SOURCEDIR)/locale
 
-html-strict:
+build-html:
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" -W --keep-going $(O)
 
 linkcheck:

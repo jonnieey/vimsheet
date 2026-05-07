@@ -25,6 +25,8 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.9",
     "pre-commit>=4.6.0",
+]
+docs =[
     "sphinx>=8.0",
     "sphinx-rtd-theme>=2.0",
     "sphinx-copybutton>=0.5",
@@ -39,18 +41,32 @@ build-backend = "hatchling.build"
 
 [tool.hatch.envs.default]
 features = ["full"]
-dependencies = [
-    "pytest>=8.0",
-    "pytest-asyncio>=0.23",
-    "pytest-textual-snapshot>=0.4",
-    "hypothesis>=6.100",
-    "coverage>=7.0",
-    "ruff>=0.4",
-    "mypy>=1.9",
-]
+
+[tool.hatch.envs.docs]
+features = ["docs"]
+
+[tool.hatch.envs.dev]
+template = "docs"
+features = ["full", "dev", "docs"]
 
 [tool.hatch.envs.default.scripts]
 run = "vimsheet {args}"
+
+[tool.hatch.envs.docs.scripts]
+build-html = "sphinx-build -M html docs/source docs/build -W --keep-going"
+linkcheck = "sphinx-build -M linkcheck docs/source docs/build -b linkcheck"
+coverage = "sphinx-build -M coverage docs/source docs/build -b coverage && echo 'Coverage report written to docs/build/coverage/'"
+doctest = "sphinx-build -M doctest docs/source docs/build -b doctest"
+epub = "sphinx-build -M epub docs/source docs/build"
+latexpdf = "sphinx-build -M latex docs/source docs/build && cd docs/build/latex && make all-pdf 2>/dev/null || echo 'PDF build requires LaTeX to be installed'"
+serve = "echo 'Starting documentation server at http://localhost:8000' && python3 -m http.server 8000 --directory docs/build/html"
+check = "hatch run docs:linkcheck && hatch run docs:doctest && hatch run docs:coverage"
+all = "hatch run docs:clean && hatch run docs:build-html && hatch run docs:epub && hatch run docs:latexpdf && hatch run docs:linkcheck && hatch run docs:doctest && hatch run docs:coverage && echo 'All builds completed.'"
+clean = "rm -rf docs/build && rm -rf docs/source/_autosummary && rm -rf docs/source/locale"
+github = "sphinx-build -M html docs/source docs/build/github-pages && echo 'GitHub Pages build complete in docs/build/github-pages/'"
+offline = "sphinx-build -M html docs/source docs/build/offline -A offline=True && sphinx-build -M epub docs/source docs/build/offline && echo 'Offline build complete in docs/build/offline/'"
+
+[tool.hatch.envs.dev.scripts]
 test = "pytest tests/unit tests/integration {args}"
 test-e2e = "pytest tests/e2e {args}"
 test-all = "pytest {args}"
