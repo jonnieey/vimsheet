@@ -18,6 +18,7 @@ from vimsheet.controller.normal_handler import NormalHandler
 from vimsheet.controller.search import Searcher, SearchState
 from vimsheet.controller.visual_handler import VisualHandler
 from vimsheet.model.range import rowcol_to_a1
+from vimsheet.model.register import RegisterEntry
 from vimsheet.model.undo import UndoStack
 from vimsheet.model.workbook import Workbook
 from vimsheet.ui.formula_bar import FormulaBar
@@ -78,8 +79,8 @@ class VimSheetApp(App[None]):
         self._yanked_formula: str | None = None  # formula string for P paste
 
         # ---- Registers / marks ----
-        self._default_register: list[list[Any]] = []
-        self._registers: dict[str, list[list[Any]]] = {}
+        self._default_register: RegisterEntry | None = None
+        self._registers: dict[str, RegisterEntry] = {}
         self._marks: dict[str, tuple[int, int, int]] = {}
         self._pending_register: str = ""  # set by "{a-z} prefix
 
@@ -1612,12 +1613,16 @@ class VimSheetApp(App[None]):
     def _cmd_range_func(self, range_str: str, func_name: str) -> None:
         """Yank =FUNC(range) — p pastes computed value, P pastes the formula."""
         from vimsheet.formula.evaluator import Evaluator
-        from vimsheet.model.undo import YankedCell
 
         formula = f"={func_name}({range_str})"
         ev = Evaluator(self.workbook.active_sheet, self.workbook)
         value = ev.eval_formula(formula)
-        self._default_register = [[YankedCell(value=value, formula=None)]]
+        self._default_register = RegisterEntry(
+            value=value,
+            formula=formula,
+            src_row=0,
+            src_col=0,
+        )
         self._yanked_formula = formula
         self.status_bar.show_message(f"Yanked {func_name}={value}  (p=value  P=formula)")
 

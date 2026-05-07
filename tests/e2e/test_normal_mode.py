@@ -7,6 +7,7 @@ import pytest
 from tests.conftest import make_workbook
 from vimsheet.app import VimSheetApp
 from vimsheet.controller.mode import Mode
+from vimsheet.model.register import RegisterEntry
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -66,7 +67,7 @@ async def test_x_on_empty_cell_does_not_raise(app: VimSheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_yy_then_p_pastes_one_row_below(app_with_data: VimSheetApp) -> None:
+async def test_yy_then_p_pastes_at_cursor(app_with_data: VimSheetApp) -> None:
     async with app_with_data.run_test() as pilot:
         sheet = app_with_data.workbook.active_sheet
         # Yank A1 ("Alpha")
@@ -74,13 +75,17 @@ async def test_yy_then_p_pastes_one_row_below(app_with_data: VimSheetApp) -> Non
         await pilot.press("y")
         await pilot.pause()
 
-        assert app_with_data._default_register == [["Alpha"]]
+        assert isinstance(app_with_data._default_register, RegisterEntry)
+        assert app_with_data._default_register.value == "Alpha"
+        assert app_with_data._default_register.formula is None
+        assert app_with_data._default_register.src_row == 0
+        assert app_with_data._default_register.src_col == 0
 
-        # Paste one row below (row 1)
+        # Paste at cursor (A1, row 0)
         await pilot.press("p")
         await pilot.pause()
 
-        pasted = sheet.get_cell(1, 0)
+        pasted = sheet.get_cell(0, 0)
         assert pasted is not None
         assert pasted.value == "Alpha"
 

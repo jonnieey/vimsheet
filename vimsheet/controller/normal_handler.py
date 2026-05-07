@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from vimsheet.controller.mode import Mode
 from vimsheet.model.range import CellRange
+from vimsheet.model.register import RegisterEntry
 
 if TYPE_CHECKING:
     from vimsheet.app import VimSheetApp
@@ -436,12 +437,9 @@ class NormalHandler:
             case "D":
                 self._delete_to_row_end()
             case "p":
-                self._paste(after=True)
+                self._paste_relative()
             case "P":
-                if app._yanked_formula and not app._pending_register:
-                    self._paste_formula(app._yanked_formula)
-                else:
-                    self._paste(after=False)
+                self._paste_absolute()
 
             # ---- Increment / decrement cell value --------------------------
             case "ctrl+a":
@@ -580,25 +578,27 @@ class NormalHandler:
             app.grid.refresh_grid()
 
     def _yank_cell(self, formula: bool = True) -> None:
-        from vimsheet.model.undo import YankedCell
-
         app = self._app
-        cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
-        if cell and cell.formula and formula:
-            entry: Any = YankedCell(value=cell.value, formula=cell.formula)
-            note = "formula"
-        else:
-            entry = cell.value if cell else None
-            note = "value"
-        data = [[entry]]
+        r, c = app.cursor_row, app.cursor_col
+        cell = app.workbook.active_sheet.get_cell(r, c)
+        cell_value = cell.value if cell else None
+        cell_formula = cell.formula if (cell and cell.formula and formula) else None
+
+        entry = RegisterEntry(
+            value=cell_value,
+            formula=cell_formula,
+            src_row=r,
+            src_col=c,
+        )
         reg = app._pending_register
         if reg == "+":
-            self._to_clipboard([[cell.value if cell else None]])
+            self._to_clipboard([[cell_value]])
         elif reg:
-            app._registers[reg] = data
-            app.status_bar.show_message(f'Yanked {note} → "{reg}')
+            app._registers[reg] = entry
+            app.status_bar.show_message(f'Yanked → "{reg}')
         else:
-            app._default_register = data
+            app._default_register = entry
+            note = "formula" if cell_formula else "value"
             app.status_bar.show_message(f"Yanked {note}")
         app._pending_register = ""
 
@@ -611,8 +611,18 @@ class NormalHandler:
         sheet = app.workbook.active_sheet
         # Snapshot for register
         max_c = sheet.max_col
-        row_data = [[sheet.get_cell(r, c) and sheet.get_cell(r, c).value for c in range(max_c + 1)]]
-        app._default_register = row_data
+        row_values = [sheet.get_cell(r, c) and sheet.get_cell(r, c).value for c in range(max_c + 1)]
+        range_data = [[(v, None) for v in row_values]]
+        app._default_register = RegisterEntry(
+            value=None,
+            formula=None,
+            src_row=r,
+            src_col=0,
+            is_range=True,
+            range_data=range_data,
+            range_src_top=r,
+            range_src_left=0,
+        )
         cmd = DeleteRowCommand(sheet, r)
         app.undo_stack.push(cmd)
         app.workbook.modified = True
@@ -649,39 +659,122 @@ class NormalHandler:
             app.workbook.modified = True
             app.grid.refresh_grid()
 
-    def _paste_formula(self, formula: str) -> None:
-        """Paste a formula string into the current cell (from P after range-func yank)."""
-        from vimsheet.model.undo import SetCellCommand
-
-        app = self._app
-        r, c = app.cursor_row, app.cursor_col
-        cmd = SetCellCommand(app.workbook.active_sheet, r, c, formula, new_formula=formula)
-        app.undo_stack.push(cmd)
-        app.workbook.modified = True
-        app.grid.refresh_grid()
-        app._yanked_formula = None
-
-    def _paste(self, after: bool = True) -> None:
-        from vimsheet.model.undo import PasteCommand
+    def _paste_relative(self) -> None:
+        """p — paste at cursor with formula adjustment."""
+        from vimsheet.formula.adjuster import adjust_formula
+        from vimsheet.model.undo import PasteCommand, YankedCell
 
         app = self._app
         reg = app._pending_register
+        app._pending_register = ""
+
         if reg == "+":
             data = self._from_clipboard()
-        elif reg and reg in app._registers:
-            data = app._registers[reg]
-        else:
-            data = app._default_register
-        app._pending_register = ""
-        if not data:
+            if not data:
+                return
+            r, c = app.cursor_row, app.cursor_col
+            cmd = PasteCommand(app.workbook.active_sheet, r, c, data)
+            app.undo_stack.push(cmd)
+            app.workbook.modified = True
+            app.grid.refresh_grid()
+            app._last_action = ("paste", False, data)
             return
-        dr = 1 if after else 0
-        r, c = app.cursor_row + dr, app.cursor_col
-        cmd = PasteCommand(app.workbook.active_sheet, r, c, data)
+
+        entry: RegisterEntry | None = app._registers.get(reg) if reg else app._default_register
+        if entry is None:
+            return
+
+        dst_row, dst_col = app.cursor_row, app.cursor_col
+
+        if entry.is_range:
+            self._paste_range_relative(entry, dst_row, dst_col)
+        else:
+            adjusted_formula = adjust_formula(
+                entry.formula, dst_row, dst_col, entry.src_row, entry.src_col
+            )
+            if entry.formula is not None and adjusted_formula is not None:
+                paste_entry: Any = YankedCell(value=entry.value, formula=adjusted_formula)
+            else:
+                paste_entry = entry.value
+            data = [[paste_entry]]
+            cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
+            app.undo_stack.push(cmd)
+            app.workbook.modified = True
+            app.grid.refresh_grid()
+            app._last_action = ("paste", False, data)
+
+    def _paste_absolute(self) -> None:
+        """P — paste at cursor without formula adjustment."""
+        from vimsheet.model.undo import PasteCommand, YankedCell
+
+        app = self._app
+        reg = app._pending_register
+        app._pending_register = ""
+
+        if reg == "+":
+            data = self._from_clipboard()
+            if not data:
+                return
+            r, c = app.cursor_row, app.cursor_col
+            cmd = PasteCommand(app.workbook.active_sheet, r, c, data)
+            app.undo_stack.push(cmd)
+            app.workbook.modified = True
+            app.grid.refresh_grid()
+            app._last_action = ("paste", False, data)
+            return
+
+        entry: RegisterEntry | None = app._registers.get(reg) if reg else app._default_register
+        if entry is None:
+            return
+
+        dst_row, dst_col = app.cursor_row, app.cursor_col
+
+        if entry.is_range:
+            data: list[list[Any]] = []
+            for row_data in entry.range_data:
+                row: list[Any] = []
+                for value, formula in row_data:
+                    if formula is not None:
+                        row.append(YankedCell(value=value, formula=formula))
+                    else:
+                        row.append(value)
+                data.append(row)
+            cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
+        else:
+            if entry.formula is not None:
+                paste_entry: Any = YankedCell(value=entry.value, formula=entry.formula)
+            else:
+                paste_entry = entry.value
+            cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, [[paste_entry]])
+
         app.undo_stack.push(cmd)
         app.workbook.modified = True
         app.grid.refresh_grid()
-        app._last_action = ("paste", after, data)
+        app._last_action = ("paste", False, data if entry.is_range else [[paste_entry]])
+
+    def _paste_range_relative(self, entry: RegisterEntry, dst_row: int, dst_col: int) -> None:
+        """Paste a yanked range with formula adjustment."""
+        from vimsheet.formula.adjuster import adjust_formula
+        from vimsheet.model.undo import PasteCommand, YankedCell
+
+        app = self._app
+        data: list[list[Any]] = []
+        for _, row_data in enumerate(entry.range_data):
+            row: list[Any] = []
+            for _, (value, formula) in enumerate(row_data):
+                adjusted = adjust_formula(
+                    formula, dst_row, dst_col, entry.range_src_top, entry.range_src_left
+                )
+                if formula is not None and adjusted is not None:
+                    row.append(YankedCell(value=value, formula=adjusted))
+                else:
+                    row.append(value)
+            data.append(row)
+        cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
+        app.undo_stack.push(cmd)
+        app.workbook.modified = True
+        app.grid.refresh_grid()
+        app._last_action = ("paste", False, data)
 
     def _toggle_fmt(self, attr: str) -> None:
         from vimsheet.model.undo import FormatCommand

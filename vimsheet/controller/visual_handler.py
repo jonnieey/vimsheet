@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from vimsheet.controller.mode import Mode
 from vimsheet.model.range import CellRange
+from vimsheet.model.register import RegisterEntry
 
 if TYPE_CHECKING:
     from vimsheet.app import VimSheetApp
@@ -202,12 +203,34 @@ class VisualHandler:
     def _yank_range(self, cell_range: CellRange) -> None:
         app = self._app
         register = app._pending_register or ""
-        data = app.workbook.active_sheet.get_range_values(cell_range)
+        sheet = app.workbook.active_sheet
+        data: list[list[tuple[Any, str | None]]] = []
+        for r in range(cell_range.start_row, cell_range.end_row + 1):
+            row_data: list[tuple[Any, str | None]] = []
+            for c in range(cell_range.start_col, cell_range.end_col + 1):
+                cell = sheet.get_cell(r, c)
+                row_data.append(
+                    (
+                        cell.value if cell else None,
+                        cell.formula if cell else None,
+                    )
+                )
+            data.append(row_data)
+        entry = RegisterEntry(
+            value=None,
+            formula=None,
+            src_row=cell_range.start_row,
+            src_col=cell_range.start_col,
+            is_range=True,
+            range_data=data,
+            range_src_top=cell_range.start_row,
+            range_src_left=cell_range.start_col,
+        )
         if register:
-            app._registers[register] = data
+            app._registers[register] = entry
             app._pending_register = ""
         else:
-            app._default_register = data
+            app._default_register = entry
         app.status_bar.show_message(
             f"Yanked {cell_range.num_rows}×{cell_range.num_cols}"
             + (f' → "{register}' if register else "")
@@ -218,7 +241,20 @@ class VisualHandler:
 
         app = self._app
         sheet = app.workbook.active_sheet
-        app._default_register = sheet.get_range_values(cell_range)
+        values = sheet.get_range_values(cell_range)
+        range_data: list[list[tuple[Any, str | None]]] = [
+            [(v, None) for v in row] for row in values
+        ]
+        app._default_register = RegisterEntry(
+            value=None,
+            formula=None,
+            src_row=cell_range.start_row,
+            src_col=cell_range.start_col,
+            is_range=True,
+            range_data=range_data,
+            range_src_top=cell_range.start_row,
+            range_src_left=cell_range.start_col,
+        )
         cmd = DeleteRangeCommand(sheet, cell_range)
         app.undo_stack.push(cmd)
         app.workbook.modified = True
@@ -360,7 +396,8 @@ class VisualHandler:
         Single-cell yank: fill every cell in the selection with that value.
         Multi-cell yank: paste the block starting at the top-left of the selection.
         """
-        from vimsheet.model.undo import PasteCommand
+        from vimsheet.formula.adjuster import adjust_formula
+        from vimsheet.model.undo import PasteCommand, YankedCell
 
         app = self._app
         reg = app._pending_register
@@ -368,26 +405,60 @@ class VisualHandler:
             from vimsheet.controller.normal_handler import NormalHandler
 
             data = NormalHandler(app)._from_clipboard()
-        elif reg and reg in app._registers:
-            data = app._registers[reg]
-        else:
-            data = app._default_register
-        app._pending_register = ""
+            if not data:
+                app.status_bar.show_message("Nothing to paste")
+                return
+            src_rows = len(data)
+            src_cols = max(len(r) for r in data)
+            if src_rows == 1 and src_cols == 1:
+                paste_data = [
+                    [data[0][0]] * cell_range.num_cols for _ in range(cell_range.num_rows)
+                ]
+            else:
+                paste_data = data
+            cmd = PasteCommand(
+                app.workbook.active_sheet,
+                cell_range.start_row,
+                cell_range.start_col,
+                paste_data,
+            )
+            app.undo_stack.push(cmd)
+            app.workbook.modified = True
+            app.grid.refresh_grid()
+            app.status_bar.show_message(f"Pasted into {cell_range.num_rows}×{cell_range.num_cols}")
+            return
 
-        if not data:
+        entry: RegisterEntry | None = app._registers.get(reg) if reg else app._default_register
+        app._pending_register = ""
+        if entry is None:
             app.status_bar.show_message("Nothing to paste")
             return
 
-        src_rows = len(data)
-        src_cols = max(len(r) for r in data)
+        dst_row, dst_col = cell_range.start_row, cell_range.start_col
 
-        if src_rows == 1 and src_cols == 1:
-            # Single-cell yank — broadcast to every cell in the selection
-            entry = data[0][0]
-            paste_data = [[entry] * cell_range.num_cols for _ in range(cell_range.num_rows)]
+        if entry.is_range:
+            paste_data: list[list[Any]] = []
+            for _, row_data in enumerate(entry.range_data):
+                row: list[Any] = []
+                for _, (value, formula) in enumerate(row_data):
+                    adjusted = adjust_formula(
+                        formula, dst_row, dst_col, entry.range_src_top, entry.range_src_left
+                    )
+                    if formula is not None and adjusted is not None:
+                        row.append(YankedCell(value=value, formula=adjusted))
+                    else:
+                        row.append(value)
+                paste_data.append(row)
         else:
-            # Multi-cell yank — paste block as-is from selection's top-left
-            paste_data = data
+            # Single-cell yank — broadcast adjusted formula to every cell
+            adjusted_formula = adjust_formula(
+                entry.formula, dst_row, dst_col, entry.src_row, entry.src_col
+            )
+            if entry.formula is not None and adjusted_formula is not None:
+                single_entry: Any = YankedCell(value=entry.value, formula=adjusted_formula)
+            else:
+                single_entry = entry.value
+            paste_data = [[single_entry] * cell_range.num_cols for _ in range(cell_range.num_rows)]
 
         cmd = PasteCommand(
             app.workbook.active_sheet,
