@@ -70,8 +70,8 @@ Available script commands:
      - Rename the current sheet
    * - ``sheet <name>``
      - Switch to a named sheet
-   * - ``sort <col> [asc|desc]``
-     - Sort by column
+   * - ``sort <col> [asc|desc] [<col> [asc|desc] ...]``
+      - Sort by one or more columns
    * - ``colwidth <n>``
      - Set column width
    * - ``autofit``

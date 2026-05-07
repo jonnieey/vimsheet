@@ -91,8 +91,7 @@ class FilterRule:
 class SortState:
     """Remembered sort configuration for a sheet."""
 
-    col: int
-    ascending: bool = True
+    sort_keys: list[tuple[int, bool]]
 
 
 @dataclass
@@ -379,43 +378,86 @@ class Sheet:
             self.max_col = max(c for _, c in self.cells)
 
     def sort_by_col(self, col: int, ascending: bool = True) -> None:
-        """Sort all rows by *col* (0-based) in place."""
+        """Sort all rows by *col* (0-based). Single-key convenience."""
+        self.sort_by_cols([(col, ascending)])
+
+    def sort_by_cols(self, sort_keys: list[tuple[int, bool]]) -> None:
+        """Sort cells in each specified column independently. Other columns unchanged."""
         if not self.cells:
             return
-        rows: list[tuple[Any, dict[int, tuple]]] = []
-        for r in range(self.max_row + 1):
-            row_data: dict[int, tuple] = {}
-            for c in range(self.max_col + 1):
-                cell = self.get_cell(r, c)
-                if cell:
-                    row_data[c] = (
-                        cell.value,
-                        cell.formula,
-                        cell.display,
-                        cell.fmt.copy(),
-                        cell.locked,
-                        cell.comment,
-                    )
-            key = None
-            if col in row_data:
-                v = row_data[col][0]
-                try:
-                    key = float(v) if v is not None else ""
-                except (TypeError, ValueError):
-                    key = str(v) if v is not None else ""
-            rows.append((key, row_data))
-        rows.sort(key=lambda x: (x[0] is None, x[0]), reverse=not ascending)
-        self.cells.clear()
-        for new_r, (_, row_data) in enumerate(rows):
-            for c, (val, formula, _, fmt, locked, comment) in row_data.items():
-                self.set_cell_value(new_r, c, val, formula=formula, record_history=False)
-                cell = self.get_cell(new_r, c)
-                if cell:
-                    cell.fmt = fmt
-                    cell.locked = locked
-                    cell.comment = comment
+
+        def _sort_key(v: Any, asc: bool) -> tuple:
+            if v is None:
+                return (1, 0, ())
+            try:
+                num = float(v)
+                return (0, num if asc else -num, ())
+            except (TypeError, ValueError):
+                s = str(v)
+                if asc:
+                    return (0, 0, tuple(ord(c) for c in s))
+                else:
+                    return (0, 0, tuple(-ord(c) for c in s))
+
+        from vimsheet.model.cell import Cell as CellCls
+
+        for col, ascending in sort_keys:
+            gathered: list[tuple[tuple, CellCls | None]] = []
+            for r in range(self.max_row + 1):
+                cell = self.get_cell(r, col)
+                gathered.append((_sort_key(cell.value if cell else None, ascending), cell))
+            gathered.sort(key=lambda x: x[0])
+            for new_r, (_, src_cell) in enumerate(gathered):
+                key = (new_r, col)
+                if src_cell is None:
+                    self.cells.pop(key, None)
+                else:
+                    c = src_cell.copy()
+                    c.row = new_r
+                    c.col = col
+                    self.cells[key] = c
+
         self._recalculate_extents()
-        self.sort_state = SortState(col=col, ascending=ascending)
+        self.sort_state = SortState(sort_keys=sort_keys)
+
+    def sort_range_columns(
+        self, r1: int, c1: int, r2: int, c2: int, sort_keys: list[tuple[int, bool]]
+    ) -> None:
+        """Sort each column within (r1,c1)-(r2,c2) independently.
+        sort_keys is (col, ascending) pairs.
+        """
+        if not self.cells:
+            return
+
+        def _key(v: Any, asc: bool) -> tuple:
+            if v is None:
+                return (1, 0, ())
+            try:
+                num = float(v)
+                return (0, num if asc else -num, ())
+            except (TypeError, ValueError):
+                s = str(v)
+                if asc:
+                    return (0, 0, tuple(ord(c) for c in s))
+                return (0, 0, tuple(-ord(c) for c in s))
+
+        for col, ascending in sort_keys:
+            if col < c1 or col > c2:
+                continue
+            gathered: list[tuple[tuple, Cell | None]] = []
+            for r in range(r1, r2 + 1):
+                cell = self.get_cell(r, col)
+                gathered.append((_key(cell.value if cell else None, ascending), cell))
+            gathered.sort(key=lambda x: x[0])
+            for new_idx, (_, src) in enumerate(gathered):
+                dst_r = r1 + new_idx
+                if src is None:
+                    self.cells.pop((dst_r, col), None)
+                else:
+                    c = src.copy()
+                    c.row = dst_r
+                    c.col = col
+                    self.cells[(dst_r, col)] = c
 
     def apply_filters(self) -> None:
         """Update hidden_rows based on the current filter rules."""

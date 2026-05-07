@@ -68,6 +68,12 @@ class VisualHandler:
                         case "s":
                             self._sort_range(sel)
                             app.mode = Mode.NORMAL
+                        case "a":
+                            self._sort_range_columns(sel, ascending=True)
+                            app.mode = Mode.NORMAL
+                        case "d":
+                            self._sort_range_columns(sel, ascending=False)
+                            app.mode = Mode.NORMAL
                         case "j":
                             self._shift_range_cells(sel, 1, 0)
                         case "k":
@@ -294,6 +300,21 @@ class VisualHandler:
                     sheet.clear_cell(r, c)
                 else:
                     sheet.set_cell_value(r, c, cell.value, cell.formula)
+        app.workbook.modified = True
+        app.grid.refresh_grid()
+
+    def _sort_range_columns(self, cell_range: CellRange, ascending: bool = True) -> None:
+        """Sort each column in the selected range independently (columnar sort)."""
+        app = self._app
+        sheet = app.workbook.active_sheet
+        r1, c1, r2, c2 = (
+            cell_range.start_row,
+            cell_range.start_col,
+            cell_range.end_row,
+            cell_range.end_col,
+        )
+        sort_keys = [(c, ascending) for c in range(c1, c2 + 1)]
+        sheet.sort_range_columns(r1, c1, r2, c2, sort_keys)
         app.workbook.modified = True
         app.grid.refresh_grid()
 

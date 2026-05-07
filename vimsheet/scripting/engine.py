@@ -291,12 +291,49 @@ class ScriptEngine:
         self.workbook.active_sheet.auto_fit_col(c)
 
     def _cmd_sort(self, args: list[str]) -> None:
-        # sort 1 asc  (1-based col)
+        # sort B desc C asc  — also supports : and , range syntax
         if not args:
-            raise ScriptError("Usage: sort <col> [asc|desc]")
-        c = self._parse_col(args[0])
-        asc = bool(len(args) < 2 or args[1].lower() in ("asc", "a"))
-        _sort_sheet(self.workbook.active_sheet, c, asc)
+            raise ScriptError("Usage: sort <col> [asc|desc] [<col> [asc|desc] ...]")
+
+        def _expand(spec: str) -> list[int]:
+            cols: list[int] = []
+            for part in spec.split(","):
+                part = part.strip()
+                if not part:
+                    continue
+                if ":" in part:
+                    a, b = part.split(":", 1)
+                    c1 = self._parse_col(a.strip())
+                    c2 = self._parse_col(b.strip())
+                    if c1 > c2:
+                        c1, c2 = c2, c1
+                    cols.extend(range(c1, c2 + 1))
+                else:
+                    cols.append(self._parse_col(part))
+            return cols
+
+        sort_keys: list[tuple[int, bool]] = []
+        i = 0
+        while i < len(args):
+            token = args[i]
+            if ":" in token or "," in token:
+                expanded = _expand(token)
+                i += 1
+                asc = True
+                if i < len(args) and args[i].lower() in ("asc", "desc"):
+                    asc = args[i].lower() == "asc"
+                    i += 1
+                for c in expanded:
+                    sort_keys.append((c, asc))
+            else:
+                c = self._parse_col(token)
+                i += 1
+                asc = True
+                if i < len(args) and args[i].lower() in ("asc", "desc"):
+                    asc = args[i].lower() == "asc"
+                    i += 1
+                sort_keys.append((c, asc))
+        _sort_sheet(self.workbook.active_sheet, sort_keys)
 
     def _cmd_addsheet(self, args: list[str]) -> None:
         name = args[0] if args else None
@@ -487,44 +524,6 @@ def _coerce(raw: str) -> Any:
     return s
 
 
-def _sort_sheet(sheet: Any, col: int, ascending: bool) -> None:
-    """Sort sheet rows by 0-based column."""
-    from vimsheet.model.sheet import SortState
-
-    if not sheet.cells:
-        return
-    max_r = sheet.max_row
-    max_c = sheet.max_col
-    rows: list[tuple[Any, dict]] = []
-    for r in range(max_r + 1):
-        row_cells: dict[int, tuple] = {}
-        for c in range(max_c + 1):
-            cell = sheet.get_cell(r, c)
-            if cell:
-                row_cells[c] = (
-                    cell.value,
-                    cell.formula,
-                    cell.fmt.copy(),
-                    cell.locked,
-                    cell.comment,
-                )
-        key = None
-        if col in row_cells:
-            v = row_cells[col][0]
-            try:
-                key = float(v) if v is not None else ""
-            except (TypeError, ValueError):
-                key = str(v) if v is not None else ""
-        rows.append((key, row_cells))
-    rows.sort(key=lambda x: (x[0] is None, x[0]), reverse=not ascending)
-    sheet.cells.clear()
-    for new_r, (_, row_cells) in enumerate(rows):
-        for c, (val, formula, fmt, locked, comment) in row_cells.items():
-            sheet.set_cell_value(new_r, c, val, formula=formula, record_history=False)
-            cell = sheet.get_cell(new_r, c)
-            if cell:
-                cell.fmt = fmt
-                cell.locked = locked
-                cell.comment = comment
-    sheet._recalculate_extents()
-    sheet.sort_state = SortState(col=col, ascending=ascending)
+def _sort_sheet(sheet: Any, sort_keys: list[tuple[int, bool]]) -> None:
+    """Sort cells in each specified column independently. Delegates to Sheet.sort_by_cols()."""
+    sheet.sort_by_cols(sort_keys)

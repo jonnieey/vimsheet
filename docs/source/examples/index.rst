@@ -80,8 +80,8 @@ Or use the fill command after selecting the range in visual mode:
    A10: Min      B10: =MIN(B2:B6)
    A11: Count    B11: =COUNT(B2:B6)
 
-   :sort C asc       Sort by grade
-   :sort B desc      Sort by score descending
+   :sort C            Sort by grade ascending
+   :sort B desc       Sort by score descending
 
 Sales Data Analysis with VLOOKUP
 --------------------------------

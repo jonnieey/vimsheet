@@ -363,7 +363,7 @@ class VimSheetApp(App[None]):
                         str(wb.filepath.name if wb.filepath else f"buf {i + 1}")
                         for i, wb in unsaved
                     )
-                    msg = f"Close {n_total} {buf_word}? " f"{len(unsaved)} unsaved: {names}"
+                    msg = f"Close {n_total} {buf_word}? {len(unsaved)} unsaved: {names}"
                 else:
                     msg = f"Close {n_total} {buf_word}?"
                 self._ask_confirm(msg, self.exit)
@@ -517,36 +517,74 @@ class VimSheetApp(App[None]):
                 from vimsheet.model.undo import SortCommand
 
                 sheet = self.workbook.active_sheet
-                col_arg = parts[1] if len(parts) > 1 else None
-                asc = True
-                if (
-                    len(parts) > 2
-                    and parts[2].lower() in ("desc", "d")
-                    or len(parts) > 1
-                    and parts[-1].lower() in ("desc", "d")
-                ):
-                    asc = False
-                try:
-                    if col_arg is None or col_arg.lower() in ("asc", "desc"):
-                        sort_col = self.cursor_col
-                    elif col_arg.isalpha():
-                        sort_col = (
+
+                def _parse_col(s: str) -> int:
+                    if s.isalpha():
+                        return (
                             sum(
                                 (ord(ch.upper()) - 64) * (26**i)
-                                for i, ch in enumerate(reversed(col_arg.upper()))
+                                for i, ch in enumerate(reversed(s.upper()))
                             )
                             - 1
                         )
-                    else:
-                        sort_col = int(col_arg) - 1
-                    cmd = SortCommand(sheet, sort_col, asc)
+                    return int(s) - 1
+
+                def _expand_col_spec(spec: str) -> list[int]:
+                    cols: list[int] = []
+                    for part in spec.split(","):
+                        part = part.strip()
+                        if not part:
+                            continue
+                        if ":" in part:
+                            a, b = part.split(":", 1)
+                            c1 = _parse_col(a.strip())
+                            c2 = _parse_col(b.strip())
+                            if c1 > c2:
+                                c1, c2 = c2, c1
+                            cols.extend(range(c1, c2 + 1))
+                        else:
+                            cols.append(_parse_col(part))
+                    return cols
+
+                try:
+                    rest = parts[1:] if len(parts) > 1 else []
+                    sort_keys: list[tuple[int, bool]] = []
+                    i = 0
+                    while i < len(rest):
+                        token = rest[i]
+                        if token.lower() in ("asc", "desc"):
+                            if not sort_keys:
+                                sort_keys.append((self.cursor_col, token.lower() in ("asc", "a")))
+                            i += 1
+                        elif ":" in token or "," in token:
+                            expanded = _expand_col_spec(token)
+                            asc = True
+                            if i + 1 < len(rest) and rest[i + 1].lower() in ("desc", "d"):
+                                asc = False
+                                i += 2
+                            else:
+                                i += 1
+                            for c in expanded:
+                                sort_keys.append((c, asc))
+                        elif token.isalpha() or token.isdigit():
+                            col = _parse_col(token)
+                            asc = True
+                            if i + 1 < len(rest) and rest[i + 1].lower() in ("desc", "d"):
+                                asc = False
+                                i += 2
+                            else:
+                                i += 1
+                            sort_keys.append((col, asc))
+                        else:
+                            i += 1
+                    if not sort_keys:
+                        sort_keys = [(self.cursor_col, True)]
+                    cmd = SortCommand(sheet, sort_keys)
                     self.undo_stack.push(cmd)
                     self.grid.refresh_grid()
                     self.workbook.modified = True
-                    label = chr(65 + sort_col) if sort_col < 26 else str(sort_col + 1)
-                    self.status_bar.show_message(
-                        f"Sorted by col {label} ({'asc' if asc else 'desc'})"
-                    )
+                    labels = " ".join(chr(65 + c) if c < 26 else str(c + 1) for c, _ in sort_keys)
+                    self.status_bar.show_message(f"Sorted by {labels}")
                 except (ValueError, IndexError) as e:
                     self.status_bar.show_message(f"Sort error: {e}")
 
@@ -662,6 +700,10 @@ class VimSheetApp(App[None]):
                 chart_type = parts[2] if len(parts) > 2 else "bar"
                 title = " ".join(parts[3:]) if len(parts) > 3 else ""
                 self._cmd_plot(data_range, chart_type, title)
+
+            case _ if len(parts) >= 2 and parts[1].lower() == "sort":
+                # <range> sort [col] [asc|desc] ...  — range pre-filled from visual mode
+                self._cmd_range_sort(parts[0], parts[2:])
 
             # ---- Cell comment ----
             case "comment" | "note":
@@ -956,7 +998,7 @@ class VimSheetApp(App[None]):
                         grp = (min(r1, r2), max(r1, r2))
                         self.workbook.active_sheet.row_groups.append(grp)
                         self.workbook.modified = True
-                        self.status_bar.show_message(f"Row group: rows {r1+1}–{r2+1}")
+                        self.status_bar.show_message(f"Row group: rows {r1 + 1}–{r2 + 1}")
                     except ValueError:
                         self.status_bar.show_message("Usage: :rowgroup <r1> <r2>")
                 else:
@@ -968,7 +1010,7 @@ class VimSheetApp(App[None]):
                         grp = (min(c1, c2), max(c1, c2))
                         self.workbook.active_sheet.col_groups.append(grp)
                         self.workbook.modified = True
-                        self.status_bar.show_message(f"Col group: cols {c1+1}–{c2+1}")
+                        self.status_bar.show_message(f"Col group: cols {c1 + 1}–{c2 + 1}")
                     except ValueError:
                         self.status_bar.show_message("Usage: :colgroup <c1> <c2>")
                 else:
@@ -1023,9 +1065,11 @@ class VimSheetApp(App[None]):
                 # <range> !<script>  — space variant
                 script_part = parts[1][1:] or (" ".join(parts[2:]) if len(parts) > 2 else "")
                 self._run_external_script(parts[0].upper(), script_part)
-            case _ if len(parts) == 2 and ":" in parts[0] and parts[
-                1
-            ].upper() in self._get_script_func_names():
+            case _ if (
+                len(parts) == 2
+                and ":" in parts[0]
+                and parts[1].upper() in self._get_script_func_names()
+            ):
                 # :<range> <FUNCNAME>  — apply registered script function to range in place
                 self._apply_script_func_to_range(parts[0].upper(), parts[1].upper())
             case _ if len(parts) == 2 and ":" in parts[0] and parts[1].isalpha():
@@ -1543,8 +1587,7 @@ class VimSheetApp(App[None]):
                 transform = _NUM_TRANSFORMS.get(func_name) if func_name else None
                 if func_name and transform is None:
                     self.status_bar.show_message(
-                        f"Fill: unknown function '{func_name}'. "
-                        f"Use: {', '.join(_NUM_TRANSFORMS)}"
+                        f"Fill: unknown function '{func_name}'. Use: {', '.join(_NUM_TRANSFORMS)}"
                     )
                     return
 
@@ -1605,6 +1648,93 @@ class VimSheetApp(App[None]):
         self._insert_align = align
         self.mode = Mode.INSERT
         self._sync_formula_bar()
+
+    # -----------------------------------------------------------------------
+    # Range sort  (<range> sort [col] [asc|desc] ...)
+    # -----------------------------------------------------------------------
+
+    def _cmd_range_sort(self, range_str: str, args: list[str]) -> None:
+        """Sort columns within range. Default: all columns ascending."""
+        from vimsheet.model.range import CellRange
+
+        try:
+            cr = CellRange.from_a1(range_str.upper())
+        except Exception:
+            self.status_bar.show_message(f"Sort error: invalid range {range_str}")
+            return
+        r1, c1, r2, c2 = cr.start_row, cr.start_col, cr.end_row, cr.end_col
+
+        def _parse_col(s: str) -> int:
+            if s.isalpha():
+                return (
+                    sum(
+                        (ord(ch.upper()) - 64) * (26**i) for i, ch in enumerate(reversed(s.upper()))
+                    )
+                    - 1
+                )
+            return int(s) - 1
+
+        def _expand_col_spec(spec: str) -> list[int]:
+            cols: list[int] = []
+            for part in spec.split(","):
+                part = part.strip()
+                if not part:
+                    continue
+                if ":" in part:
+                    a, b = part.split(":", 1)
+                    c1 = _parse_col(a.strip())
+                    c2 = _parse_col(b.strip())
+                    if c1 > c2:
+                        c1, c2 = c2, c1
+                    cols.extend(range(c1, c2 + 1))
+                else:
+                    cols.append(_parse_col(part))
+            return cols
+
+        # Parse sort keys from args
+        sort_keys: list[tuple[int, bool]] = []
+        i = 0
+        while i < len(args):
+            token = args[i]
+            if token.lower() in ("asc", "desc"):
+                # Bare order keyword with no preceding col → apply to all range cols
+                if not sort_keys:
+                    asc = token.lower() == "asc"
+                    sort_keys = [(c, asc) for c in range(c1, c2 + 1)]
+                i += 1
+            elif ":" in token or "," in token:
+                expanded = _expand_col_spec(token)
+                asc = True
+                if i + 1 < len(args) and args[i + 1].lower() in ("asc", "desc"):
+                    asc = args[i + 1].lower() == "asc"
+                    i += 2
+                else:
+                    i += 1
+                for c in expanded:
+                    sort_keys.append((c, asc))
+            elif token.isalpha() or token.isdigit():
+                col = _parse_col(token)
+                asc = True
+                if i + 1 < len(args) and args[i + 1].lower() in ("asc", "desc"):
+                    asc = args[i + 1].lower() == "asc"
+                    i += 2
+                else:
+                    i += 1
+                sort_keys.append((col, asc))
+            else:
+                i += 1
+
+        if not sort_keys:
+            sort_keys = [(c, True) for c in range(c1, c2 + 1)]
+
+        from vimsheet.model.undo import SortCommand
+
+        cmd = SortCommand(self.workbook.active_sheet, sort_keys, range_bounds=(r1, c1, r2, c2))
+        self.undo_stack.push(cmd)
+        self.grid.refresh_grid()
+        self.workbook.modified = True
+        labels = " ".join(chr(65 + c) if c < 26 else str(c + 1) for c, _ in sort_keys)
+        self.status_bar.show_message(f"Sorted range {range_str.upper()} by {labels}")
 
     # -----------------------------------------------------------------------
     # Range formula yank  (<range> FUNCNAME)
@@ -2218,10 +2348,10 @@ class VimSheetApp(App[None]):
 
         if action == "close" or (action == "toggle" and not currently_hidden):
             sheet.hidden_rows |= rows_in_group
-            self.status_bar.show_message(f"Folded rows {r1+1}–{r2+1}")
+            self.status_bar.show_message(f"Folded rows {r1 + 1}–{r2 + 1}")
         else:
             sheet.hidden_rows -= rows_in_group
-            self.status_bar.show_message(f"Unfolded rows {r1+1}–{r2+1}")
+            self.status_bar.show_message(f"Unfolded rows {r1 + 1}–{r2 + 1}")
         self.workbook.modified = True
         self.grid.refresh_grid()
 

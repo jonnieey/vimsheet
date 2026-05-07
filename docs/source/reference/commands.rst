@@ -142,8 +142,10 @@ Sort and Filter
 
    * - Command
      - Description
-   * - ``:sort [col] [asc|desc]``
-     - Sort by column letter or number
+   * - ``:sort [col] [asc|desc] [<col> [asc|desc] ...]``
+      - Sort by one or more columns (letter or number)
+   * - ``:<range> sort [col] [asc|desc] ...``
+      - Sort columns within range (columnar, independent per column)
    * - ``:filter <col> <op> <value>``
      - Add column filter (ops: ``gt``, ``lt``, ``eq``, ``ne``, ``ge``, ``le``)
    * - ``:clearfilter``

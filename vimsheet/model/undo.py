@@ -308,15 +308,24 @@ class FormatCommand(Command):
 class SortCommand(Command):
     description = "sort sheet"
 
-    def __init__(self, sheet: Sheet, col: int, ascending: bool) -> None:
+    def __init__(
+        self,
+        sheet: Sheet,
+        sort_keys: list[tuple[int, bool]],
+        range_bounds: tuple[int, int, int, int] | None = None,
+    ) -> None:
         self._sheet = sheet
-        self._col = col
-        self._ascending = ascending
+        self._sort_keys = sort_keys
+        self._range_bounds = range_bounds
         self._snapshot: dict[tuple[int, int], Cell] = {}
 
     def execute(self) -> None:
         self._snapshot = {k: v.copy() for k, v in self._sheet.cells.items()}
-        self._sheet.sort_by_col(self._col, self._ascending)
+        if self._range_bounds:
+            r1, c1, r2, c2 = self._range_bounds
+            self._sheet.sort_range_columns(r1, c1, r2, c2, self._sort_keys)
+        else:
+            self._sheet.sort_by_cols(self._sort_keys)
 
     def undo(self) -> None:
         self._sheet.cells.clear()
