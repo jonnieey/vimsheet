@@ -572,7 +572,18 @@ class NormalHandler:
     # Operations (helpers that create Commands)
     # -----------------------------------------------------------------------
 
+    def _check_lock(self) -> bool:
+        """Return True if the current cell is locked (shows message, caller should skip)."""
+        app = self._app
+        cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
+        if cell is not None and cell.locked:
+            app.status_bar.show_message("Cell is locked — use 'ru' to unlock")
+            return True
+        return False
+
     def _clear_cell(self) -> None:
+        if self._check_lock():
+            return
         from vimsheet.model.undo import ClearCellCommand
 
         app = self._app
@@ -598,6 +609,8 @@ class NormalHandler:
         app._last_action = ("clear_cell",)
 
     def _delete_to_row_end(self) -> None:
+        if self._check_lock():
+            return
         from vimsheet.model.undo import DeleteRangeCommand
 
         app = self._app
@@ -665,6 +678,8 @@ class NormalHandler:
 
     def _increment_cell(self, delta: int) -> None:
         """Add *delta* to the numeric value of the current cell."""
+        if self._check_lock():
+            return
         app = self._app
         self._increment_cells([(app.cursor_row, app.cursor_col)], delta)
         app._sync_formula_bar()
@@ -694,6 +709,8 @@ class NormalHandler:
 
     def _paste_relative(self) -> None:
         """p — paste at cursor with formula adjustment."""
+        if self._check_lock():
+            return
         from vimsheet.formula.adjuster import adjust_formula
         from vimsheet.model.undo import PasteCommand, YankedCell
 
@@ -738,6 +755,9 @@ class NormalHandler:
 
     def _paste_absolute(self) -> None:
         """P — paste at cursor without formula adjustment."""
+        if self._check_lock():
+            return
+        from vimsheet.formula.adjuster import adjust_formula
         from vimsheet.model.undo import PasteCommand, YankedCell
 
         app = self._app
@@ -759,38 +779,11 @@ class NormalHandler:
         entry: RegisterEntry | None = app._registers.get(reg) if reg else app._default_register
         if entry is None:
             return
+        if not entry.is_range:
+            self._paste_single_cell_absolute(entry)
+            return
 
         dst_row, dst_col = app.cursor_row, app.cursor_col
-
-        if entry.is_range:
-            data: list[list[Any]] = []
-            for row_data in entry.range_data:
-                row: list[Any] = []
-                for value, formula in row_data:
-                    if formula is not None:
-                        row.append(YankedCell(value=value, formula=formula))
-                    else:
-                        row.append(value)
-                data.append(row)
-            cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
-        else:
-            if entry.formula is not None:
-                paste_entry: Any = YankedCell(value=entry.value, formula=entry.formula)
-            else:
-                paste_entry = entry.value
-            cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, [[paste_entry]])
-
-        app.undo_stack.push(cmd)
-        app.workbook.modified = True
-        app.grid.refresh_grid()
-        app._last_action = ("paste", False, data if entry.is_range else [[paste_entry]])
-
-    def _paste_range_relative(self, entry: RegisterEntry, dst_row: int, dst_col: int) -> None:
-        """Paste a yanked range with formula adjustment."""
-        from vimsheet.formula.adjuster import adjust_formula
-        from vimsheet.model.undo import PasteCommand, YankedCell
-
-        app = self._app
         data: list[list[Any]] = []
         for _, row_data in enumerate(entry.range_data):
             row: list[Any] = []
@@ -803,6 +796,18 @@ class NormalHandler:
                 else:
                     row.append(value)
             data.append(row)
+        cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
+        app.undo_stack.push(cmd)
+        app.workbook.modified = True
+        app.grid.refresh_grid()
+        app._last_action = ("paste", False, data)
+
+    def _paste_single_cell_absolute(self, entry: RegisterEntry) -> None:
+        from vimsheet.model.undo import PasteCommand
+
+        app = self._app
+        dst_row, dst_col = app.cursor_row, app.cursor_col
+        data = [[entry.value]]
         cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
         app.undo_stack.push(cmd)
         app.workbook.modified = True
@@ -840,6 +845,8 @@ class NormalHandler:
         app._sync_formula_bar()
 
     def _valueize_cell(self) -> None:
+        if self._check_lock():
+            return
         app = self._app
         cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
         if cell and cell.formula:
@@ -848,6 +855,8 @@ class NormalHandler:
 
     def _replace_char(self, char: str) -> None:
         """r{char} — replace single character under cursor in cell content."""
+        if self._check_lock():
+            return
         from vimsheet.model.undo import SetCellCommand
 
         app = self._app
@@ -898,6 +907,8 @@ class NormalHandler:
         app.grid.refresh_grid()
 
     def _delete_row(self) -> None:
+        if self._check_lock():
+            return
         from vimsheet.model.undo import DeleteRowCommand
 
         app = self._app
@@ -907,6 +918,8 @@ class NormalHandler:
         app.grid.refresh_grid()
 
     def _delete_col(self) -> None:
+        if self._check_lock():
+            return
         from vimsheet.model.undo import DeleteColCommand
 
         app = self._app
@@ -937,6 +950,8 @@ class NormalHandler:
 
     def _shift_cell(self, dr: int, dc: int) -> None:
         """Move the current cell in direction (dr, dc), overwriting destination."""
+        if self._check_lock():
+            return
         from vimsheet.model.range import CellRange
         from vimsheet.model.undo import ShiftCellsCommand
 

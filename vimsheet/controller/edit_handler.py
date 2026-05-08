@@ -23,6 +23,9 @@ class EditHandler:
         """Switch app to Edit mode, loading current cell content."""
         app = self._app
         cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
+        if cell is not None and cell.locked:
+            app.status_bar.show_message("Cell is locked — use 'ru' to unlock")
+            return
         app._edit_buffer = ""
         if cell is not None:
             app._edit_buffer = cell.formula or (str(cell.value) if cell.value is not None else "")
