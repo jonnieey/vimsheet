@@ -1,6 +1,6 @@
 [project]
 name = "vimsheet"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A vim-like TUI spreadsheet for the terminal"
 requires-python = ">=3.11"
 dependencies = [
@@ -34,6 +34,9 @@ docs =[
 
 [project.scripts]
 vimsheet = "vimsheet.__main__:main"
+
+[tool.hatch.version]
+path = "vimsheet/__init__.py"
 
 [build-system]
 requires = ["hatchling"]
