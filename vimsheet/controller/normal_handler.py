@@ -403,7 +403,11 @@ class NormalHandler:
                 app.grid.move_to_last_cell()
 
             # ---- Mode entry ------------------------------------------------
-            case "=" | "\\":
+            case "=":
+                app._enter_insert("right")
+                app._insert_buffer = "="
+                app._insert_cursor = 1
+            case "\\":
                 app._enter_insert("right")
             case "<":
                 app._enter_insert("left")
