@@ -306,6 +306,20 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
 
+            # z-enter / z. / z-  — scroll cell to top/center/bottom
+            case "zenter":
+                app.grid.scroll_cell_to_top()
+                app._key_buffer = ""
+                return
+            case "z.":
+                app.grid.scroll_cell_to_center()
+                app._key_buffer = ""
+                return
+            case "z-":
+                app.grid.scroll_cell_to_bottom()
+                app._key_buffer = ""
+                return
+
             # ZZ / ZQ
             case "ZZ":
                 app._save_and_quit()

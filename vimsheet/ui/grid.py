@@ -478,6 +478,18 @@ class GridWidget(ScrollView):
         elif x + cw > scroll_x + vis_w:
             self.scroll_to(x=x + cw - vis_w, animate=False)
 
+    def scroll_cell_to_top(self) -> None:
+        self.scroll_to(y=self.cursor_row, animate=False)
+
+    def scroll_cell_to_center(self) -> None:
+        data_rows_visible = max(1, self.size.height - 1)
+        half = data_rows_visible // 2
+        self.scroll_to(y=max(0, self.cursor_row - half), animate=False)
+
+    def scroll_cell_to_bottom(self) -> None:
+        data_rows_visible = max(1, self.size.height - 1)
+        self.scroll_to(y=max(0, self.cursor_row - data_rows_visible + 1), animate=False)
+
     # -----------------------------------------------------------------------
     # Reactive watchers
     # -----------------------------------------------------------------------
