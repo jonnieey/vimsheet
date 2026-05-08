@@ -170,7 +170,9 @@ class NormalHandler:
                 return
 
             # Named register: "{a-z/+} prefix for yank/paste
-            case s if len(s) == 2 and s[0] == '"' and (s[1].isalpha() or s[1] == "+"):
+            case s if (
+                len(s) == 2 and s[0] == '"' and (s[1].isalpha() or s[1].isdigit() or s[1] == "+")
+            ):
                 app._pending_register = s[1]
                 app._key_buffer = ""
                 # Next key is the operation — let it fall through
@@ -260,7 +262,7 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
             case "dd":
-                self._cut_row()
+                self._clear_cell()
                 app._key_buffer = ""
                 return
 
@@ -575,6 +577,19 @@ class NormalHandler:
 
         app = self._app
         r, c = app.cursor_row, app.cursor_col
+        reg = app._pending_register
+        if reg:
+            cell = app.workbook.active_sheet.get_cell(r, c)
+            if cell:
+                entry = RegisterEntry(
+                    value=cell.value,
+                    formula=cell.formula,
+                    src_row=r,
+                    src_col=c,
+                )
+                app._registers[reg] = entry
+                app.status_bar.show_message(f'Deleted → "{reg}')
+            app._pending_register = ""
         cmd = ClearCellCommand(app.workbook.active_sheet, r, c)
         app.undo_stack.push(cmd)
         app.workbook.modified = True
