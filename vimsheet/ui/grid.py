@@ -15,6 +15,7 @@ from textual.strip import Strip
 from vimsheet.controller.mode import Mode
 from vimsheet.model.range import CellRange, col_index_to_letters
 from vimsheet.model.sheet import Sheet
+from vimsheet.ui.grid_palette import GridPalette
 
 if TYPE_CHECKING:
     from vimsheet.model.workbook import Workbook
@@ -70,6 +71,7 @@ class GridWidget(ScrollView):
         super().__init__(**kwargs)
         self.workbook = workbook
         self._config = config
+        self._palette: GridPalette = GridPalette()
 
     def on_mount(self) -> None:
         w = ROW_HEADER_WIDTH + sum(self.get_col_width(c) + 1 for c in range(26))
@@ -92,6 +94,10 @@ class GridWidget(ScrollView):
 
     def update_config(self, config: Any) -> None:
         self._config = config
+        self.refresh()
+
+    def set_palette(self, palette: GridPalette) -> None:
+        self._palette = palette
         self.refresh()
 
     # -----------------------------------------------------------------------
@@ -130,8 +136,8 @@ class GridWidget(ScrollView):
     def _render_header_row(self, scroll_x: int, width: int) -> Strip:
         if self._config is not None and not self._config.show_col_headers:
             return Strip([Segment(" " * width)])
-        hdr = Style(bgcolor="grey23", color="grey74", bold=True)
-        div = Style(bgcolor="grey23", color="grey35")
+        hdr = Style(bgcolor=self._palette.header_bg, color=self._palette.header_fg, bold=True)
+        div = Style(bgcolor=self._palette.header_bg, color=self._palette.header_divider)
         # Corner cell — always pinned at left regardless of horizontal scroll
         corner = Strip([Segment(" " * ROW_HEADER_WIDTH, hdr)])
         data_width = width - ROW_HEADER_WIDTH
@@ -159,15 +165,23 @@ class GridWidget(ScrollView):
 
         # Frozen-row separator: a visible divider after the last frozen row
         if freeze_rows > 0 and row == freeze_rows and not is_hidden:
-            sep_style = Style(bgcolor="steel_blue3", color="steel_blue3")
+            sep_style = Style(bgcolor=self._palette.frozen_sep, color=self._palette.frozen_sep)
             return Strip([Segment("─" * width, sep_style)])
 
         is_frozen_row = freeze_rows > 0 and row < freeze_rows
-        row_hdr_style = Style(bgcolor="grey23", color="grey62")
+        row_hdr_style = Style(bgcolor=self._palette.header_bg, color=self._palette.header_fg)
         if is_cursor_row:
-            row_hdr_style = Style(bgcolor="steel_blue", color="white", bold=True)
+            row_hdr_style = Style(
+                bgcolor=self._palette.cursor_header_bg,
+                color=self._palette.cursor_header_fg,
+                bold=True,
+            )
         elif is_frozen_row:
-            row_hdr_style = Style(bgcolor="grey27", color="grey82", bold=True)
+            row_hdr_style = Style(
+                bgcolor=self._palette.frozen_header_bg,
+                color=self._palette.header_fg,
+                bold=True,
+            )
 
         # Show fold indicator when this row is the start of a group
         fold_indicator = self._fold_indicator(row)
@@ -199,7 +213,7 @@ class GridWidget(ScrollView):
                 continue
             # Frozen-col separator: insert a divider segment after last frozen col
             if freeze_cols > 0 and col == freeze_cols:
-                segs.append(Segment("│", Style(color="steel_blue3", bgcolor=None)))
+                segs.append(Segment("│", Style(color=self._palette.frozen_sep, bgcolor=None)))
             cell = self.sheet.get_cell(row, col)
             text = (cell.display or "") if cell else ""
             style = self._cell_style(row, col, cell)
@@ -208,7 +222,7 @@ class GridWidget(ScrollView):
                 from vimsheet.model.cell import Cell as _CT
 
                 if not isinstance(cell, _CT) or (cell.fmt.bg_color is None):
-                    style = style + Style(bgcolor="grey11")
+                    style = style + Style(bgcolor=self._palette.frozen_cell_bg)
             if len(text) > cw - 1:
                 text = text[: cw - 2] + "…"
             align = cell.fmt.align if cell else "right"
@@ -220,10 +234,12 @@ class GridWidget(ScrollView):
                 text = text.rjust(cw)
             segs.append(Segment(text, style))
             # Column divider (1 char wide, neutral colour)
-            div_bg = "grey19" if row % 2 == 1 else None
+            div_bg = self._palette.alt_row_bg if row % 2 == 1 else None
             no_lines = self._config is not None and not self._config.show_grid_lines
             divider = " " if no_lines else "│"
-            divider_style = Style() if no_lines else Style(color="grey30", bgcolor=div_bg)
+            divider_style = (
+                Style() if no_lines else Style(color=self._palette.gridline, bgcolor=div_bg)
+            )
             segs.append(Segment(divider, divider_style))
             x += cw + 1
             col += 1
@@ -238,9 +254,11 @@ class GridWidget(ScrollView):
         in_visual = self._in_visual_selection(row, col)
 
         if is_cursor:
-            return Style(bgcolor="steel_blue1", color="white", bold=True)
+            return Style(
+                bgcolor=self._palette.cursor_cell_bg, color=self._palette.cursor_cell_fg, bold=True
+            )
         if in_visual:
-            return Style(bgcolor="slate_blue1", color="white")
+            return Style(bgcolor=self._palette.visual_sel_bg, color=self._palette.visual_sel_fg)
 
         bg = fg = None
         bold = italic = underline = False
@@ -262,7 +280,7 @@ class GridWidget(ScrollView):
                     if rule.fmt.bold:
                         bold = True
             if isinstance(cell.value, str) and cell.value.startswith("#"):
-                fg = "red"
+                fg = self._palette.error_fg
 
         style = Style(
             bold=bold or None,
@@ -272,7 +290,7 @@ class GridWidget(ScrollView):
             bgcolor=bg,
         )
         if bg is None and row % 2 == 1:
-            style = style + Style(bgcolor="grey19")
+            style = style + Style(bgcolor=self._palette.alt_row_bg)
         return style
 
     def _fold_indicator(self, row: int) -> str:

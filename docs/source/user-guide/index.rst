@@ -27,5 +27,7 @@ to know to use VimSheet effectively.
      - Search and replace with regex
    * - :ref:`user-guide/sort-filter`
      - Sort and filter data
+   * - :ref:`user-guide/themes`
+     - Themes, color schemes, and the :code:`colorscheme` command
    * - :ref:`user-guide/undo-redo`
      - Undo and redo changes

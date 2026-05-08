@@ -236,6 +236,14 @@ Configuration
    * - ``:theme <name>``
      - Switch theme (``dark``, ``light``, ``nord``, ``gruvbox``, ``dracula``,
        ``tokyo``, ``monokai``, ``solarized``, ``catppuccin``, ``rose-pine``)
+   * - ``:colorscheme``
+     - Show all current palette field values
+   * - ``:colorscheme <field> <value>``
+     - Set a palette field (hex, named colour, or ``$variable``)
+   * - ``:colorscheme reset [field]``
+     - Reset palette to theme defaults
+   * - ``:colorscheme save``
+     - Persist current overrides to :file:`config.json`
    * - ``:recalc``
      - Force full recalculation of all formulas
 

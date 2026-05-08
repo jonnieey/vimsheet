@@ -20,8 +20,8 @@ class StatusBar(Widget):
     StatusBar {
         height: 1;
         layout: horizontal;
-        background: $primary;
-        color: $background;
+        background: $surface;
+        color: $text;
     }
     StatusBar .segment {
         padding: 0 1;
@@ -29,7 +29,7 @@ class StatusBar(Widget):
     }
     StatusBar #status-mode {
         width: 10;
-        background: $primary-darken-2;
+        background: $primary;
         content-align: center middle;
         text-style: bold;
     }
@@ -46,7 +46,7 @@ class StatusBar(Widget):
     }
     StatusBar #status-message {
         width: 1fr;
-        color: $warning;
+        color: $text-warning;
     }
     StatusBar #status-file-state {
         width: 10;

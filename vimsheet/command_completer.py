@@ -41,6 +41,7 @@ _ALL_COMMANDS = sorted(
         "bufs",
         "cf",
         "clearfilter",
+        "colorscheme",
         "cond",
         "condformat",
         "colgroup",
@@ -149,7 +150,24 @@ _FILE_COMMANDS = {
     "split",
 }
 
-_THEME_NAMES = ["dracula", "gruvbox", "light", "nord"]
+_THEME_NAMES = sorted(
+    [
+        "dark",
+        "light",
+        "nord",
+        "gruvbox",
+        "dracula",
+        "tokyo",
+        "monokai",
+        "solarized",
+        "solarized-light",
+        "catppuccin",
+        "rose-pine",
+    ]
+)
+
+_PALETTE_FIELDS: list[str] = []
+_COLORSCHEME_SUBCOMMANDS = ["reset", "save"]
 _PLOT_TYPES = ["bar", "histogram", "line", "pie", "scatter"]
 _SORT_ORDERS = ["asc", "desc"]
 
@@ -226,6 +244,16 @@ class CommandCompleter:
         if cmd == "theme":
             partial = (parts[1] if len(parts) > 1 else "").lower()
             return [f"theme {t}" for t in _THEME_NAMES if t.startswith(partial)]
+
+        # ── 4b. colorscheme
+        if cmd == "colorscheme":
+            if has_trailing_space:
+                # "colorscheme " or "colorscheme save " — show fields or subcommands
+                return _colorscheme_completions("", _PALETTE_FIELDS)
+            if len(parts) == 2 and not has_trailing_space:
+                partial = parts[1].lower()
+                return _colorscheme_completions(partial, _PALETTE_FIELDS)
+            return []
 
         # ── 5. Sheet name argument
         if cmd in {"delsheet", "sheet-", "renamesheet", "renames"}:
@@ -306,3 +334,32 @@ class CommandCompleter:
             return all_names()
         except Exception:
             return []
+
+
+# ── Module-level helper for colorscheme completions ─────────────────────
+
+
+def _colorscheme_completions(partial: str, field_cache: list[str]) -> list[str]:
+    """Build completions for ``:colorscheme``."""
+    if not field_cache:
+        from dataclasses import fields as _dcf
+
+        from vimsheet.ui.grid_palette import GridPalette
+
+        field_cache.extend(sorted(f.name for f in _dcf(GridPalette)))
+    subcommands = [f"colorscheme {s}" for s in _COLORSCHEME_SUBCOMMANDS if s.startswith(partial)]
+    fields = [f"colorscheme {f}" for f in field_cache if f.startswith(partial)]
+    # Common color value suggestions (shown after a field name is typed)
+    color_values = [
+        "$primary",
+        "$surface",
+        "$text",
+        "$text-muted",
+        "$error",
+        "$success",
+        "$warning",
+        "$accent",
+    ]
+    if partial in field_cache:
+        return [f"colorscheme {partial} {v}" for v in color_values]
+    return subcommands + fields

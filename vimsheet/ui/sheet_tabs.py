@@ -8,6 +8,8 @@ from textual.events import Click
 from textual.message import Message
 from textual.widget import Widget
 
+from vimsheet.ui.grid_palette import GridPalette
+
 
 class SheetTabs(Widget):
     """Horizontal strip of clickable sheet tabs rendered as Rich text."""
@@ -34,6 +36,11 @@ class SheetTabs(Widget):
         self._scroll_pos: int = 0
         self._tab_regions: list[tuple[int, int, int]] = []
         self._add_region: tuple[int, int] = (0, 3)
+        self._palette: GridPalette = GridPalette()
+
+    def set_palette(self, palette: GridPalette) -> None:
+        self._palette = palette
+        self.refresh()
 
     def set_sheets(self, names: list[str], active: int) -> None:
         self._sheet_names = list(names)
@@ -62,13 +69,24 @@ class SheetTabs(Widget):
             self._tab_regions.append((x, x + tw, i))
             x += tw
             if i == self._active_index:
-                st = Style(bgcolor="#4488ff", color="#ffffff", bold=True)
+                st = Style(
+                    bgcolor=self._palette.tab_active_bg,
+                    color=self._palette.tab_active_fg,
+                    bold=True,
+                )
             else:
-                st = Style(bgcolor="#555555", color="#cccccc")
+                st = Style(
+                    bgcolor=self._palette.tab_inactive_bg, color=self._palette.tab_inactive_fg
+                )
             result.append(f" {name} ", style=st)
 
         self._add_region = (x, x + add_w)
-        result.append(" + ", style=Style(bgcolor="#777777", color="#ffffff", bold=True))
+        result.append(
+            " + ",
+            style=Style(
+                bgcolor=self._palette.tab_add_bg, color=self._palette.tab_add_fg, bold=True
+            ),
+        )
         return result
 
     def on_click(self, event: Click) -> None:

@@ -35,6 +35,7 @@ Start here:
    user-guide/sheets
    user-guide/search
    user-guide/sort-filter
+   user-guide/themes
    user-guide/undo-redo
 
 .. toctree::

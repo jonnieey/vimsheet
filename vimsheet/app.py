@@ -23,6 +23,7 @@ from vimsheet.model.undo import UndoStack
 from vimsheet.model.workbook import Workbook
 from vimsheet.ui.formula_bar import FormulaBar
 from vimsheet.ui.grid import GridWidget
+from vimsheet.ui.grid_palette import GridPalette
 from vimsheet.ui.sheet_tabs import SheetTabs
 from vimsheet.ui.status_bar import StatusBar
 
@@ -114,6 +115,10 @@ class VimSheetApp(App[None]):
 
         # ---- Macro replay guard (prevents recursive self-calling macros) ----
         self._replaying_macros: set[str] = set()
+
+        # ---- Theme state ----
+        self._current_theme_name: str = ""
+        self._palette: GridPalette = GridPalette()
 
         # ---- Handlers (created after super().__init__ so App attrs exist) ----
         self.normal_handler = NormalHandler(self)
@@ -1020,6 +1025,10 @@ class VimSheetApp(App[None]):
             case "theme":
                 theme_name = parts[1].lower() if len(parts) > 1 else ""
                 self._apply_theme(theme_name)
+
+            # ---- Colorscheme ----
+            case "colorscheme":
+                self._cmd_colorscheme(parts[1:])
 
             # ---- External scripts ----
             case "func":
@@ -2293,7 +2302,7 @@ class VimSheetApp(App[None]):
         self.sheet_tabs.set_sheets(names, self.workbook.active_sheet_idx)
 
     def _apply_theme(self, name: str) -> None:
-        """Switch colour theme using Textual's built-in theme system."""
+        """Switch colour theme using Textual's built-in system, then push palette to widgets."""
         _ALIASES = {
             "dark": "textual-dark",
             "light": "textual-light",
@@ -2310,12 +2319,114 @@ class VimSheetApp(App[None]):
         resolved = _ALIASES.get(name, name)
         try:
             self.theme = resolved
+            self._current_theme_name = name
+            self.call_later(self._push_palette)
             self.status_bar.show_message(f"Theme: {resolved}")
         except Exception:
             available = (
                 "dark light nord gruvbox dracula tokyo monokai solarized catppuccin rose-pine"
             )
             self.status_bar.show_message(f"Unknown theme {name!r}. Try: {available}")
+
+    def _push_palette(self) -> None:
+        """Compute a fresh GridPalette from the current theme and push it to all widgets."""
+        self._palette = GridPalette.from_config(
+            variables=self.theme_variables,
+            theme_name=self._current_theme_name,
+            theme_overrides=self.config.theme_overrides,
+        )
+        self.grid.set_palette(self._palette)
+        self.sheet_tabs.set_palette(self._palette)
+        self.formula_bar.set_palette(self._palette)
+
+    def _cmd_colorscheme(self, args: list[str]) -> None:
+        """Handle ``:colorscheme`` command."""
+        from vimsheet.ui.grid_palette import _resolve_color_value
+
+        def _field_names() -> list[str]:
+            from dataclasses import fields as _dcf
+
+            from vimsheet.ui.grid_palette import GridPalette
+
+            return sorted(f.name for f in _dcf(GridPalette))
+
+        def _show_current() -> None:
+            lines = [f"{k}={v}" for k, v in self._palette.as_dict().items()]
+            self.status_bar.show_message(" | ".join(lines[:6]) + " …")
+
+        if not args:
+            _show_current()
+            return
+
+        match args[0]:
+            case "reset":
+                if len(args) > 1:
+                    field_key = args[1]
+                    if field_key not in _field_names():
+                        self.status_bar.show_message(f"Unknown palette field: {field_key!r}")
+                        return
+                    fresh = GridPalette.from_config(
+                        variables=self.theme_variables,
+                        theme_name=self._current_theme_name,
+                        theme_overrides=self.config.theme_overrides,
+                    )
+                    setattr(self._palette, field_key, getattr(fresh, field_key))
+                    self._push_palette()
+                    self.status_bar.show_message(f"Reset {field_key} to theme default")
+                else:
+                    self._palette = GridPalette.from_config(
+                        variables=self.theme_variables,
+                        theme_name=self._current_theme_name,
+                        theme_overrides=self.config.theme_overrides,
+                    )
+                    self._push_palette()
+                    self.status_bar.show_message("Reset all palette fields to theme defaults")
+            case "save":
+                if not self._current_theme_name:
+                    self.status_bar.show_message("No active theme — cannot save overrides")
+                    return
+                from vimsheet.model.config import Config
+
+                overrides = self.config.theme_overrides or {}
+                # Re-derive current overrides from theme_variables so we store
+                # them as user-entered values (from current palette state).
+                # We need to invert: palette has resolved hex values, config stores raw.
+                # For now, store resolved hex as the simplest approach.
+                theme_cfg = overrides.setdefault(self._current_theme_name, {})
+                for fname in _field_names():
+                    cur = getattr(self._palette, fname)
+                    default_palette = GridPalette.from_theme_variables(self.theme_variables)
+                    default_val = getattr(default_palette, fname)
+                    if cur != default_val:
+                        theme_cfg[fname] = cur
+                    elif fname in theme_cfg:
+                        del theme_cfg[fname]
+                self.config.theme_overrides = overrides
+                self.config.save(Config.default_path())
+                self.status_bar.show_message(
+                    f"Colorscheme saved for theme '{self._current_theme_name}'"
+                )
+            case _ if len(args) >= 2:
+                field_key = args[0]
+                raw_value = " ".join(args[1:])
+                if field_key not in _field_names():
+                    self.status_bar.show_message(
+                        f"Unknown palette field: {field_key!r}. "
+                        f"Try: {', '.join(_field_names()[:6])} …"
+                    )
+                    return
+                resolved = _resolve_color_value(raw_value, self.theme_variables)
+                if resolved is None:
+                    self.status_bar.show_message(
+                        f"Invalid color value: {raw_value!r}. "
+                        "Use hex (#ff0000), named (red), or $variable ($primary)."
+                    )
+                    return
+                setattr(self._palette, field_key, resolved)
+                self._push_palette()
+                self.status_bar.show_message(f"{field_key} = {raw_value}  ({resolved})")
+            case _:
+                _show_current()
 
     def _fold_group(self, action: str) -> None:
         """Fold/unfold the row group containing the cursor row.

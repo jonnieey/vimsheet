@@ -10,16 +10,7 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from vimsheet.controller.mode import Mode
-
-_MODE_COLORS = {
-    Mode.NORMAL: "bright_green",
-    Mode.INSERT: "yellow",
-    Mode.EDIT: "red",
-    Mode.COMMAND: "cyan",
-    Mode.VISUAL: "magenta",
-    Mode.VISUAL_LINE: "magenta",
-    Mode.VISUAL_BLOCK: "magenta",
-}
+from vimsheet.ui.grid_palette import GridPalette
 
 
 class FormulaBar(Widget):
@@ -44,6 +35,25 @@ class FormulaBar(Widget):
     mode: reactive[Mode] = reactive(Mode.NORMAL)
     is_modified: reactive[bool] = reactive(False)
     is_locked: reactive[bool] = reactive(False)
+
+    def __init__(self, **kwargs: object) -> None:
+        super().__init__(**kwargs)
+        self._palette: GridPalette = GridPalette()
+
+    def set_palette(self, palette: GridPalette) -> None:
+        self._palette = palette
+        self._redraw()
+
+    def _mode_color(self) -> str:
+        return {
+            Mode.NORMAL: self._palette.mode_normal,
+            Mode.INSERT: self._palette.mode_insert,
+            Mode.EDIT: self._palette.mode_edit,
+            Mode.COMMAND: self._palette.mode_command,
+            Mode.VISUAL: self._palette.mode_visual,
+            Mode.VISUAL_LINE: self._palette.mode_visual,
+            Mode.VISUAL_BLOCK: self._palette.mode_visual,
+        }.get(self.mode, "white")
 
     def compose(self) -> ComposeResult:
         yield Static("", id="fbar-content")
@@ -75,7 +85,7 @@ class FormulaBar(Widget):
         lock = " 🔒" if self.is_locked else ""
         dirty = " ●" if self.is_modified else ""
         mode_label = self.mode.label()
-        color = _MODE_COLORS.get(self.mode, "white")
+        color = self._mode_color()
 
         t = Text(no_wrap=True, overflow="ellipsis")
         t.append(f" {addr} ", style="bold yellow on default")
@@ -84,12 +94,11 @@ class FormulaBar(Widget):
         text = self.formula_text or ""
         pos = self.cursor_pos
         if pos >= 0:
-            # Split text at cursor and render a block cursor character between them
             before = text[:pos]
             at = text[pos] if pos < len(text) else " "
             after = text[pos + 1 :] if pos < len(text) else ""
             t.append(before, style="white")
-            t.append(at, style="bold white on steel_blue1")
+            t.append(at, style=f"bold white on {self._palette.formula_cursor_bg}")
             t.append(after, style="white")
         else:
             t.append(text, style="white")

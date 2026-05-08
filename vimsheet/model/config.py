@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 
@@ -42,6 +42,7 @@ class Config:
     thousands_separator: str = ","
     scripts_dir: str = ""
     functions_file: str = ""
+    theme_overrides: dict[str, dict[str, str]] = field(default_factory=dict)
 
     # ------------------------------------------------------------------
     # Helpers
