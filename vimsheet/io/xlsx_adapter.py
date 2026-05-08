@@ -43,6 +43,9 @@ class XLSXAdapter(FormatAdapter):
                         formula = val
                         val = None
                     sheet.set_cell_value(r, c, val, formula=formula, record_history=False)
+                    vim_cell = sheet.get_cell(r, c)
+                    if cell.comment and vim_cell is not None:
+                        vim_cell.comment = cell.comment.text
             # Column widths
             for col_letter, col_dim in ws.column_dimensions.items():
                 from openpyxl.utils import column_index_from_string
@@ -90,6 +93,10 @@ class XLSXAdapter(FormatAdapter):
                 xl_cell.alignment = Alignment(horizontal=align_map.get(cell.fmt.align, "right"))
                 if cell.fmt.bg_color:
                     xl_cell.fill = PatternFill("solid", fgColor=cell.fmt.bg_color.lstrip("#"))
+                if cell.comment:
+                    from openpyxl.comments import Comment as XlComment
+
+                    xl_cell.comment = XlComment(cell.comment, "VimSheet")
             # Column widths
             for col_idx, width in sheet.col_widths.items():
                 from openpyxl.utils import get_column_letter
