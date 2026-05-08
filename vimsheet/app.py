@@ -418,65 +418,118 @@ class VimSheetApp(App[None]):
                 self._show_file_info()
 
             # ---- Sheet management ----
-            case "addsheet" | "newsheet" | "sheet+":
+            case "sa" | "sheetadd":
                 name = parts[1].strip("\"'") if len(parts) > 1 else None
                 self.workbook.add_sheet(name)
                 self.workbook.active_sheet_idx = len(self.workbook.sheets) - 1
                 self._on_sheet_changed()
                 self.workbook.modified = True
                 self.status_bar.show_message(f"Added sheet: {self.workbook.active_sheet.name}")
+            case "sd" | "sheetdel":
+                if len(self.workbook.sheets) <= 1:
+                    self.status_bar.show_message("Cannot delete the only sheet")
+                else:
+                    target_name = parts[1].strip("\"'") if len(parts) > 1 else None
+                    if target_name:
+                        try:
+                            self.workbook.delete_sheet(target_name)
+                        except (ValueError, KeyError) as e:
+                            self.status_bar.show_message(str(e))
+                            return
+                        self._on_sheet_changed()
+                        self.status_bar.show_message(f"Deleted sheet: {target_name}")
+                    else:
+                        idx = self.workbook.active_sheet_idx
+                        deleted_sheet = self.workbook.sheets[idx]
+                        self._deleted_sheets.append((idx, deleted_sheet))
+                        self.workbook.sheets.pop(idx)
+                        self.workbook.active_sheet_idx = max(0, idx - 1)
+                        self._on_sheet_changed()
+                        self.workbook.modified = True
+                        self.status_bar.show_message(
+                            f"Deleted sheet: {deleted_sheet.name}  (undo with :undodelsheet)"
+                        )
+            case "sr" | "sheetrename":
+                if len(parts) >= 3:
+                    old_name = parts[1].strip("\"'")
+                    new_name = parts[2].strip("\"'")
+                    try:
+                        self.workbook.rename_sheet(old_name, new_name)
+                        self._sync_sheet_tabs()
+                        self.status_bar.show_message(f"Sheet renamed: {old_name} → {new_name}")
+                    except (KeyError, ValueError) as e:
+                        self.status_bar.show_message(str(e))
+                elif len(parts) == 2:
+                    new_name = parts[1].strip("\"'")
+                    old_name = self.workbook.active_sheet.name
+                    try:
+                        self.workbook.rename_sheet(old_name, new_name)
+                        self._sync_sheet_tabs()
+                        self.status_bar.show_message(f"Sheet renamed: {old_name} → {new_name}")
+                    except ValueError as e:
+                        self.status_bar.show_message(str(e))
+                else:
+                    self.status_bar.show_message(
+                        "Usage: :sr <newname>   or   :sr <oldname> <newname>"
+                    )
+            case "sl" | "sheets" | "sheetlist":
+                names = [s.name for s in self.workbook.sheets]
+                active = self.workbook.active_sheet.name
+                msg = "  ".join(f"[{n}]" if n == active else n for n in names)
+                self.status_bar.show_message(f"Sheets ({len(names)}): {msg}")
+            case "sdup" | "sc" | "sheetdupe":
+                name = parts[1].strip("\"'") if len(parts) > 1 else None
+                try:
+                    new_sheet = self.workbook.duplicate_sheet(name)
+                    self._on_sheet_changed()
+                    self.status_bar.show_message(f"Duplicated sheet: {new_sheet.name}")
+                except (ValueError, KeyError) as e:
+                    self.status_bar.show_message(str(e))
             case "nextsheet":
                 self.workbook.go_to_next_sheet()
                 self._on_sheet_changed()
             case "prevsheet":
                 self.workbook.go_to_prev_sheet()
                 self._on_sheet_changed()
-            case "delsheet" | "sheet-":
-                if len(self.workbook.sheets) <= 1:
-                    self.status_bar.show_message("Cannot delete the only sheet")
-                else:
-                    target_name = parts[1].strip("\"'") if len(parts) > 1 else None
-                    if target_name:
-                        idx = next(
-                            (
-                                i
-                                for i, s in enumerate(self.workbook.sheets)
-                                if s.name == target_name
-                            ),
-                            None,
-                        )
-                        if idx is None:
-                            self.status_bar.show_message(f"Sheet not found: {target_name!r}")
-                            return
-                    else:
-                        idx = self.workbook.active_sheet_idx
-                    deleted_sheet = self.workbook.sheets[idx]
-                    # Push to a simple undo list so the sheet can be restored
-                    self._deleted_sheets.append((idx, deleted_sheet))
-                    self.workbook.sheets.pop(idx)
-                    self.workbook.active_sheet_idx = max(0, idx - 1)
-                    self._on_sheet_changed()
-                    self.workbook.modified = True
-                    self.status_bar.show_message(
-                        f"Deleted sheet: {deleted_sheet.name}  (undo with :undodelsheet)"
-                    )
-            case "renamesheet" | "renames":
-                if len(parts) > 1:
-                    new_name = parts[1].strip("\"'")
-                    self.workbook.active_sheet.name = new_name
-                    self._sync_sheet_tabs()
-                    self.workbook.modified = True
-                    self.status_bar.show_message(f"Sheet renamed to: {new_name}")
-                else:
-                    self.status_bar.show_message("Usage: :renamesheet <name>")
             case "sheet":
                 if len(parts) > 1:
-                    for i, s in enumerate(self.workbook.sheets):
-                        if s.name == parts[1]:
-                            self.workbook.go_to_sheet(i)
-                            self._on_sheet_changed()
-                            return
-                    self.status_bar.show_message(f"Sheet not found: {parts[1]!r}")
+                    sub = parts[1].lower()
+                    if sub == "add":
+                        name = parts[2].strip("\"'") if len(parts) > 2 else None
+                        self.workbook.add_sheet(name)
+                        self.workbook.active_sheet_idx = len(self.workbook.sheets) - 1
+                        self._on_sheet_changed()
+                        self.workbook.modified = True
+                        self.status_bar.show_message(
+                            f"Added sheet: {self.workbook.active_sheet.name}"
+                        )
+                    elif sub in ("delete", "del"):
+                        target_name = parts[2].strip("\"'") if len(parts) > 2 else None
+                        self._dispatch_command(f"sd {target_name}" if target_name else "sd")
+                    elif sub in ("rename", "ren"):
+                        if len(parts) >= 4:
+                            old_name = parts[2].strip("\"'")
+                            new_name = parts[3].strip("\"'")
+                            self._dispatch_command(f"sr {old_name} {new_name}")
+                        elif len(parts) >= 3:
+                            new_name = parts[2].strip("\"'")
+                            self._dispatch_command(f"sr {new_name}")
+                        else:
+                            self.status_bar.show_message(
+                                "Usage: :sheet rename [<oldname>] <newname>"
+                            )
+                    elif sub in ("dup", "duplicate", "copy"):
+                        name = parts[2].strip("\"'") if len(parts) > 2 else None
+                        self._dispatch_command(f"sdup {name}" if name else "sdup")
+                    elif sub in ("list", "ls", "l"):
+                        self._dispatch_command("sl")
+                    else:
+                        for i, s in enumerate(self.workbook.sheets):
+                            if s.name == parts[1]:
+                                self.workbook.go_to_sheet(i)
+                                self._on_sheet_changed()
+                                return
+                        self.status_bar.show_message(f"Sheet not found: {parts[1]!r}")
                 else:
                     self.status_bar.show_message(
                         f"Current sheet: {self.workbook.active_sheet.name}"

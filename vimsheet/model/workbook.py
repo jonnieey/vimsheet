@@ -81,6 +81,52 @@ class Workbook:
         sheet.name = new_name
         self.modified = True
 
+    def duplicate_sheet(self, name: str | None = None) -> Sheet:
+        """Duplicate a sheet by name (or active sheet if None). Appends with suffix."""
+        import copy as _copy
+
+        from vimsheet.model.sheet import CondFormatRule, Sheet
+        from vimsheet.model.validation import SheetValidation
+
+        src = self.active_sheet if name is None else self.get_sheet(name)
+        if src is None:
+            raise KeyError(f"Sheet {name!r} not found")
+
+        base = src.name
+        new_name = f"{base} (copy)"
+        counter = 2
+        while self.get_sheet(new_name) is not None:
+            new_name = f"{base} (copy {counter})"
+            counter += 1
+
+        new_sheet = Sheet(name=new_name)
+        new_sheet.cells = {pos: cell.copy() for pos, cell in src.cells.items()}
+        new_sheet.col_widths = dict(src.col_widths)
+        new_sheet.row_heights = dict(src.row_heights)
+        new_sheet.hidden_rows = set(src.hidden_rows)
+        new_sheet.hidden_cols = set(src.hidden_cols)
+        new_sheet.row_groups = list(src.row_groups)
+        new_sheet.col_groups = list(src.col_groups)
+        new_sheet.freeze_rows = src.freeze_rows
+        new_sheet.freeze_cols = src.freeze_cols
+        new_sheet.named_ranges = _copy.deepcopy(src.named_ranges)
+        new_sheet.cond_formats = [
+            CondFormatRule(r.range_str, r.operator, r.value, r.value2, r.fmt.copy())
+            for r in src.cond_formats
+        ]
+        new_sheet.filters = dict(src.filters)
+        new_sheet.sort_state = _copy.deepcopy(src.sort_state)
+        new_sheet.max_row = src.max_row
+        new_sheet.max_col = src.max_col
+        new_sheet.validation = SheetValidation(rules=dict(src.validation.rules))
+        new_sheet._workbook = self
+        new_sheet.autocalc = src.autocalc
+
+        self.sheets.append(new_sheet)
+        self.active_sheet_idx = len(self.sheets) - 1
+        self.modified = True
+        return new_sheet
+
     def _bind_sheets(self) -> None:
         """Set _workbook back-reference on all sheets (called after IO load)."""
         for sheet in self.sheets:

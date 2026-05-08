@@ -83,7 +83,7 @@ register_help(
     subgroup="Yank/Paste",
     order=33,
 )
-register_help("EDIT", "dd", "Cut (delete) row", subgroup="Yank/Paste", order=34)
+register_help("EDIT", "dd", "Clear cell value", subgroup="Yank/Paste", order=34)
 register_help("EDIT", "u / Ctrl+r", "Undo / Redo", subgroup="Undo", order=40)
 register_help(
     "EDIT", "sj / sk / sl / sh", "Shift cell down/up/right/left", subgroup="Undo", order=41
@@ -160,9 +160,32 @@ register_help("CMD", ":r <file>", "Import file into current sheet", subgroup="Fi
 register_help(
     "CMD", ":q / :q! / ZZ / ZQ", "Quit / force-quit / save+quit", subgroup="File", order=14
 )
-register_help("CMD", ':newsheet "Name"', "Add new sheet", subgroup="Sheets", order=20)
-register_help("CMD", ':delsheet "Name"', "Remove sheet", subgroup="Sheets", order=21)
-register_help("CMD", ':renamesheet "Name"', "Rename active sheet", subgroup="Sheets", order=22)
+register_help("CMD", ':sa "Name" / :sheet add "Name"', "Add new sheet", subgroup="Sheets", order=20)
+register_help(
+    "CMD", ':sd "Name" / :sheet delete "Name"', "Remove sheet", subgroup="Sheets", order=21
+)
+register_help(
+    "CMD",
+    ':sr "NewName" / :sheet rename "NewName"',
+    "Rename active sheet",
+    subgroup="Sheets",
+    order=22,
+)
+register_help(
+    "CMD",
+    ':sr "Old" "New" / :sheet rename "Old" "New"',
+    "Rename named sheet",
+    subgroup="Sheets",
+    order=23,
+)
+register_help("CMD", ":sl / :sheet list", "List all sheets", subgroup="Sheets", order=24)
+register_help(
+    "CMD",
+    ':sdup "Name" / :sc "Name" / :sheet copy "Name"',
+    "Duplicate a sheet",
+    subgroup="Sheets",
+    order=25,
+)
 register_help(
     "CMD", ":nextsheet / :prevsheet", "Switch between sheets", subgroup="Sheets", order=23
 )
