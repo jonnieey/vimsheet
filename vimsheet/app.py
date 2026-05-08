@@ -721,6 +721,26 @@ class VimSheetApp(App[None]):
                     self._cmd_replace_all(parts[1], parts[2])
                 else:
                     self.status_bar.show_message("Usage: :replaceall <pattern> <replacement>")
+            case _ if re.match(r"^%s/", cmd):
+                import re as _re
+
+                m = _re.match(r"^%s/(.+?)/(.*?)/([gi]*)$", cmd, _re.DOTALL)
+                if not m:
+                    self.status_bar.show_message("Usage: :%s/pattern/replacement/[gi]")
+                    return
+                pattern, replacement, flags = m.groups()
+                flags = flags or ""
+                global_flag = "g" in flags.lower()
+                state = SearchState(
+                    pattern=pattern,
+                    replace=replacement,
+                    use_regex=global_flag,
+                    whole_cell=not global_flag,
+                )
+                self._search_state = state
+                searcher = Searcher(self.workbook.active_sheet)
+                updates = searcher.collect_replacements(state)
+                self._execute_substitute(updates, "%s")
             case _ if re.match(r"^(?:[A-Za-z]+,[A-Za-z]+)?cs", parts[0]) and "/" in cmd:
                 self._cmd_col_substitute(cmd)
             case _ if re.match(r"^(?:\d+,\d+)?rs", parts[0]) and "/" in cmd:
@@ -1406,11 +1426,8 @@ class VimSheetApp(App[None]):
         state = SearchState(pattern=pattern, replace=replacement, whole_cell=True)
         self._search_state = state
         searcher = Searcher(self.workbook.active_sheet)
-        count = searcher.replace_all(state)
-        if count:
-            self.workbook.modified = True
-            self.grid.refresh_grid()
-        self.status_bar.show_message(f"Replaced {count} occurrence(s)")
+        updates = searcher.collect_replacements(state)
+        self._execute_substitute(updates, "replace")
 
     # Matches :cs in all column-targeting forms.
     # Group 1: col range start (e.g. "A" from "A,C")
@@ -1483,14 +1500,9 @@ class VimSheetApp(App[None]):
         )
         self._search_state = state
         searcher = Searcher(sheet)
-        count = searcher.replace_in_cols(state, cols)
-
-        if count:
-            self.workbook.modified = True
-            self.grid.refresh_grid()
-
+        updates = searcher.collect_replacements(state, cols=cols)
         col_labels = ", ".join(chr(ord("A") + c) if c < 26 else f"col{c + 1}" for c in cols)
-        self.status_bar.show_message(f"cs: {count} substitution(s) in column(s) {col_labels}")
+        self._execute_substitute(updates, f"cs [{col_labels}]")
 
     def _cmd_row_substitute(self, cmd: str) -> None:
         """Handle row substitute commands.
@@ -1531,14 +1543,9 @@ class VimSheetApp(App[None]):
         )
         self._search_state = state
         searcher = Searcher(sheet)
-        count = searcher.replace_in_rows(state, rows)
-
-        if count:
-            self.workbook.modified = True
-            self.grid.refresh_grid()
-
+        updates = searcher.collect_replacements(state, rows=rows)
         row_labels = ", ".join(str(r + 1) for r in rows)
-        self.status_bar.show_message(f"rs: {count} substitution(s) in row(s) {row_labels}")
+        self._execute_substitute(updates, f"rs [row(s) {row_labels}]")
 
     _RANGE_SUB_RE = re.compile(r"^(cs|rs)/(.+?)/(.*?)/([gi]*)$", re.IGNORECASE)
 
@@ -1575,15 +1582,32 @@ class VimSheetApp(App[None]):
         )
         self._search_state = state
         searcher = Searcher(self.workbook.active_sheet)
-        count = searcher.replace_in_range(state, rows, cols)
+        updates = searcher.collect_replacements(state, rows=rows, cols=cols)
+        self._execute_substitute(updates, f"{kind.lower()} [{range_str.upper()}]")
 
-        if count:
-            self.workbook.modified = True
-            self.grid.refresh_grid()
+    def _execute_substitute(
+        self, updates: list[tuple[int, int, Any, str | None]], label: str
+    ) -> None:
+        """Execute a batch of cell replacements with undo support.
 
-        self.status_bar.show_message(
-            f"{kind.lower()}: {count} substitution(s) in {range_str.upper()}"
-        )
+        *updates* is a list of (row, col, new_value, new_formula) tuples
+        from ``Searcher.collect_replacements()``.
+        """
+        if not updates:
+            self.status_bar.show_message(f"{label}: 0 substitution(s)")
+            return
+        from vimsheet.model.undo import CompositeCommand, SetCellCommand
+
+        sheet = self.workbook.active_sheet
+        cmds: list[SetCellCommand] = []
+        for r, c, val, formula in updates:
+            cmds.append(SetCellCommand(sheet, r, c, val, new_formula=formula))
+        cc = CompositeCommand(cmds)
+        cc.description = label
+        self.undo_stack.push(cc)
+        self.workbook.modified = True
+        self.grid.refresh_grid()
+        self.status_bar.show_message(f"{label}: {len(updates)} substitution(s)")
 
     def _cmd_fill(self, cr: Any, args: list[str]) -> None:
         """Fill a CellRange with a constant, sequence, or string with optional transform.

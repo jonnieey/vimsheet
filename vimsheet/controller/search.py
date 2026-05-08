@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from vimsheet.model.sheet import Sheet
@@ -155,6 +155,45 @@ class Searcher:
                 return True
 
         return False
+
+    def collect_replacements(
+        self, state: SearchState, rows: list[int] | None = None, cols: list[int] | None = None
+    ) -> list[tuple[int, int, Any, str | None]]:
+        """Return (row, col, new_value, new_formula) for matches without mutating.
+
+        If *rows* and *cols* are both None, scans the entire sheet.
+        If only *rows* given, scans those rows entirely.
+        If only *cols* given, scans those columns entirely.
+        If both given, scans the row×col intersection.
+        """
+        sheet = self._sheet
+        if not sheet.cells:
+            return []
+        regex = self._compile(state)
+        updates: list[tuple[int, int, Any, str | None]] = []
+
+        if rows is not None and cols is not None:
+            positions: list[tuple[int, int]] = [(r, c) for r in rows for c in cols]
+        elif rows is not None:
+            positions = [(r, c) for r in rows for c in range(sheet.max_col + 1)]
+        elif cols is not None:
+            positions = [(r, c) for c in cols for r in range(sheet.max_row + 1)]
+        else:
+            positions = self.find_all(state)
+
+        for row, col in positions:
+            cell = sheet.get_cell(row, col)
+            if cell is None:
+                continue
+            if cell.formula:
+                new_text, n = regex.subn(state.replace, cell.formula)
+                if n:
+                    updates.append((row, col, new_text, new_text))
+            else:
+                new_text, n = regex.subn(state.replace, cell.display)
+                if n:
+                    updates.append((row, col, new_text, None))
+        return updates
 
     def replace_all(self, state: SearchState) -> int:
         """Replace all occurrences of state.pattern with state.replace.
