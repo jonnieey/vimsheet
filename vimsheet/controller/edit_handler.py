@@ -217,6 +217,16 @@ class EditHandler:
                 val = int(raw) if "." not in raw else float(raw)
             except ValueError:
                 val = raw
+            valid, msg = sheet.validation.validate(r, c, val)
+            if not valid:
+                app.status_bar.show_message(f"Validation failed: {msg}")
+                app.mode = Mode.NORMAL
+                app._edit_buffer = ""
+                app._edit_cursor = 0
+                app._edit_chord = ""
+                self._sub = "normal"
+                app._sync_formula_bar()
+                return
             cmd = SetCellCommand(sheet, r, c, val)
 
         app.undo_stack.push(cmd)

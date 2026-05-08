@@ -191,6 +191,14 @@ class InsertHandler:
             cmd = SetCellCommand(sheet, r, c, raw, new_formula=raw)
         else:
             val: Any = _coerce(raw)
+            valid, msg = sheet.validation.validate(r, c, val)
+            if not valid:
+                app.status_bar.show_message(f"Validation failed: {msg}")
+                app.mode = Mode.NORMAL
+                app._insert_buffer = ""
+                app._insert_cursor = 0
+                app._sync_formula_bar()
+                return
             cmd = SetCellCommand(sheet, r, c, val)
         app.undo_stack.push(cmd)
         # Apply alignment hint
