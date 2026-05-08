@@ -511,12 +511,22 @@ class VimSheetApp(App[None]):
                 # :fill <value>                  — fill all cells with constant
                 # :fill <start> <step>           — arithmetic sequence
                 # :fill <start> <step> <func>    — sequence then apply func
+                # :fill <start> <step> <range>   — inline range
                 sel = self.grid.visual_selection()
-                cr = sel if sel else None
-                if cr is None:
+                if sel is None and len(parts) > 2:
+                    last = parts[-1].upper()
+                    if ":" in last:
+                        from vimsheet.model.range import CellRange
+
+                        try:
+                            sel = CellRange.from_a1(last)
+                            parts = parts[:-1]
+                        except Exception:
+                            pass
+                if sel is None:
                     self.status_bar.show_message("Select a range first (visual mode)")
                 else:
-                    self._cmd_fill(cr, parts[1:])
+                    self._cmd_fill(sel, parts[1:])
 
             case "sort":
                 from vimsheet.model.undo import SortCommand
