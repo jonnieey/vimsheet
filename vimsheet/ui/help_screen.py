@@ -101,14 +101,15 @@ class HelpScreen(VimModalScreen):
     def _build_cache_for(self, section: str) -> None:
         """Build rich markup and position index for *section*."""
         if section == "FUNC":
+            import re as _re
+
             rich = self._render_func_tab()
             positions: list[tuple[int, str]] = []
-            for cat_key, _ in self._func_categories:
-                from vimsheet.formula.functions.registry import all_functions
-
-                for name, meta in sorted(all_functions().items()):
-                    if meta.category == cat_key and not meta._is_script_func:
-                        positions.append((0, name))
+            for li, line in enumerate(rich.split("\n")):
+                plain = _re.sub(r"\[/?\w+(?:=[^\]]*)?\]", "", line)
+                m = _re.match(r"\s*=@(\w+)", plain)
+                if m:
+                    positions.append((li, m.group(1)))
             self._section_rich["FUNC"] = rich
             self._section_positions["FUNC"] = positions
         else:
@@ -229,13 +230,13 @@ class HelpScreen(VimModalScreen):
                 header = f"[bold]/[reverse]{q}[/reverse]▌[/bold]"
                 content = f"{header}\n\n{content}"
             elif q:
+                active_binding = self._matches[self._match_idx][2] if self._matches else ""
+                content = self._highlight_matches(content, q, active_binding, key)
                 counts = build_search_index(q) if q else {}
                 total = sum(counts.values())
                 idx_display = self._match_idx + 1 if self._matches else 0
                 header = f"[bold]/{q}  ({idx_display}/{total})[/bold]"
                 content = f"{header}\n\n{content}"
-                active_binding = self._matches[self._match_idx][2] if self._matches else ""
-                content = self._highlight_matches(content, q, active_binding, key)
 
         static.update(content)
         self._update_search_line()
@@ -254,7 +255,7 @@ class HelpScreen(VimModalScreen):
     def _highlight_matches(
         self, text: str, query: str, active_binding: str = "", section: str = ""
     ) -> str:
-        """Apply [reverse] to all matches, [reverse bold] to the active match line."""
+        """Apply [reverse] to all matches, [reverse bold on #3366ff] to the current match."""
         import re as _re
 
         q = _re.escape(query)
@@ -267,12 +268,17 @@ class HelpScreen(VimModalScreen):
         for li in range(len(lines)):
             plain = _re.sub(r"\[/?\w+(?:=[^\]]*)?\]", "", lines[li])
             if _re.search(q, plain, _re.IGNORECASE):
-                style = "[reverse bold]" if li in active_indices else "[reverse]"
+                if li in active_indices:
+                    style = "[bold on #3366ff]"
+                    close = "[/bold on #3366ff]"
+                else:
+                    style = "[reverse]"
+                    close = "[/reverse]"
                 parts = _re.split(r"(\[[^\]]*\])", lines[li])
                 for i in range(len(parts)):
                     if i % 2 == 0:
                         parts[i] = _re.sub(
-                            f"({q})", rf"{style}\1[/reverse]", parts[i], flags=_re.IGNORECASE
+                            f"({q})", rf"{style}\1{close}", parts[i], flags=_re.IGNORECASE
                         )
                 lines[li] = "".join(parts)
         return "\n".join(lines)

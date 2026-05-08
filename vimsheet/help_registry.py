@@ -121,7 +121,7 @@ def section_lines(
 
     groups = get_entries(section)
     collapsed = collapsed_groups or set()
-    lines: list[str] = []
+    buf: list[str] = []
     positions: list[tuple[int, str]] = []
     bind_w = max((len(b) for grp in groups.values() for b, _ in grp), default=0) + 2
 
@@ -131,12 +131,13 @@ def section_lines(
         is_collapsed = sg_name in collapsed
         if sg_label:
             toggle = "[green]▼[/green]" if not is_collapsed else "[green]▶[/green]"
-            lines.append(f"\n{toggle} [bold]{escape(sg_label)}[/bold]")
+            buf.append(f"\n{toggle} [bold]{escape(sg_label)}[/bold]")
         if not is_collapsed:
             for binding, desc in items:
-                lines.append(f"  [white]{escape(binding).ljust(bind_w)}[/white] {desc}")
-                positions.append((len(lines) - 1, binding))
-    return "\n".join(lines), positions
+                buf.append(f"\n  [white]{escape(binding).ljust(bind_w)}[/white] {desc}")
+                line_count = "".join(buf).count("\n")
+                positions.append((line_count, binding))
+    return "".join(buf), positions
 
 
 def build_func_category(category: str, collapsed: bool = False) -> str:
@@ -221,12 +222,13 @@ def build_search_index(query: str) -> dict[str, int]:
         if total:
             counts[section] = total
 
-    # Search formula function names
+    # Search formula function names and descriptions
     from vimsheet.formula.functions.registry import all_functions
 
     func_count = 0
-    for name in all_functions():
-        if q in name.lower():
+    for name, meta in all_functions().items():
+        desc = (meta.desc or "").lower()
+        if q in name.lower() or q in desc:
             func_count += 1
     if func_count:
         counts["FUNC"] = counts.get("FUNC", 0) + func_count
@@ -249,11 +251,14 @@ def search_matches(query: str) -> list[tuple[str, str, str, int]]:
             if q in line.lower():
                 results.append((section, subgroup, binding, order))
 
-    # Search formula function names
+    # Search formula function names and descriptions
     from vimsheet.formula.functions.registry import all_functions
 
     for name, meta in sorted(all_functions().items()):
-        if q in name.lower() and not meta._is_script_func:
+        if meta._is_script_func:
+            continue
+        desc = (meta.desc or "").lower()
+        if q in name.lower() or q in desc:
             results.append(("FUNC", "Formula", name, 0))
 
     return results
