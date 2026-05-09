@@ -280,12 +280,6 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
 
-            # r{char} — replace char under cursor with next typed char
-            case s if len(s) == 2 and s[0] == "r" and s[1] not in ("l", "u", "v"):
-                self._replace_char(s[1])
-                app._key_buffer = ""
-                return
-
             # Fold / group
             case "zc":
                 app._fold_group("close")
@@ -852,23 +846,6 @@ class NormalHandler:
         if cell and cell.formula:
             cell.formula = None
             app.grid.refresh_grid()
-
-    def _replace_char(self, char: str) -> None:
-        """r{char} — replace single character under cursor in cell content."""
-        if self._check_lock():
-            return
-        from vimsheet.model.undo import SetCellCommand
-
-        app = self._app
-        r, c = app.cursor_row, app.cursor_col
-        cell = app.workbook.active_sheet.get_cell(r, c)
-        old = (cell.formula or str(cell.value) if cell else "") or ""
-        # Replace first char
-        new_val = char + old[1:] if old else char
-        cmd = SetCellCommand(app.workbook.active_sheet, r, c, new_val)
-        app.undo_stack.push(cmd)
-        app.workbook.modified = True
-        app.grid.refresh_grid()
 
     def _insert_row_above(self) -> None:
         from vimsheet.model.undo import InsertRowCommand
