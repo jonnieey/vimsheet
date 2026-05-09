@@ -562,7 +562,11 @@ class VimSheetApp(App[None]):
             # ---- Sheet management ----
             case "sa" | "sheetadd":
                 name = parts[1].strip("\"'") if len(parts) > 1 else None
-                self.workbook.add_sheet(name)
+                try:
+                    self.workbook.add_sheet(name)
+                except ValueError as e:
+                    self.status_bar.show_message(str(e))
+                    return
                 self.workbook.active_sheet_idx = len(self.workbook.sheets) - 1
                 self._on_sheet_changed()
                 self.workbook.modified = True
@@ -638,7 +642,11 @@ class VimSheetApp(App[None]):
                     sub = parts[1].lower()
                     if sub == "add":
                         name = parts[2].strip("\"'") if len(parts) > 2 else None
-                        self.workbook.add_sheet(name)
+                        try:
+                            self.workbook.add_sheet(name)
+                        except ValueError as e:
+                            self.status_bar.show_message(str(e))
+                            return
                         self.workbook.active_sheet_idx = len(self.workbook.sheets) - 1
                         self._on_sheet_changed()
                         self.workbook.modified = True
