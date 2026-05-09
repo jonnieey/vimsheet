@@ -24,6 +24,7 @@ from vimsheet.model.workbook import Workbook
 from vimsheet.ui.formula_bar import FormulaBar
 from vimsheet.ui.grid import GridWidget
 from vimsheet.ui.grid_palette import GridPalette
+from vimsheet.ui.header_bar import HeaderBar
 from vimsheet.ui.sheet_tabs import SheetTabs
 from vimsheet.ui.status_bar import StatusBar
 
@@ -137,6 +138,7 @@ class VimSheetApp(App[None]):
     # -----------------------------------------------------------------------
 
     def compose(self) -> ComposeResult:
+        yield HeaderBar(id="header-bar")
         yield FormulaBar(id="formula-bar")
         yield GridWidget(self.workbook, config=self.config, id="grid")
         yield SheetTabs(id="sheet-tabs")
