@@ -12,6 +12,7 @@ class Mode(Enum):
     INSERT = auto()
     EDIT = auto()
     COMMAND = auto()
+    SEARCH = auto()
     VISUAL = auto()
     VISUAL_LINE = auto()
     VISUAL_BLOCK = auto()
@@ -27,6 +28,8 @@ class Mode(Enum):
                 return "EDIT"
             case Mode.COMMAND:
                 return "COMMAND"
+            case Mode.SEARCH:
+                return "SEARCH"
             case Mode.VISUAL:
                 return "VISUAL"
             case Mode.VISUAL_LINE:
@@ -45,6 +48,8 @@ class Mode(Enum):
                 return "mode-edit"
             case Mode.COMMAND:
                 return "mode-command"
+            case Mode.SEARCH:
+                return "mode-command"
             case Mode.VISUAL | Mode.VISUAL_LINE | Mode.VISUAL_BLOCK:
                 return "mode-visual"
 
@@ -62,6 +67,7 @@ VALID_TRANSITIONS: dict[Mode, set[Mode]] = {
         Mode.INSERT,
         Mode.EDIT,
         Mode.COMMAND,
+        Mode.SEARCH,
         Mode.VISUAL,
         Mode.VISUAL_LINE,
         Mode.VISUAL_BLOCK,
@@ -69,6 +75,7 @@ VALID_TRANSITIONS: dict[Mode, set[Mode]] = {
     Mode.INSERT: {Mode.NORMAL, Mode.EDIT},
     Mode.EDIT: {Mode.NORMAL, Mode.INSERT},
     Mode.COMMAND: {Mode.NORMAL},
+    Mode.SEARCH: {Mode.NORMAL},
     Mode.VISUAL: {Mode.NORMAL, Mode.COMMAND},
     Mode.VISUAL_LINE: {Mode.NORMAL, Mode.COMMAND},
     Mode.VISUAL_BLOCK: {Mode.NORMAL, Mode.COMMAND},

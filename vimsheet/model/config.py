@@ -34,6 +34,7 @@ class Config:
     formula_bar_visible: bool = True
     status_bar_visible: bool = True
     max_undo: int = 1000
+    history_size: int = 50
     autocalc: bool = True
     scroll_speed: int = 3
     tab_size: int = 1  # how many cols tab moves

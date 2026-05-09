@@ -17,6 +17,8 @@ from vimsheet.controller.mode import Mode
 from vimsheet.controller.normal_handler import NormalHandler
 from vimsheet.controller.search import Searcher, SearchState
 from vimsheet.controller.visual_handler import VisualHandler
+from vimsheet.model.config import _user_data_dir
+from vimsheet.model.history import HistoryStack
 from vimsheet.model.range import rowcol_to_a1
 from vimsheet.model.register import RegisterEntry
 from vimsheet.model.undo import UndoStack
@@ -98,6 +100,11 @@ class VimSheetApp(App[None]):
 
         self._cmd_completer: CommandCompleter = CommandCompleter(self)
 
+        # ---- Command / search history ----
+        self._cmd_history: HistoryStack = HistoryStack()
+        self._search_history: HistoryStack = HistoryStack()
+        self._load_history()
+
         # ---- Search state ----
         self._search_state: SearchState | None = None
 
@@ -169,6 +176,7 @@ class VimSheetApp(App[None]):
         self._load_script_functions()
 
     def on_unmount(self) -> None:
+        self._save_history()
         self.fetch_manager.cancel_all()
 
     def _trigger_fetch_cells(self) -> None:
@@ -274,6 +282,8 @@ class VimSheetApp(App[None]):
                 self.visual_handler.handle(key)
             case Mode.COMMAND:
                 self._handle_command_key(key)
+            case Mode.SEARCH:
+                self._handle_search_key(key)
 
     # -----------------------------------------------------------------------
     # Command mode
@@ -299,10 +309,46 @@ class VimSheetApp(App[None]):
                 cursor_pos=len(prompt),
             )
 
+    def _current_history(self) -> HistoryStack:
+        """Return the history stack relevant to the current command buffer."""
+        if self._command_buffer.startswith("/") or self._command_buffer.startswith("?"):
+            return self._search_history
+        return self._cmd_history
+
+    def _history_path(self) -> Path:
+        return _user_data_dir() / "vimsheet" / "history.json"
+
+    def _load_history(self) -> None:
+        path = self._history_path()
+        import json as _json
+
+        max_size = getattr(self.config, "history_size", 50)
+        try:
+            data = _json.loads(path.read_text(encoding="utf-8"))
+            self._cmd_history = HistoryStack(
+                items=data.get("cmd", [])[-max_size:], max_size=max_size
+            )
+            self._search_history = HistoryStack(
+                items=data.get("search", [])[-max_size:], max_size=max_size
+            )
+        except Exception:
+            self._cmd_history = HistoryStack(max_size=max_size)
+            self._search_history = HistoryStack(max_size=max_size)
+
+    def _save_history(self) -> None:
+        path = self._history_path()
+        import json as _json
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        data = {"cmd": self._cmd_history.items, "search": self._search_history.items}
+        path.write_text(_json.dumps(data), encoding="utf-8")
+
     def _handle_command_key(self, key: str) -> None:
         match key:
             case "escape":
                 self._cmd_completer.reset()
+                self._cmd_history.reset_browse()
+                self._search_history.reset_browse()
                 if self._pre_command_mode is not None:
                     self.mode = self._pre_command_mode
                     self._pre_command_mode = None
@@ -313,12 +359,44 @@ class VimSheetApp(App[None]):
                 self.status_bar.set_persistent_message("")
             case "enter":
                 self._cmd_completer.reset()
+                self._cmd_history.reset_browse()
+                self._search_history.reset_browse()
                 cmd = self._command_buffer.strip()
+                if cmd:
+                    if cmd.startswith("/") or cmd.startswith("?"):
+                        self._search_history.push(cmd[1:])
+                    else:
+                        self._cmd_history.push(cmd)
+                    self._save_history()
                 self._command_buffer = ""
                 self._pre_command_mode = None
                 self.grid.show_visual = False
                 self.mode = Mode.NORMAL
                 self._dispatch_command(cmd)
+            case "up":
+                hist = self._current_history()
+                prev = hist.prev()
+                if prev is not None:
+                    prefix = ""
+                    if self._command_buffer.startswith("/"):
+                        prefix = "/"
+                    elif self._command_buffer.startswith("?"):
+                        prefix = "?"
+                    self._command_buffer = prefix + prev
+                    self._show_command_prompt()
+            case "down":
+                hist = self._current_history()
+                nxt = hist.next()
+                prefix = ""
+                if self._command_buffer.startswith("/"):
+                    prefix = "/"
+                elif self._command_buffer.startswith("?"):
+                    prefix = "?"
+                if nxt is not None:
+                    self._command_buffer = prefix + nxt
+                else:
+                    self._command_buffer = prefix
+                self._show_command_prompt()
             case "tab":
                 completed = self._cmd_completer.tab(self._command_buffer)
                 self._command_buffer = completed
@@ -331,6 +409,68 @@ class VimSheetApp(App[None]):
                 self._cmd_completer.reset()
                 self._command_buffer += key
                 self._show_command_prompt()
+        self._sync_formula_bar()
+        self._sync_status_bar()
+
+    # -------------------------------------------------------------------
+    # Search mode  (/ and ? prompts)
+    # -------------------------------------------------------------------
+
+    def _enter_search_mode(self, prefix: str = "/") -> None:
+        if prefix not in ("/", "?"):
+            prefix = "/"
+        self._command_buffer = prefix
+        self.mode = Mode.SEARCH
+        self._show_search_prompt()
+
+    def _show_search_prompt(self) -> None:
+        prompt = self._command_buffer
+        self.status_bar.set_persistent_message(prompt)
+        with contextlib.suppress(Exception):
+            self.formula_bar.update_cell(
+                self.formula_bar.cell_address,
+                prompt,
+                self.formula_bar.is_locked,
+                cursor_pos=len(prompt),
+            )
+
+    def _handle_search_key(self, key: str) -> None:
+        match key:
+            case "escape":
+                self._command_buffer = ""
+                self.mode = Mode.NORMAL
+                self.status_bar.set_persistent_message("")
+            case "enter":
+                cmd = self._command_buffer.strip()
+                if cmd:
+                    self._search_history.push(cmd[1:])
+                    self._save_history()
+                    self._search_history.reset_browse()
+                self._command_buffer = ""
+                self.mode = Mode.NORMAL
+                if cmd:
+                    self._dispatch_command(cmd)
+            case "up":
+                prev = self._search_history.prev()
+                if prev is not None:
+                    prefix = self._command_buffer[0] if self._command_buffer else "/"
+                    self._command_buffer = prefix + prev
+                    self._show_search_prompt()
+            case "down":
+                nxt = self._search_history.next()
+                prefix = self._command_buffer[0] if self._command_buffer else "/"
+                if nxt is not None:
+                    self._command_buffer = prefix + nxt
+                else:
+                    self._command_buffer = prefix
+                self._show_search_prompt()
+            case "backspace":
+                if len(self._command_buffer) > 1:
+                    self._command_buffer = self._command_buffer[:-1]
+                    self._show_search_prompt()
+            case _ if len(key) == 1 and key.isprintable():
+                self._command_buffer += key
+                self._show_search_prompt()
         self._sync_formula_bar()
         self._sync_status_bar()
 
@@ -2352,6 +2492,9 @@ class VimSheetApp(App[None]):
             case Mode.COMMAND:
                 content = f":{self._command_buffer}"
                 cursor_pos = len(content)  # block cursor at end of command buffer
+            case Mode.SEARCH:
+                content = self._command_buffer
+                cursor_pos = len(content)
             case _:
                 content = (cell.formula or cell.display or "") if cell else ""
         locked = cell.locked if cell else False
@@ -2370,6 +2513,9 @@ class VimSheetApp(App[None]):
         # Preserve the command prompt — don't overwrite with positional info
         if self.mode == Mode.COMMAND:
             self.status_bar.set_persistent_message(f":{self._command_buffer}")
+            return
+        if self.mode == Mode.SEARCH:
+            self.status_bar.set_persistent_message(self._command_buffer)
             return
         if self.mode.is_visual():
             sel = self.grid.visual_selection()

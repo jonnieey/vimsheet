@@ -510,9 +510,9 @@ class NormalHandler:
 
             # ---- Search ----------------------------------------------------
             case "/":
-                app._enter_command_mode(prefix="/")
+                app._enter_search_mode("/")
             case "?":
-                app._enter_command_mode(prefix="?")
+                app._enter_search_mode("?")
             case "n":
                 if app._search_state is not None:
                     app._cmd_find_next()

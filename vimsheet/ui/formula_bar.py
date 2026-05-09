@@ -50,6 +50,7 @@ class FormulaBar(Widget):
             Mode.INSERT: self._palette.mode_insert,
             Mode.EDIT: self._palette.mode_edit,
             Mode.COMMAND: self._palette.mode_command,
+            Mode.SEARCH: self._palette.mode_command,
             Mode.VISUAL: self._palette.mode_visual,
             Mode.VISUAL_LINE: self._palette.mode_visual,
             Mode.VISUAL_BLOCK: self._palette.mode_visual,
@@ -98,7 +99,10 @@ class FormulaBar(Widget):
             at = text[pos] if pos < len(text) else " "
             after = text[pos + 1 :] if pos < len(text) else ""
             t.append(before, style="white")
-            t.append(at, style=f"bold white on {self._palette.formula_cursor_bg}")
+            if self.mode == Mode.INSERT:
+                t.append(at, style=f"underline white on {self._palette.formula_cursor_bg}")
+            else:
+                t.append(at, style=f"bold white on {self._palette.formula_cursor_bg}")
             t.append(after, style="white")
         else:
             t.append(text, style="white")
