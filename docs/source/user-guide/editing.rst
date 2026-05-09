@@ -9,8 +9,9 @@ Entering Data
 -------------
 
 #. Navigate to a cell.
-#. Press ``i`` to enter INSERT mode.
-#. Type the value or formula (prefix with ``=`` for formulas).
+#. Press ``\`` to enter INSERT mode for plain values, or ``=`` to
+   enter INSERT mode with ``=`` prepended for formulas.
+#. Type the value or formula.
 #. Press ``Enter`` to confirm, ``Escape`` to cancel.
 
 Editing Existing Cells
@@ -18,6 +19,7 @@ Editing Existing Cells
 
 #. Navigate to a cell you want to edit.
 #. Press ``e`` to enter EDIT mode.
+#. Formula bar is in visual mode. Press ``i`` to start editing.
 #. Modify the content using terminal editing keys.
 #. Press ``Enter`` to confirm your changes.
 
@@ -61,8 +63,7 @@ VimSheet supports named registers. Prefix any yank or paste with
    "bdd        Cut cell into register 'b'
 
 The unnamed register (``""``) stores the last yank or delete.
-The numbered registers (``"0`` through ``"9``) store the last 10
-deletions.
+The numbered registers (``"0`` through ``"9``)
 
 Increment and Decrement
 -----------------------
@@ -142,12 +143,3 @@ Fill a range with sequential data:
    :fill 1 10  A1:A10
 
 This fills A1:A10 with values 1 through 10.
-
-Clear Cells
------------
-
-.. code-block:: console
-
-   :clear A1:C10
-
-Or in NORMAL mode, select a range in VISUAL mode and press ``d``.

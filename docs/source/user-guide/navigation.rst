@@ -28,13 +28,13 @@ Cell Movement
    * - ``e``
      - Jump to end of current word/data block
    * - ``gg``
-     - Go to cell A1
+     - Go to first cell in column
    * - ``G``
-     - Go to last non-empty cell
+     - Go to last non-empty cell in the column
    * - ``0``
      - First column of row
    * - ``$``
-     - Last column of row
+     - Last column non-empty cell in the row
    * - ``^``
      - First non-empty cell in row
    * - ``H``

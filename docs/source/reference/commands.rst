@@ -105,11 +105,17 @@ Search and Replace
    * - ``:findprev``
      - Jump to previous match
    * - ``:replace <pat> <repl>``
-     - Replace all occurrences
-   * - ``:cs/pat/repl/``
-     - Column substitute (replace in current column)
-   * - ``:rs/pat/repl/``
-     - Row substitute (replace in current row)
+     - Replace all whole-cell exact matches
+   * - ``:%s/pat/repl/[gi]``
+     - Whole-sheet substitute (``/g`` = regex, ``/i`` = case-insensitive)
+   * - ``:cs/pat/repl/[gi]``
+     - Column substitute (current column, ``/g`` = regex)
+   * - ``:csB/pat/repl/[gi]``
+     - Column substitute in column B
+   * - ``:rs/pat/repl/[gi]``
+     - Row substitute (current row, ``/g`` = regex)
+   * - ``:A1:B10 cs/pat/repl/[gi]``
+     - Range-prefixed substitute
 
 Sheet Operations
 ----------------
@@ -119,14 +125,20 @@ Sheet Operations
 
    * - Command
      - Description
+   * - ``:sa [name]`` / ``:sheetadd [name]``
+     - Add a new sheet
+   * - ``:sd [name]`` / ``:sheetdel [name]``
+     - Delete a sheet by name (or current sheet if no name)
+   * - ``:sr <newname>``
+     - Rename current sheet
+   * - ``:sr <oldname> <newname>`` / ``:sheetrename``
+     - Rename a sheet by name
+   * - ``:sdup [name]`` / ``:sc [name]`` / ``:sheet copy [name]``
+     - Duplicate a sheet (appends " (copy)" suffix)
+   * - ``:sl`` / ``:sheets`` / ``:sheetlist``
+     - List all sheets
    * - ``:sheet <name>``
      - Switch to named sheet
-   * - ``:addsheet [name]``
-     - Add a new sheet
-   * - ``:delsheet [name]``
-     - Delete a sheet
-   * - ``:renamesheet <name>``
-     - Rename current sheet
    * - ``:nextsheet``
      - Go to next sheet
    * - ``:prevsheet``

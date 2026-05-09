@@ -13,17 +13,18 @@ You will see an empty spreadsheet grid with a status bar at the bottom.
 
 .. note::
 
-   VimSheet starts in **NORMAL** mode (like Vim). Press ``i`` to enter
-   **INSERT** mode and start typing into cells.
+   VimSheet starts in **NORMAL** mode (like Vim). Press ``=`` to enter
+   **INSERT** mode with a formula prefix, or ``\`` to start typing
+   plain values.
 
 Your First Spreadsheet
 ----------------------
 
-1. Press ``i`` to enter INSERT mode.
-2. Type ``Hello`` in cell A1 and press ``Enter``.
-3. Press ``j`` to move down to A2.
-4. Press ``i``, type ``World``, and press ``Enter``.
-5. Move to cell A3 and enter the formula ``=SUM(A1:A2)``.
+1. Press ``\`` to enter INSERT mode.
+2. Type ``20`` in cell A1 and press ``Enter``.
+3. Press ``\``, type ``30``, and press ``Enter``.
+5. Move to cell A3. Press ``=`` (enters INSERT mode with ``=`` prepended),
+   then type ``SUM(A1:A2)``.
 6. Press ``Enter`` — the cell shows the sum.
 
 Basic Navigation

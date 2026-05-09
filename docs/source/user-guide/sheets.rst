@@ -14,13 +14,17 @@ Sheet Management
 
    * - Command
      - Description
-   * - ``:sheet add Name``
+   * - ``:sa Name`` / ``:sheet add Name``
      - Add a new sheet
-   * - ``:sheet rename Old New``
-     - Rename a sheet
-   * - ``:sheet delete Name``
+   * - ``:sr <newname>`` / ``:sheet rename <newname>``
+     - Rename the current sheet
+   * - ``:sr <old> <new>`` / ``:sheet rename <old> <new>``
+     - Rename a sheet by name
+   * - ``:sd Name`` / ``:sheet delete Name``
      - Delete a sheet
-   * - ``:sheet list``
+   * - ``:sdup Name`` / ``:sc Name`` / ``:sheet copy Name``
+     - Duplicate a sheet (appends " (copy)" suffix)
+   * - ``:sl`` / ``:sheet list``
      - List all sheets
 
 Tab Navigation

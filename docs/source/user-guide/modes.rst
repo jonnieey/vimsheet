@@ -15,9 +15,9 @@ different set of keybindings for interacting with the spreadsheet.
    * - NORMAL
      - Navigate, select cells, copy/paste
      - ``Escape`` (from any mode)
-   * - INSERT
-     - Type values and formulas into cells
-     - ``i``
+    * - INSERT
+      - Type values and formulas into cells
+      - ``\`` or ``=``
    * - EDIT
      - Edit an existing cell's content
      - ``e``
@@ -38,7 +38,7 @@ Normal Mode
 -----------
 
 Default mode on startup. Use Vim-style keys to move the cursor around the
-grid. Press ``:`` to enter a command, ``i`` to insert, ``v`` for visual
+grid. Press ``:`` to enter a command, ``\`` or ``=`` to insert, ``v`` for visual
 selection.
 
 Insert Mode
@@ -51,8 +51,8 @@ Edit Mode
 ---------
 
 Edit the contents of the current cell without overwriting it. The cursor
-appears inside the cell's formula bar at the top. Press ``Escape`` to
-confirm changes and return to NORMAL mode.
+appears inside the cell's formula bar at the top. Press ``Escape`` or
+ ``Enter`` to confirm changes and return to NORMAL mode.
 
 Visual Modes
 ------------

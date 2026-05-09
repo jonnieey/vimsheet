@@ -44,6 +44,7 @@ Replace
 
 .. code-block:: console
 
+   :replace old new
    :%s/old/new/g
    :%s/\d+/[&]/g
 

@@ -22,10 +22,8 @@ Normal Mode
      - Jump forward to next edge of data
    * - ``b``
      - Jump backward to previous edge of data
-   * - ``e``
-     - Jump to end of current word/data block
    * - ``gg`` / ``G``
-     - Go to first / last cell
+     - Go to first / last cell of the column
    * - ``{n}G``
      - Go to row *n*
    * - ``0`` / ``$``
@@ -49,16 +47,16 @@ Normal Mode
    * - ``*`` / ``#``
      - Search forward / backward for word under cursor
 
-   * - ``i``
-     - Enter INSERT mode (insert before cursor)
+   * - ``\``
+     - Enter INSERT mode (type plain values)
+   * - ``=``
+     - Enter INSERT mode with ``=`` prepended (for formulas)
    * - ``e`` / ``E``
      - Enter EDIT mode (edit cell content)
-   * - ``=``
-     - Enter INSERT mode (prepends ``=`` for formulas)
-   * - ``\``
-     - Enter INSERT mode (clears cell first)
-   * - ``<`` / ``>``
-     - Enter INSERT mode (adds ``'`` prefix / clears and enters)
+   * - ``<``
+     - Enter INSERT mode, left-aligned
+   * - ``>``
+     - Enter INSERT mode, right-aligned
 
    * - ``v`` / ``V`` / ``Ctrl+v``
      - Enter VISUAL / VISUAL LINE / VISUAL BLOCK mode
