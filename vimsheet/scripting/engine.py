@@ -124,7 +124,6 @@ class ScriptEngine:
             "renamesheet": "renamesheet",
             "delsheet": "delsheet",
             "find": "print",
-            "set": "config",
         }
         cmd = _ALIASES.get(cmd, cmd)
 
