@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from vimsheet.controller.mode import Mode
+from vimsheet.controller.search import Searcher, SearchState
 from vimsheet.model.range import CellRange
 from vimsheet.model.register import RegisterEntry
 
@@ -523,19 +524,39 @@ class NormalHandler:
                 else:
                     app.status_bar.show_message("N — no active search pattern")
             case "*":
-                # Search forward for the current cell's display value
                 cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
                 if cell and cell.display:
-                    app._cmd_find(cell.display)
-                    app._cmd_find_next()
+                    state = SearchState(pattern=cell.display, whole_cell=True)
+                    searcher = Searcher(app.workbook.active_sheet)
+                    matches = searcher.find_all(state)
+                    state.matches = matches
+                    app._search_state = state
+                    if matches:
+                        nxt = searcher.find_next(state, app.cursor)
+                        state.current_match = nxt
+                        idx = matches.index(nxt) + 1
+                        app.grid.move_cursor(*nxt)
+                        app.status_bar.show_message(f"/^{cell.display}$  [{idx}/{len(matches)}]")
+                    else:
+                        app.status_bar.show_message(f"Pattern not found: {cell.display!r}")
                 else:
                     app.status_bar.show_message("* — empty cell")
             case "#":
-                # Search backward for the current cell's display value
                 cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
                 if cell and cell.display:
-                    app._cmd_find(cell.display)
-                    app._cmd_find_prev()
+                    state = SearchState(pattern=cell.display, whole_cell=True)
+                    searcher = Searcher(app.workbook.active_sheet)
+                    matches = searcher.find_all(state)
+                    state.matches = matches
+                    app._search_state = state
+                    if matches:
+                        prv = searcher.find_prev(state, app.cursor)
+                        state.current_match = prv
+                        idx = matches.index(prv) + 1
+                        app.grid.move_cursor(*prv)
+                        app.status_bar.show_message(f"?^{cell.display}$  [{idx}/{len(matches)}]")
+                    else:
+                        app.status_bar.show_message(f"Pattern not found: {cell.display!r}")
                 else:
                     app.status_bar.show_message("# — empty cell")
 
