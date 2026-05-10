@@ -17,7 +17,7 @@ from vimsheet.scripting.engine import ScriptEngine
 
 class TestRunFile:
     def test_run_script_file(self, tmp_path: Path):
-        script = tmp_path / "test.pys"
+        script = tmp_path / "test.vsheet"
         script.write_text("set A1 = 10\nset B1 = 20\n")
         engine = ScriptEngine()
         result = engine.run_file(script)
@@ -26,7 +26,7 @@ class TestRunFile:
         assert engine.workbook.active_sheet.get_cell(0, 0).value == 10
 
     def test_script_file_with_comments(self, tmp_path: Path):
-        script = tmp_path / "test.pys"
+        script = tmp_path / "test.vsheet"
         script.write_text("# header\nset A1 = 5\n# done\n")
         engine = ScriptEngine()
         result = engine.run_file(script)
@@ -35,7 +35,7 @@ class TestRunFile:
 
     def test_script_saves_output(self, tmp_path: Path):
         out = tmp_path / "result.csv"
-        script = tmp_path / "test.pys"
+        script = tmp_path / "test.vsheet"
         script.write_text(f"set A1 = hello\nsave {out}\n")
         engine = ScriptEngine()
         result = engine.run_file(script)

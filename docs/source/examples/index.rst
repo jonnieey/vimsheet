@@ -248,11 +248,11 @@ Convert all CSV files in a directory to XLSX:
 .. code-block:: console
 
    $ for f in *.csv; do
-       cat > /tmp/convert.pys << EOF
+       cat > /tmp/convert.vsheet << EOF
    open $f
    save ${f%.csv}.xlsx
    EOF
-       vimsheet --nocurses --script /tmp/convert.pys
+       vimsheet --nocurses --script /tmp/convert.vsheet
      done
 
 Or use a single formula pipeline to compute statistics:

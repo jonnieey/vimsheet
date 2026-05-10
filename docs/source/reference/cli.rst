@@ -43,9 +43,9 @@ Non-interactive mode reads data from stdin and writes results to stdout:
 
 .. code-block:: console
 
-   $ cat data.csv | vimsheet --nocurses --script transform.pys
+   $ cat data.csv | vimsheet --nocurses --script transform.vsheet
    $ cat data.csv | vimsheet --nocurses "=SUM(A:A)" > result.txt
-   $ vimsheet --nocurses --script my_script.pys --output result.xlsx
+   $ vimsheet --nocurses --script my_script.vsheet --output result.xlsx
 
 Diff Mode
 ---------

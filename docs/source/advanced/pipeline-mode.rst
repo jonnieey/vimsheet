@@ -13,7 +13,7 @@ Basic Usage
 
    $ cat data.csv | vimsheet --nocurses "=SUM(A:A)" > result.txt
    $ echo "1 2 3" | vimsheet --nocurses "=AVERAGE(A1:C1)"
-   $ vimsheet --nocurses --script transform.pys --output result.xlsx
+   $ vimsheet --nocurses --script transform.vsheet --output result.xlsx
 
 Pipeline Commands
 -----------------
@@ -26,13 +26,13 @@ Pipeline Commands
    * - ``--nocurses``
      - Enable non-interactive pipeline mode
    * - ``--script <file>``
-     - Run a ``.pys`` script file
+     - Run a ``.vsheet`` script file
    * - ``--output <path>``
      - Write output to file (detects format from extension)
    * - ``<formula>``
      - Evaluate a single formula and print the result (positional arg)
 
-Script File Format (``.pys``)
+Script File Format (``.vsheet``)
 ------------------------------
 
 Script files use a simple DSL:
@@ -113,7 +113,7 @@ Batch convert files:
 .. code-block:: console
 
    $ for f in *.csv; do
-       echo "open $f" > /tmp/convert.pys
-       echo "save ${f%.csv}.xlsx" >> /tmp/convert.pys
-       vimsheet --nocurses --script /tmp/convert.pys
+       echo "open $f" > /tmp/convert.vsheet
+       echo "save ${f%.csv}.xlsx" >> /tmp/convert.vsheet
+       vimsheet --nocurses --script /tmp/convert.vsheet
      done
