@@ -26,6 +26,8 @@ class FetchEntry:
     url: str
     interval: float | None  # None = one-shot
     json_path: str  # "" = whole response
+    headers: dict = field(default_factory=dict)
+    method: str = "GET"
     last_value: Any = "#LOADING"
     status: str = "pending"  # pending | loading | ok | error
     timer: threading.Timer | None = None
@@ -54,6 +56,8 @@ class FetchManager:
         url: str,
         interval: float | None,
         json_path: str,
+        headers: dict | None = None,
+        method: str = "GET",
     ) -> None:
         """Register (or re-register) a fetch for *key*.  Idempotent on matching params."""
         with self._lock:
@@ -63,12 +67,20 @@ class FetchManager:
                 and entry.url == url
                 and entry.interval == interval
                 and entry.json_path == json_path
+                and entry.headers == (headers or {})
+                and entry.method == method
             ):
                 return  # already scheduled with same params — no-op
             # Cancel old timer if params changed
             if entry and entry.timer:
                 entry.timer.cancel()
-            self._entries[key] = FetchEntry(url=url, interval=interval, json_path=json_path)
+            self._entries[key] = FetchEntry(
+                url=url,
+                interval=interval,
+                json_path=json_path,
+                headers=headers or {},
+                method=method,
+            )
 
         self._launch_thread(key)
 
@@ -125,8 +137,10 @@ class FetchManager:
             url = entry.url
             json_path = entry.json_path
             interval = entry.interval
+            headers = dict(entry.headers)
+            method = entry.method
 
-        result = do_fetch(url)
+        result = do_fetch(url, headers=headers, method=method)
 
         if not result.ok:
             anchor_val = result.error or "#FETCH"

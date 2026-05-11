@@ -25,6 +25,7 @@ _CELL_PAT = re.compile(r"\$?[A-Za-z]{1,3}\$?\d+")
 _NAME_PAT = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*")
 _NUMBER_PAT = re.compile(r"\d+\.?\d*([eE][+-]?\d+)?|\.\d+([eE][+-]?\d+)?")
 _STRING_PAT = re.compile(r'"(?:[^"\\]|\\.)*"')
+_SQ_STRING_PAT = re.compile(r"'(?:[^'\\]|\\.)*'")
 _OP_PAT = re.compile(r"<>|<=|>=|[+\-*/^%&<>=|]")
 _WS_PAT = re.compile(r"\s+")
 
@@ -69,8 +70,13 @@ def tokenize(source: str) -> list[Token]:
             i += 1
             continue
 
-        # String literal
+        # String literal (double-quoted or single-quoted)
         m = _STRING_PAT.match(source, i)
+        if m:
+            tokens.append(Token(TT.STRING, m.group(), i))
+            i = m.end()
+            continue
+        m = _SQ_STRING_PAT.match(source, i)
         if m:
             tokens.append(Token(TT.STRING, m.group(), i))
             i = m.end()
