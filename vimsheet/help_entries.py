@@ -47,12 +47,17 @@ register_help(
     order=10,
 )
 register_help("EDIT", "e / E", "Edit cell (cursor at end / start)", subgroup="Sheet", order=11)
-register_help("EDIT", "ge", "Open cell in $EDITOR / $VISUAL", subgroup="Sheet", order=12)
-register_help("EDIT", "x", "Clear cell content", subgroup="Sheet", order=13)
+register_help("EDIT", "cw / cc", "Clear cell and enter INSERT mode", subgroup="Sheet", order=11)
+register_help("EDIT", "dw", "Clear cell content (delete word)", subgroup="Sheet", order=11)
+register_help("EDIT", "d$", "Delete cell content to end of formula bar", subgroup="Sheet", order=11)
+register_help("EDIT", "gw", "Open cell in $EDITOR / $VISUAL", subgroup="Sheet", order=12)
+register_help("EDIT", "A / I", "Insert mode at end / start of cell", subgroup="Sheet", order=12)
+register_help("EDIT", "S", "Clear cell and enter insert (left-aligned)", subgroup="Sheet", order=13)
+register_help("EDIT", "x", "Clear cell content", subgroup="Sheet", order=14)
 register_help(
-    "EDIT", "rv", "Replace formula with current computed value", subgroup="Sheet", order=14
+    "EDIT", "gv", "Replace formula with current computed value", subgroup="Sheet", order=15
 )
-register_help("EDIT", "rl / ru", "Lock / unlock cell", subgroup="Sheet", order=15)
+register_help("EDIT", "zl / zL", "Lock / unlock cell", subgroup="Sheet", order=16)
 register_help(
     "EDIT",
     "A / I",
@@ -86,7 +91,7 @@ register_help(
 register_help("EDIT", "dd", "Clear cell value", subgroup="Yank/Paste", order=34)
 register_help("EDIT", "u / Ctrl+r", "Undo / Redo", subgroup="Undo", order=40)
 register_help(
-    "EDIT", "sj / sk / sl / sh", "Shift cell down/up/right/left", subgroup="Undo", order=41
+    "EDIT", "gsj / gsk / gsl / gsh", "Shift cell down/up/right/left", subgroup="Undo", order=41
 )
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -118,7 +123,7 @@ register_help("VIS", "ss", "Sort rows by first column", subgroup="Operations", o
 register_help("VIS", "sa / sd", "Sort each column asc / desc", subgroup="Operations", order=24)
 register_help(
     "VIS",
-    "sj / sk / sl / sh",
+    "gsj / gsk / gsl / gsh",
     "Shift selection down/up/right/left",
     subgroup="Operations",
     order=25,
@@ -134,9 +139,9 @@ register_help(
     order=27,
 )
 register_help(
-    "VIS", "fb / fi / fu", "Bold / italic / underline formatting", subgroup="Formatting", order=30
+    "VIS", "tb / ti / tu", "Bold / italic / underline formatting", subgroup="Formatting", order=30
 )
-register_help("VIS", "fl / fr / fc", "Align left / right / center", subgroup="Formatting", order=31)
+register_help("VIS", "tl / tr / tc", "Align left / right / center", subgroup="Formatting", order=31)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # MARKS & SEARCH

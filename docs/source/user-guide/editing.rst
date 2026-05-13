@@ -89,7 +89,7 @@ Replace a formula with its current computed value:
 
 .. code-block:: text
 
-   rv   Replace formula in current cell with its current value
+   gv   Replace formula in current cell with its current value
 
 Locking Cells
 -------------
@@ -98,8 +98,8 @@ Prevent a cell from being edited:
 
 .. code-block:: text
 
-   rl   Lock current cell (read-only)
-   ru   Unlock current cell
+   zl   Lock current cell (read-only)
+   zL   Unlock current cell
 
 Cell Comments
 -------------

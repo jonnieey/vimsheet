@@ -107,10 +107,51 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
 
-            # ge — open cell in $EDITOR / $VISUAL
-            case "ge":
+            # gw — open cell in $EDITOR / $VISUAL
+            case "gw":
                 app._key_buffer = ""
                 app.open_in_external_editor()
+                return
+
+            # gv — valueize: replace formula with current computed value
+            case "gv":
+                self._valueize_cell()
+                app._key_buffer = ""
+                return
+
+            # c prefix — change (clear + enter insert)
+            case "cw" | "cc":
+                self._clear_cell()
+                app._enter_insert("right")
+                app._key_buffer = ""
+                return
+
+            # d prefix — delete (clear, stay in normal)
+            case "dw":
+                self._clear_cell()
+                app._key_buffer = ""
+                return
+            case "d$":
+                self._delete_to_row_end()
+                app._key_buffer = ""
+                return
+
+            # gs prefix — shift cell
+            case "gsj":
+                self._shift_cell(1, 0)
+                app._key_buffer = ""
+                return
+            case "gsk":
+                self._shift_cell(-1, 0)
+                app._key_buffer = ""
+                return
+            case "gsl":
+                self._shift_cell(0, 1)
+                app._key_buffer = ""
+                return
+            case "gsh":
+                self._shift_cell(0, -1)
+                app._key_buffer = ""
                 return
 
             # Marks: m{a-zA-Z} set, '{a-z} jump
@@ -185,28 +226,28 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
 
-            # Format chords
-            case "fb":
+            # Format chords (t prefix — toggle)
+            case "tb":
                 self._toggle_fmt("bold")
                 app._key_buffer = ""
                 return
-            case "fi":
+            case "ti":
                 self._toggle_fmt("italic")
                 app._key_buffer = ""
                 return
-            case "fu":
+            case "tu":
                 self._toggle_fmt("underline")
                 app._key_buffer = ""
                 return
-            case "fl":
+            case "tl":
                 self._set_align("left")
                 app._key_buffer = ""
                 return
-            case "fr":
+            case "tr":
                 self._set_align("right")
                 app._key_buffer = ""
                 return
-            case "fc":
+            case "tc":
                 self._set_align("center")
                 app._key_buffer = ""
                 return
@@ -267,17 +308,12 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
 
-            # Cell-state chords
-            case "rl":
+            case "zl":
                 self._lock_cell(True)
                 app._key_buffer = ""
                 return
-            case "ru":
+            case "zL":
                 self._lock_cell(False)
-                app._key_buffer = ""
-                return
-            case "rv":
-                self._valueize_cell()
                 app._key_buffer = ""
                 return
 
@@ -326,33 +362,17 @@ class NormalHandler:
                 app.exit()
                 return
 
-            # Shift cell
-            case "sj":
-                self._shift_cell(1, 0)
-                app._key_buffer = ""
-                return
-            case "sk":
-                self._shift_cell(-1, 0)
-                app._key_buffer = ""
-                return
-            case "sl":
-                self._shift_cell(0, 1)
-                app._key_buffer = ""
-                return
-            case "sh":
-                self._shift_cell(0, -1)
-                app._key_buffer = ""
-                return
-
             # Pending prefixes (no standalone action for these)
             case (
-                "g"
-                | "f"
+                "c"
+                | "gs"
+                | "g"
                 | "i"
                 | "d"
                 | "y"
                 | "Y"
                 | "r"
+                | "t"
                 | "z"
                 | "Z"
                 | "m"
@@ -360,7 +380,6 @@ class NormalHandler:
                 | "@"
                 | '"'
                 | "q"
-                | "s"
             ):
                 app._key_buffer = buf
                 return
@@ -440,6 +459,33 @@ class NormalHandler:
             case "ctrl+v":
                 app.grid.start_visual(Mode.VISUAL_BLOCK)
                 app.mode = Mode.VISUAL_BLOCK
+            case "A":
+                cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
+                if cell and cell.locked:
+                    app.status_bar.show_message("Cell is locked — use 'zL' to unlock")
+                else:
+                    content = cell.formula or (
+                        str(cell.value) if cell and cell.value is not None else ""
+                    )
+                    app._insert_buffer = content
+                    app._insert_cursor = len(app._insert_buffer)
+                    app._insert_align = "right"
+                    app.mode = Mode.INSERT
+            case "I":
+                cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
+                if cell and cell.locked:
+                    app.status_bar.show_message("Cell is locked — use 'zL' to unlock")
+                else:
+                    content = cell.formula or (
+                        str(cell.value) if cell and cell.value is not None else ""
+                    )
+                    app._insert_buffer = content
+                    app._insert_cursor = 1 if content.startswith("=") else 0
+                    app._insert_align = "left"
+                    app.mode = Mode.INSERT
+            case "S":
+                self._clear_cell()
+                app._enter_insert("left")
             case ":":
                 app._enter_command_mode()
 
@@ -592,7 +638,7 @@ class NormalHandler:
         app = self._app
         cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
         if cell is not None and cell.locked:
-            app.status_bar.show_message("Cell is locked — use 'ru' to unlock")
+            app.status_bar.show_message("Cell is locked — use 'zL' to unlock")
             return True
         return False
 

@@ -61,7 +61,7 @@ Glossary
 
    Valueize
       The act of replacing a formula with its current computed value
-      (key: ``rv``).
+       (key: ``gv``).
 
    VISUAL Mode
       A mode for selecting ranges of cells using keyboard motions.

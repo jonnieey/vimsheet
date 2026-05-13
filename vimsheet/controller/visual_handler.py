@@ -57,7 +57,10 @@ class VisualHandler:
             elif chord == "g" and key == "o":
                 app._visual_goto_buf = ""
                 app.status_bar.show_message("go: ")
-            elif chord == "f":
+            elif chord == "g" and key == "s":
+                app._visual_chord = "gs"
+                return
+            elif chord == "t":
                 sel = app.grid.visual_selection()
                 if sel:
                     self._apply_fmt(sel, key)
@@ -74,6 +77,10 @@ class VisualHandler:
                         case "d":
                             self._sort_range_columns(sel, ascending=False)
                             app.mode = Mode.NORMAL
+            elif chord == "gs":
+                sel = app.grid.visual_selection()
+                if sel:
+                    match key:
                         case "j":
                             self._shift_range_cells(sel, 1, 0)
                         case "k":
@@ -176,8 +183,8 @@ class VisualHandler:
                     self._shift_range(sel, -1)
 
             # --- Formatting chord prefix ---
-            case "f":
-                app._visual_chord = "f"
+            case "t":
+                app._visual_chord = "t"
                 return
 
             # --- Increment / decrement all numeric cells in selection ---

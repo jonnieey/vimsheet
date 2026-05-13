@@ -174,7 +174,7 @@ async def test_fb_toggles_bold_on_cell(app_with_data: VimSheetApp) -> None:
         cell_before = sheet.get_cell(0, 0)
         bold_before = cell_before.fmt.bold if cell_before else False
 
-        await pilot.press("f")
+        await pilot.press("t")
         await pilot.press("b")
         await pilot.pause()
 

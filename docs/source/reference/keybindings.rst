@@ -53,6 +53,12 @@ Normal Mode
      - Enter INSERT mode with ``=`` prepended (for formulas)
    * - ``e`` / ``E``
      - Enter EDIT mode (edit cell content)
+   * - ``A``
+     - Enter INSERT mode at end of cell
+   * - ``I``
+     - Enter INSERT mode at start of cell
+   * - ``S``
+     - Clear cell and enter INSERT mode (left-aligned)
    * - ``<``
      - Enter INSERT mode, left-aligned
    * - ``>``
@@ -67,6 +73,12 @@ Normal Mode
    * - ``.``
      - Repeat last change
 
+   * - ``cw`` / ``cc``
+     - Clear cell and enter INSERT mode
+   * - ``dw``
+     - Delete (cut) current cell content
+   * - ``d$``
+     - Delete cell content to end of formula bar
    * - ``yy``
      - Yank (copy) current cell
    * - ``dd``
@@ -88,7 +100,7 @@ Normal Mode
      - Increment number under cursor
    * - ``Ctrl+x``
      - Decrement number under cursor
-   * - ``rv``
+   * - ``gv``
      - Valueize — replace formula with its current value
 
    * - ``m[a-z]``
@@ -118,10 +130,10 @@ Normal Mode
      - Hide current row / column
    * - ``sr`` / ``sc``
      - Show hidden row / column
-   * - ``rl`` / ``ru``
+   * - ``zl`` / ``zL``
      - Lock / unlock current cell
 
-   * - ``sj`` / ``sk`` / ``sl`` / ``sh``
+   * - ``gsj`` / ``gsk`` / ``gsl`` / ``gsh``
      - Shift cells down / up / right / left
 
    * - ``zc`` / ``zo``
@@ -131,7 +143,7 @@ Normal Mode
    * - ``zR`` / ``zM``
      - Open all folds / close all folds
 
-   * - ``fb`` / ``fi`` / ``fu`` / ``fl`` / ``fr`` / ``fc``
+   * - ``tb`` / ``ti`` / ``tu`` / ``tl`` / ``tr`` / ``tc``
      - Toggle bold / italic / underline / left-align / right-align / center
 
    * - ``gt`` / ``gT``
@@ -142,7 +154,7 @@ Normal Mode
      - Save and quit
    * - ``ZQ``
      - Quit without saving
-   * - ``ge``
+   * - ``gw``
      - Open current cell in external editor (``$EDITOR``)
 
 Insert Mode
@@ -233,6 +245,12 @@ Visual Modes
      - Shift right / shift left
    * - ``:``
      - Execute command on selection (``:fill``, ``:sort``, ``:plot``, etc.)
+   * - ``tb`` / ``ti`` / ``tu``
+     - Bold / italic / underline formatting
+   * - ``tl`` / ``tr`` / ``tc``
+     - Align left / right / center
+   * - ``gsj`` / ``gsk`` / ``gsl`` / ``gsh``
+     - Shift selection down / up / right / left
    * - ``!``
      - Pipe selection through external command
    * - ``Escape``
