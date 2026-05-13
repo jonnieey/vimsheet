@@ -80,6 +80,9 @@ class VimSheetApp(App[None]):
         self._visual_chord: str = ""  # pending chord in Visual mode
         self._visual_goto_buf: str | None = None  # accumulates address after "go" in visual
         self._pre_command_mode: Mode | None = None  # visual mode saved on entering command
+        self._swap_buf: str | None = None
+        self._swap_mode: str = ""  # "cell", "row", "col"
+        self._swap_keep_cursor: bool = False
         self._yanked_formula: str | None = None  # formula string for P paste
 
         # ---- Registers / marks ----
@@ -271,6 +274,11 @@ class VimSheetApp(App[None]):
                 self.status_bar.show_message("Cancelled")
             return
 
+        # Intercept swap address input (gx, grx, gcx)
+        if self._swap_buf is not None:
+            self._handle_swap_key(key)
+            return
+
         match self.mode:
             case Mode.NORMAL:
                 self.normal_handler.handle(key)
@@ -409,6 +417,110 @@ class VimSheetApp(App[None]):
                 self._cmd_completer.reset()
                 self._command_buffer += key
                 self._show_command_prompt()
+        self._sync_formula_bar()
+        self._sync_status_bar()
+
+    # -------------------------------------------------------------------
+    # Swap mode  (gx / grx / gcx address collection)
+    # -------------------------------------------------------------------
+
+    def _swap_mode_prefix(self) -> str:
+        if self._swap_mode == "row":
+            return "grX" if self._swap_keep_cursor else "grx"
+        if self._swap_mode == "col":
+            return "gcX" if self._swap_keep_cursor else "gcx"
+        return "gX" if self._swap_keep_cursor else "gx"
+
+    def _handle_swap_key(self, key: str) -> None:
+        match key:
+            case "escape":
+                self._swap_buf = None
+                self.status_bar.set_persistent_message("")
+            case "enter" | "\r" | "\n":
+                self._do_swap()
+            case "backspace":
+                if self._swap_buf:
+                    self._swap_buf = self._swap_buf[:-1]
+                self.status_bar.show_message(f"{self._swap_mode_prefix()}: {self._swap_buf}")
+            case _ if len(key) == 1 and key.isprintable():
+                self._swap_buf = (self._swap_buf or "") + key
+                self.status_bar.show_message(f"{self._swap_mode_prefix()}: {self._swap_buf}")
+        self._sync_formula_bar()
+        self._sync_status_bar()
+
+    def _col_letter_to_index(self, col: str) -> int:
+        """Convert column letter (A, B, ..., Z, AA, ...) to 0-indexed integer."""
+        result = 0
+        for ch in col.strip().upper():
+            result = result * 26 + (ord(ch) - ord("A") + 1)
+        return result - 1
+
+    def _do_swap(self) -> None:
+        from vimsheet.model.range import a1_to_rowcol
+        from vimsheet.model.undo import CompositeCommand, SetCellCommand
+
+        sheet = self.workbook.active_sheet
+        r, c = self.cursor_row, self.cursor_col
+        buf = (self._swap_buf or "").strip().upper()
+        mode = self._swap_mode
+
+        cmds: list[SetCellCommand] = []
+
+        try:
+            if mode == "cell":
+                tr, tc = a1_to_rowcol(buf)
+                src = sheet.get_cell(r, c)
+                dst = sheet.get_cell(tr, tc)
+                src_val = src.value if src else None
+                src_fml = src.formula if src else None
+                dst_val = dst.value if dst else None
+                dst_fml = dst.formula if dst else None
+                cmds.append(SetCellCommand(sheet, tr, tc, src_val, new_formula=src_fml))
+                cmds.append(SetCellCommand(sheet, r, c, dst_val, new_formula=dst_fml))
+                if not self._swap_keep_cursor:
+                    self.grid.move_cursor(tr, tc)
+
+            elif mode == "row":
+                tr = int(buf) - 1
+                max_col = sheet.max_col
+                for col in range(max_col + 1):
+                    src = sheet.get_cell(r, col)
+                    dst = sheet.get_cell(tr, col)
+                    src_val = src.value if src else None
+                    src_fml = src.formula if src else None
+                    dst_val = dst.value if dst else None
+                    dst_fml = dst.formula if dst else None
+                    cmds.append(SetCellCommand(sheet, tr, col, src_val, new_formula=src_fml))
+                    cmds.append(SetCellCommand(sheet, r, col, dst_val, new_formula=dst_fml))
+                if not self._swap_keep_cursor:
+                    self.grid.move_cursor(tr, c)
+
+            elif mode == "col":
+                tc = self._col_letter_to_index(buf)
+                max_row = sheet.max_row
+                for row in range(max_row + 1):
+                    src = sheet.get_cell(row, c)
+                    dst = sheet.get_cell(row, tc)
+                    src_val = src.value if src else None
+                    src_fml = src.formula if src else None
+                    dst_val = dst.value if dst else None
+                    dst_fml = dst.formula if dst else None
+                    cmds.append(SetCellCommand(sheet, row, tc, src_val, new_formula=src_fml))
+                    cmds.append(SetCellCommand(sheet, row, c, dst_val, new_formula=dst_fml))
+                if not self._swap_keep_cursor:
+                    self.grid.move_cursor(r, tc)
+
+        except Exception:
+            self.status_bar.show_message(f"Invalid target: {buf}")
+            self._swap_buf = None
+            return
+
+        if cmds:
+            self.undo_stack.push(CompositeCommand(cmds))
+            self.workbook.modified = True
+
+        self._swap_buf = None
+        self.grid.refresh_grid()
         self._sync_formula_bar()
         self._sync_status_bar()
 
@@ -805,6 +917,28 @@ class VimSheetApp(App[None]):
                     self.status_bar.show_message(f"Sorted by {labels}")
                 except (ValueError, IndexError) as e:
                     self.status_bar.show_message(f"Sort error: {e}")
+
+            # ---- Swap ----
+            case "swap":
+                if len(parts) == 2:
+                    self._swap_buf = parts[1]
+                    self._swap_mode = "cell"
+                    self._swap_keep_cursor = False
+                    self._do_swap()
+                elif len(parts) == 3 and parts[1] == "row":
+                    self._swap_buf = parts[2]
+                    self._swap_mode = "row"
+                    self._swap_keep_cursor = False
+                    self._do_swap()
+                elif len(parts) == 3 and parts[1] == "col":
+                    self._swap_buf = parts[2]
+                    self._swap_mode = "col"
+                    self._swap_keep_cursor = False
+                    self._do_swap()
+                else:
+                    self.status_bar.show_message(
+                        "Usage: :swap <addr> | :swap row <n> | :swap col <c>"
+                    )
 
             # ---- Recalculate ----
             case "recalc":

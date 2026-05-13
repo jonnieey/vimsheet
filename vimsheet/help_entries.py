@@ -47,6 +47,13 @@ register_help(
     order=10,
 )
 register_help("EDIT", "e / E", "Edit cell (cursor at end / start)", subgroup="Sheet", order=11)
+register_help(
+    "EDIT", "gx / gX", "Swap cell with target address (X keeps cursor)", subgroup="Sheet", order=11
+)
+register_help("EDIT", "grx / grX", "Swap row with target row number", subgroup="Sheet", order=11)
+register_help(
+    "EDIT", "gcx / gcX", "Swap column with target column letter", subgroup="Sheet", order=11
+)
 register_help("EDIT", "cw / cc", "Clear cell and enter INSERT mode", subgroup="Sheet", order=11)
 register_help("EDIT", "dw", "Clear cell content (delete word)", subgroup="Sheet", order=11)
 register_help("EDIT", "d$", "Delete cell content to end of formula bar", subgroup="Sheet", order=11)
@@ -208,6 +215,9 @@ register_help(
     "CMD", ":filter <col> <op> <v>", "Filter rows (gt/lt/eq/contains/…)", subgroup="Data", order=32
 )
 register_help("CMD", ":clearfilter", "Clear active filter", subgroup="Data", order=33)
+register_help("CMD", ":swap <addr>", "Swap current cell with address", subgroup="Data", order=33)
+register_help("CMD", ":swap row <n>", "Swap current row with row n", subgroup="Data", order=33)
+register_help("CMD", ":swap col <c>", "Swap current col with col c", subgroup="Data", order=33)
 register_help("CMD", ":find <pat>", "Highlight matching cells", subgroup="Data", order=34)
 register_help(
     "CMD", ":replace <old> <new>", "Find and replace (whole-value match)", subgroup="Data", order=35

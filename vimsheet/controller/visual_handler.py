@@ -390,18 +390,42 @@ class VisualHandler:
             app.grid.refresh_grid()
 
     def _shift_range_cells(self, cell_range: CellRange, dr: int, dc: int) -> None:
-        """Move the selected block of cells by (dr, dc), overwriting destination."""
-        from vimsheet.model.undo import ShiftCellsCommand
+        """Move the selected block of cells by (dr, dc), overwriting destination.
+
+        Each cell in the selection is moved independently (set-and-clear),
+        not cascaded — matching Excel's cut+paste behavior.
+        """
+        from vimsheet.model.undo import CompositeCommand, SetCellCommand
 
         app = self._app
+        sheet = app.workbook.active_sheet
         dst_r = cell_range.start_row + dr
         dst_c = cell_range.start_col + dc
         if dst_r < 0 or dst_c < 0:
             return
-        cmd = ShiftCellsCommand(app.workbook.active_sheet, cell_range, dr, dc)
-        app.undo_stack.push(cmd)
-        app.workbook.modified = True
-        # Move visual anchor and cursor with the block
+
+        cmds: list[SetCellCommand] = []
+        for r, c in cell_range.iter_cells():
+            src_cell = sheet.get_cell(r, c)
+            src_val = src_cell.value if src_cell else None
+            src_fml = src_cell.formula if src_cell else None
+            if src_val is not None or src_fml is not None:
+                cmds.append(
+                    SetCellCommand(
+                        sheet,
+                        dst_r + (r - cell_range.start_row),
+                        dst_c + (c - cell_range.start_col),
+                        src_val,
+                        new_formula=src_fml,
+                    )
+                )
+            cmds.append(SetCellCommand(sheet, r, c, None))
+
+        if cmds:
+            composite = CompositeCommand(cmds)
+            app.undo_stack.push(composite)
+            app.workbook.modified = True
+
         app.grid.visual_anchor_row += dr
         app.grid.visual_anchor_col += dc
         app.grid.move_cursor(app.cursor_row + dr, app.cursor_col + dc)

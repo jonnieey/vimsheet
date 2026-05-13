@@ -119,6 +119,54 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
 
+            # gx prefix — swap cell with address
+            case "gx":
+                app._key_buffer = ""
+                app._swap_buf = ""
+                app._swap_mode = "cell"
+                app._swap_keep_cursor = False
+                app.status_bar.show_message("gx: ")
+                return
+            case "gX":
+                app._key_buffer = ""
+                app._swap_buf = ""
+                app._swap_mode = "cell"
+                app._swap_keep_cursor = True
+                app.status_bar.show_message("gX: ")
+                return
+
+            # grx prefix — swap row with target row
+            case "grx":
+                app._key_buffer = ""
+                app._swap_buf = ""
+                app._swap_mode = "row"
+                app._swap_keep_cursor = False
+                app.status_bar.show_message("grx: ")
+                return
+            case "grX":
+                app._key_buffer = ""
+                app._swap_buf = ""
+                app._swap_mode = "row"
+                app._swap_keep_cursor = True
+                app.status_bar.show_message("grX: ")
+                return
+
+            # gcx prefix — swap column with target column
+            case "gcx":
+                app._key_buffer = ""
+                app._swap_buf = ""
+                app._swap_mode = "col"
+                app._swap_keep_cursor = False
+                app.status_bar.show_message("gcx: ")
+                return
+            case "gcX":
+                app._key_buffer = ""
+                app._swap_buf = ""
+                app._swap_mode = "col"
+                app._swap_keep_cursor = True
+                app.status_bar.show_message("gcX: ")
+                return
+
             # c prefix — change (clear + enter insert)
             case "cw" | "cc":
                 self._clear_cell()
@@ -365,6 +413,8 @@ class NormalHandler:
             # Pending prefixes (no standalone action for these)
             case (
                 "c"
+                | "gr"
+                | "gc"
                 | "gs"
                 | "g"
                 | "i"
@@ -993,20 +1043,31 @@ class NormalHandler:
         app.grid.refresh_grid()
 
     def _shift_cell(self, dr: int, dc: int) -> None:
-        """Move the current cell in direction (dr, dc), overwriting destination."""
+        """Move the current cell in direction (dr, dc), swapping with destination."""
         if self._check_lock():
             return
-        from vimsheet.model.range import CellRange
-        from vimsheet.model.undo import ShiftCellsCommand
+        from vimsheet.model.undo import CompositeCommand, SetCellCommand
 
         app = self._app
         r, c = app.cursor_row, app.cursor_col
         dst_r, dst_c = r + dr, c + dc
         if dst_r < 0 or dst_c < 0:
             return
-        src = CellRange(r, c, r, c)
-        cmd = ShiftCellsCommand(app.workbook.active_sheet, src, dr, dc)
-        app.undo_stack.push(cmd)
+
+        sheet = app.workbook.active_sheet
+        src_cell = sheet.get_cell(r, c)
+        src_val = src_cell.value if src_cell else None
+        src_fml = src_cell.formula if src_cell else None
+
+        cmds = []
+        # Move source cell to destination
+        if src_val is not None or src_fml is not None:
+            cmds.append(SetCellCommand(sheet, dst_r, dst_c, src_val, new_formula=src_fml))
+        # Clear source cell
+        cmds.append(SetCellCommand(sheet, r, c, None))
+
+        composite = CompositeCommand(cmds)
+        app.undo_stack.push(composite)
         app.workbook.modified = True
         app.grid.move_cursor(dst_r, dst_c)
         app.grid.refresh_grid()

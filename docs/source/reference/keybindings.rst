@@ -148,6 +148,12 @@ Normal Mode
 
    * - ``gt`` / ``gT``
      - Next sheet / previous sheet
+   * - ``gx`` / ``gX``
+     - Swap cell with target address (X keeps cursor at source)
+   * - ``grx`` / ``grX``
+     - Swap row with target row number
+   * - ``gcx`` / ``gcX``
+     - Swap column with target column letter
    * - ``g{n}``
      - Go to sheet number *n*
    * - ``ZZ``
