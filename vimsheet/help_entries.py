@@ -24,7 +24,12 @@ register_help("NAV", "Arrow keys", "Move cursor", subgroup="Cursor", order=11)
 register_help(
     "NAV", "w / b", "Jump right / left to next non-empty block", subgroup="Cursor", order=12
 )
-register_help("NAV", "0 / $", "Jump to start / end of row", subgroup="Cursor", order=13)
+register_help(
+    "NAV", "0 / $ / ^", "Jump to start / end / first non-empty of row", subgroup="Cursor", order=13
+)
+register_help(
+    "NAV", "Ctrl+Home / Ctrl+End", "Jump to first / last cell in sheet", subgroup="Cursor", order=14
+)
 register_help("NAV", "Ctrl+d / Ctrl+u", "Half-page down / up", subgroup="Scrolling", order=20)
 register_help("NAV", "Ctrl+f / Ctrl+b", "Page down / up", subgroup="Scrolling", order=21)
 register_help("NAV", "Space", "Page down", subgroup="Scrolling", order=22)
@@ -35,6 +40,7 @@ register_help(
 register_help("NAV", "nG", "Go to row n  (e.g. 10G)", subgroup="Jumps", order=32)
 register_help("NAV", "go<addr> Enter", "Jump to address  (e.g. goC5)", subgroup="Jumps", order=33)
 register_help("NAV", "Ctrl+↓/↑/→/←", "Jump to next non-empty block", subgroup="Jumps", order=34)
+register_help("NAV", "gt / gT / g<digit>", "Next / prev / Nth sheet", subgroup="Jumps", order=35)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # EDITING
@@ -54,17 +60,20 @@ register_help("EDIT", "grx / grX", "Swap row with target row number", subgroup="
 register_help(
     "EDIT", "gcx / gcX", "Swap column with target column letter", subgroup="Sheet", order=11
 )
-register_help("EDIT", "cw / cc", "Clear cell and enter INSERT mode", subgroup="Sheet", order=11)
-register_help("EDIT", "dw", "Clear cell content (delete word)", subgroup="Sheet", order=11)
-register_help("EDIT", "d$", "Delete cell content to end of formula bar", subgroup="Sheet", order=11)
+register_help("EDIT", "cw / cc / C", "Clear cell and enter INSERT mode", subgroup="Sheet", order=11)
+register_help("EDIT", "dw", "Clear cell content", subgroup="Sheet", order=11)
+register_help(
+    "EDIT", "d$ / D", "Delete cell content to end of formula bar", subgroup="Sheet", order=11
+)
 register_help("EDIT", "gw", "Open cell in $EDITOR / $VISUAL", subgroup="Sheet", order=12)
 register_help("EDIT", "A / I", "Insert mode at end / start of cell", subgroup="Sheet", order=12)
 register_help("EDIT", "S", "Clear cell and enter insert (left-aligned)", subgroup="Sheet", order=13)
-register_help("EDIT", "x", "Clear cell content", subgroup="Sheet", order=14)
+register_help("EDIT", "x / X", "Clear cell / clear and move left", subgroup="Sheet", order=14)
 register_help(
     "EDIT", "gv", "Replace formula with current computed value", subgroup="Sheet", order=15
 )
 register_help("EDIT", "zl / zL", "Lock / unlock cell", subgroup="Sheet", order=16)
+register_help("EDIT", "Alt+Enter", "Insert newline in cell content", subgroup="Sheet", order=17)
 register_help(
     "EDIT",
     "A / I",
@@ -97,9 +106,14 @@ register_help(
 )
 register_help("EDIT", "dd", "Clear cell value", subgroup="Yank/Paste", order=34)
 register_help("EDIT", "u / Ctrl+r", "Undo / Redo", subgroup="Undo", order=40)
+register_help("EDIT", "U", "Restore cell from history", subgroup="Undo", order=41)
 register_help(
-    "EDIT", "gsj / gsk / gsl / gsh", "Shift cell down/up/right/left", subgroup="Undo", order=41
+    "EDIT", "gsj / gsk / gsl / gsh", "Shift cell down/up/right/left", subgroup="Undo", order=42
 )
+register_help("EDIT", ".", "Repeat last action", subgroup="Undo", order=43)
+register_help("EDIT", "Ctrl+g", "Show file info", subgroup="Misc", order=50)
+register_help("EDIT", "f1", "Open help screen", subgroup="Misc", order=51)
+register_help("EDIT", "z_ / z+", "Collapse / expand current row", subgroup="Misc", order=52)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ROWS & COLUMNS
@@ -107,7 +121,14 @@ register_help(
 register_help("ROWS", "ir / iR", "Insert row above / below", subgroup="Insert", order=10)
 register_help("ROWS", "ic / iC", "Insert column left / right", subgroup="Insert", order=11)
 register_help("ROWS", "dr / dc", "Delete row / column", subgroup="Delete", order=20)
+register_help("ROWS", "hr / hc", "Hide row / column", subgroup="Hide/Show", order=25)
+register_help("ROWS", "sr / sc", "Show row / column", subgroup="Hide/Show", order=26)
 register_help("ROWS", "+ / - / _", "Widen / narrow / auto-fit column", subgroup="Resize", order=30)
+register_help("ROWS", "z_ / z+", "Collapse / expand row height", subgroup="Resize", order=31)
+register_help(
+    "ROWS", "zc / zo / za", "Close / open / toggle row group", subgroup="Groups", order=40
+)
+register_help("ROWS", "zR / zM", "Open / close all row groups", subgroup="Groups", order=41)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # VISUAL MODE
@@ -122,7 +143,11 @@ register_help(
 register_help(
     "VIS", "o", "Move cursor to opposite corner of selection", subgroup="Selection", order=11
 )
-register_help("VIS", "Esc", "Exit visual mode", subgroup="Selection", order=12)
+register_help(
+    "VIS", "H / M / L", "Top / middle / bottom of visible area", subgroup="Selection", order=12
+)
+register_help("VIS", "Esc", "Exit visual mode", subgroup="Selection", order=13)
+register_help("VIS", "go<addr>", "Extend selection to address", subgroup="Selection", order=14)
 register_help("VIS", "y", "Yank selection", subgroup="Operations", order=20)
 register_help("VIS", "d / x", "Delete / clear selection", subgroup="Operations", order=21)
 register_help("VIS", "p", "Paste into selection", subgroup="Operations", order=22)
@@ -134,6 +159,19 @@ register_help(
     "Shift selection down/up/right/left",
     subgroup="Operations",
     order=25,
+)
+register_help(
+    "VIS", "> / <", "Shift selection right / left 1 column", subgroup="Operations", order=26
+)
+register_help(
+    "VIS",
+    "Ctrl+a / Ctrl+x",
+    "Increment / decrement all numeric cells",
+    subgroup="Operations",
+    order=27,
+)
+register_help(
+    "VIS", "z_ / z+", "Collapse / expand all selected rows", subgroup="Operations", order=28
 )
 register_help(
     "VIS", "= (visual)", "Fill selection with value / sequence", subgroup="Operations", order=26
@@ -158,7 +196,9 @@ register_help("MARKS", "'<a-z>", "Jump to mark", subgroup="Marks", order=11)
 register_help("MARKS", "/ pattern", "Search forward", subgroup="Find", order=20)
 register_help("MARKS", "? pattern", "Search backward", subgroup="Find", order=21)
 register_help("MARKS", "n / N", "Next / previous match", subgroup="Find", order=22)
-register_help("MARKS", "*", "Search for current cell value", subgroup="Find", order=23)
+register_help(
+    "MARKS", "* / #", "Search for current cell value forward / backward", subgroup="Find", order=23
+)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # COMMAND MODE
@@ -202,6 +242,14 @@ register_help(
     "CMD", ":nextsheet / :prevsheet", "Switch between sheets", subgroup="Sheets", order=23
 )
 register_help(
+    "CMD", ":buffers / :bufs / :ls", "List open buffers / sheets", subgroup="Sheets", order=24
+)
+register_help(
+    "CMD", ":buffer / :buf <name>", "Switch to buffer / sheet", subgroup="Sheets", order=25
+)
+register_help("CMD", ":bd / :bdel / :bdelete", "Close buffer / sheet", subgroup="Sheets", order=26)
+register_help("CMD", ":split / :sp", "Split and open in new sheet", subgroup="Sheets", order=27)
+register_help(
     "CMD",
     ":sort <col> asc|desc",
     "Sort columns (supports A:D, A,B,C ranges)",
@@ -219,6 +267,8 @@ register_help("CMD", ":swap <addr>", "Swap current cell with address", subgroup=
 register_help("CMD", ":swap row <n>", "Swap current row with row n", subgroup="Data", order=33)
 register_help("CMD", ":swap col <c>", "Swap current col with col c", subgroup="Data", order=33)
 register_help("CMD", ":find <pat>", "Highlight matching cells", subgroup="Data", order=34)
+register_help("CMD", ":findnext / n", "Jump to next search match", subgroup="Data", order=34)
+register_help("CMD", ":findprev / N", "Jump to previous search match", subgroup="Data", order=34)
 register_help(
     "CMD", ":replace <old> <new>", "Find and replace (whole-value match)", subgroup="Data", order=35
 )
@@ -266,6 +316,8 @@ register_help("CMD", ":name <id> <range>", "Create named range", subgroup="Data"
 register_help(
     "CMD", ":fill <n> <value>", "Fill N cells with value/range", subgroup="Data", order=45
 )
+register_help("CMD", ":autofit / :af", "Auto-fit column at cursor", subgroup="Data", order=45)
+register_help("CMD", ":colwidth / :cw <n>", "Set column width at cursor", subgroup="Data", order=45)
 register_help("CMD", ":freeze row N", "Freeze top N rows", subgroup="Data", order=46)
 register_help("CMD", ":unfreeze", "Remove freeze", subgroup="Data", order=47)
 register_help(
@@ -308,6 +360,22 @@ register_help(
 register_help("CMD", ":fetchlist", "Show all active FETCH cells", subgroup="Config", order=66)
 register_help("CMD", ":funcs", "List registered formula functions", subgroup="Config", order=67)
 register_help("CMD", ":help", "Show this screen", subgroup="Config", order=68)
+register_help(
+    "CMD", ":rowgroup <open|close|toggle> <row>", "Manage row groups", subgroup="Config", order=69
+)
+register_help(
+    "CMD",
+    ":colgroup <open|close|toggle> <col>",
+    "Manage column groups",
+    subgroup="Config",
+    order=70,
+)
+register_help("CMD", ":messages", "Show message history", subgroup="Config", order=71)
+register_help(
+    "CMD", ":validate <cell>", "Show validation rules for cell", subgroup="Config", order=72
+)
+register_help("CMD", ":version", "Show application version", subgroup="Config", order=73)
+register_help("CMD", ":undodelsheet", "Restore last deleted sheet", subgroup="Config", order=74)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # MACROS
