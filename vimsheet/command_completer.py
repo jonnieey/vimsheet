@@ -74,6 +74,8 @@ _ALL_COMMANDS = sorted(
         "hidecol",
         "hiderow",
         "history",
+        "mess",
+        "messages",
         "loadtext",
         "lt",
         "macro",

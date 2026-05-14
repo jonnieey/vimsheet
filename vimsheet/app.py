@@ -172,6 +172,7 @@ class VimSheetApp(App[None]):
         # Start autosave timer if enabled
         if self.config.autosave:
             self._start_autosave()
+        self.status_bar.set_history_size(self.config.message_history_size)
         self._sync_formula_bar()
         self._sync_status_bar()
         self.grid.focus()
@@ -820,6 +821,15 @@ class VimSheetApp(App[None]):
                 self.status_bar.show_message(f"Auto-fit column {col + 1}")
 
             # ---- Sort ----
+            case "messages" | "mess":
+                from vimsheet.ui.messages_screen import MessagesScreen
+
+                msgs = list(self.status_bar.message_history)
+                if not msgs:
+                    self.status_bar.show_message("No messages")
+                    return
+                self.push_screen(MessagesScreen(msgs))
+
             case "funcs" | "functions":
                 from vimsheet.ui.funcs_screen import FuncsScreen
 

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import contextlib
 import time
+from collections import deque
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 from textual.app import ComposeResult
 from textual.reactive import reactive
@@ -11,6 +14,18 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from vimsheet.controller.mode import Mode
+
+if TYPE_CHECKING:
+    pass
+
+
+@dataclass
+class MessageEntry:
+    """A single status bar message stored in history."""
+
+    text: str
+    timestamp: float
+    level: str  # "info", "error", "success"
 
 
 class StatusBar(Widget):
@@ -76,6 +91,17 @@ class StatusBar(Widget):
     #   3 = transient notifications (show_message)
     _priority: int = 0
 
+    _last_level: str = "info"
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.message_history: deque[MessageEntry] = deque(maxlen=200)
+
+    def set_history_size(self, size: int) -> None:
+        """Change the max length of the message history deque."""
+        old = self.message_history
+        self.message_history = deque(old, maxlen=max(size, 10))
+
     def compose(self) -> ComposeResult:
         """Lay out status segments."""
         yield Static("NORMAL", id="status-mode", classes="segment")
@@ -131,13 +157,100 @@ class StatusBar(Widget):
         """Update transient message label."""
         self.query_one("#status-message", Static).update(value)
 
-    def show_message(self, text: str, duration: float = 3.0, priority: int = 3) -> None:
+    _ERROR_KEYWORDS = frozenset(
+        [
+            "error",
+            "fail",
+            "invalid",
+            "not found",
+            "unknown",
+            "nothing",
+            "cannot",
+            "no match",
+            "no history",
+            "#ref",
+            "#http",
+            "#timeout",
+            "#fetch",
+            "usage:",
+            "not set",
+            "cell is locked",
+            "validation failed",
+            "bad range",
+            "bad address",
+            "unknown command",
+            "script error",
+            "script timed out",
+            "file not found",
+            "no data loaded",
+            "no messages",
+            "no buffer",
+            "no active",
+            "not defined",
+        ]
+    )
+
+    _SUCCESS_KEYWORDS = frozenset(
+        [
+            "sorted by",
+            "written:",
+            "saved",
+            "deleted",
+            "added",
+            "filled",
+            "yanked",
+            "pasted",
+            "redo",
+            "replaced",
+            "frozen",
+            "unfrozen",
+            "filter cleared",
+            "recalculated",
+            "restored",
+            "moved",
+            "renamed",
+            "copied",
+            "duplicated",
+            "macro recorded",
+            "undo!",
+        ]
+    )
+
+    @classmethod
+    def _detect_level(cls, text: str) -> str:
+        """Auto-detect message level from text content."""
+        lower = text.lower()
+        for kw in cls._ERROR_KEYWORDS:
+            if kw in lower:
+                return "error"
+        for kw in cls._SUCCESS_KEYWORDS:
+            if kw in lower:
+                return "success"
+        return "info"
+
+    def show_message(
+        self,
+        text: str,
+        duration: float = 3.0,
+        priority: int = 3,
+        level: str | None = None,
+    ) -> None:
         """Show a transient message.
 
         Skipped if a higher-priority message is currently displayed.
+
+        *level* is ``"info"``, ``"error"``, or ``"success"`` — controls the
+        display colour and is stored in the message history.
+
+        If *level* is ``None`` (default), it is auto-detected from the message
+        text using keyword matching.
         """
         if priority < self._priority:
             return
+        if level is None:
+            level = self._detect_level(text)
+        self._last_level = level
+        self.message_history.append(MessageEntry(text, time.time(), level))
         self._write_message(text, priority)
         self.set_timer(duration, self._clear_message)
 
@@ -156,7 +269,16 @@ class StatusBar(Widget):
         self._priority = priority if text else 0
         self.message = text
         with contextlib.suppress(Exception):
-            self.query_one("#status-message", Static).update(text)
+            msg = self.query_one("#status-message", Static)
+            color = (
+                "red"
+                if self._last_level == "error"
+                else "green"
+                if self._last_level == "success"
+                else "yellow"
+            )
+            msg.styles.color = color
+            msg.update(text)
 
     def _clear_message(self) -> None:
         """Auto-clear timer callback — skip if a higher-priority message is active."""
