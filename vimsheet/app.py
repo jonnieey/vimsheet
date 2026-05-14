@@ -435,16 +435,20 @@ class VimSheetApp(App[None]):
         match key:
             case "escape":
                 self._swap_buf = None
-                self.status_bar.set_persistent_message("")
+                self.status_bar.set_persistent_message("", priority=2)
             case "enter" | "\r" | "\n":
                 self._do_swap()
             case "backspace":
                 if self._swap_buf:
                     self._swap_buf = self._swap_buf[:-1]
-                self.status_bar.show_message(f"{self._swap_mode_prefix()}: {self._swap_buf}")
+                self.status_bar.set_persistent_message(
+                    f"{self._swap_mode_prefix()}: {self._swap_buf}", priority=2
+                )
             case _ if len(key) == 1 and key.isprintable():
                 self._swap_buf = (self._swap_buf or "") + key
-                self.status_bar.show_message(f"{self._swap_mode_prefix()}: {self._swap_buf}")
+                self.status_bar.set_persistent_message(
+                    f"{self._swap_mode_prefix()}: {self._swap_buf}", priority=2
+                )
         self._sync_formula_bar()
         self._sync_status_bar()
 
@@ -2431,7 +2435,15 @@ class VimSheetApp(App[None]):
     def _ask_confirm(self, message: str, callback: Any) -> None:
         """Show *message* in the status bar and wait for y / n / Enter."""
         self._pending_confirm = (message, callback)
-        self.status_bar.set_persistent_message(f"{message} [y/N]: ")
+        prompt = f"{message} [y/N]: "
+        self.status_bar.set_persistent_message(prompt, priority=1)
+        with contextlib.suppress(Exception):
+            self.formula_bar.update_cell(
+                self.formula_bar.cell_address,
+                prompt,
+                locked=False,
+                cursor_pos=len(prompt),
+            )
 
     # -----------------------------------------------------------------------
     # Buffer management
@@ -2624,6 +2636,18 @@ class VimSheetApp(App[None]):
         address = rowcol_to_a1(r, c)
         cell = self.workbook.active_sheet.get_cell(r, c)
         cursor_pos = -1
+
+        # Show confirm prompt in formula bar when pending
+        if self._pending_confirm is not None:
+            msg, _ = self._pending_confirm
+            content = f"{msg} [y/N]: "
+            cursor_pos = len(content)
+            locked = False
+            self.formula_bar.update_cell(address, content, locked, cursor_pos=cursor_pos)
+            self.formula_bar.is_modified = self.workbook.modified
+            self.formula_bar.mode = self.mode
+            return
+
         match self.mode:
             case Mode.INSERT:
                 content = self._insert_buffer
@@ -2652,13 +2676,24 @@ class VimSheetApp(App[None]):
         self.status_bar.used_rows = self.workbook.active_sheet.max_row + 1
         self.status_bar.filename = self.workbook.filepath.name if self.workbook.filepath else ""
         self.status_bar.file_modified = self.workbook.modified
-        # Preserve the command prompt — don't overwrite with positional info
+
+        # Re-assert high-priority prompts — these survive any transient messages
+        if self._pending_confirm is not None:
+            msg, _ = self._pending_confirm
+            self.status_bar.set_persistent_message(f"{msg} [y/N]: ", priority=1)
+            return
+        if self._swap_buf is not None:
+            self.status_bar.set_persistent_message(
+                f"{self._swap_mode_prefix()}: {self._swap_buf}", priority=2
+            )
+            return
         if self.mode == Mode.COMMAND:
-            self.status_bar.set_persistent_message(f":{self._command_buffer}")
+            self.status_bar.set_persistent_message(f":{self._command_buffer}", priority=2)
             return
         if self.mode == Mode.SEARCH:
-            self.status_bar.set_persistent_message(self._command_buffer)
+            self.status_bar.set_persistent_message(self._command_buffer, priority=2)
             return
+
         if self.mode.is_visual():
             sel = self.grid.visual_selection()
             if sel:

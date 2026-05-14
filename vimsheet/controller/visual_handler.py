@@ -25,17 +25,17 @@ class VisualHandler:
         if app._visual_goto_buf is not None:
             if key == "escape":
                 app._visual_goto_buf = None
-                app.status_bar.set_persistent_message("")
+                app.status_bar.set_persistent_message("", priority=2)
             elif key in ("enter", "\r", "\n"):
                 self._goto_extend(app._visual_goto_buf)
                 app._visual_goto_buf = None
-                app.status_bar.set_persistent_message("")
+                app.status_bar.set_persistent_message("", priority=2)
             elif key == "backspace":
                 app._visual_goto_buf = app._visual_goto_buf[:-1]
-                app.status_bar.show_message(f"go: {app._visual_goto_buf}")
+                app.status_bar.set_persistent_message(f"go: {app._visual_goto_buf}", priority=2)
             elif len(key) == 1 and key.isprintable():
                 app._visual_goto_buf += key
-                app.status_bar.show_message(f"go: {app._visual_goto_buf}")
+                app.status_bar.set_persistent_message(f"go: {app._visual_goto_buf}", priority=2)
             app._sync_formula_bar()
             app._sync_status_bar()
             return
@@ -56,7 +56,7 @@ class VisualHandler:
                 app.grid.move_to_first_row()
             elif chord == "g" and key == "o":
                 app._visual_goto_buf = ""
-                app.status_bar.show_message("go: ")
+                app.status_bar.set_persistent_message("go: ", priority=2)
             elif chord == "g" and key == "s":
                 app._visual_chord = "gs"
                 return

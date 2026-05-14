@@ -69,6 +69,13 @@ class StatusBar(Widget):
     file_modified: reactive[bool] = reactive(False)
     message: reactive[str] = reactive("")
 
+    # Message priority: higher values = more important.
+    #   0 = empty/default
+    #   1 = confirm prompts ([y/N])
+    #   2 = input prompts (gx:, go:, :, /, ?, digit count)
+    #   3 = transient notifications (show_message)
+    _priority: int = 0
+
     def compose(self) -> ComposeResult:
         """Lay out status segments."""
         yield Static("NORMAL", id="status-mode", classes="segment")
@@ -124,22 +131,37 @@ class StatusBar(Widget):
         """Update transient message label."""
         self.query_one("#status-message", Static).update(value)
 
-    def show_message(self, text: str, duration: float = 3.0) -> None:
-        """Show a transient message that auto-clears after *duration* seconds."""
-        self._write_message(text)
+    def show_message(self, text: str, duration: float = 3.0, priority: int = 3) -> None:
+        """Show a transient message.
+
+        Skipped if a higher-priority message is currently displayed.
+        """
+        if priority < self._priority:
+            return
+        self._write_message(text, priority)
         self.set_timer(duration, self._clear_message)
 
-    def set_persistent_message(self, text: str) -> None:
-        """Show a message with no auto-clear timer (for command mode prompt)."""
-        self._write_message(text)
+    def set_persistent_message(self, text: str, priority: int = 2) -> None:
+        """Show a message with no auto-clear timer (for prompts).
 
-    def _write_message(self, text: str) -> None:
-        """Write text directly to the message widget, bypassing reactive batching."""
+        Skipped if a higher-priority message is currently displayed.
+        Pass empty string + appropriate priority to clear.
+        """
+        if text and priority < self._priority:
+            return
+        self._write_message(text, priority)
+
+    def _write_message(self, text: str, priority: int = 3) -> None:
+        """Write text to the message widget and update priority."""
+        self._priority = priority if text else 0
         self.message = text
         with contextlib.suppress(Exception):
             self.query_one("#status-message", Static).update(text)
 
     def _clear_message(self) -> None:
+        """Auto-clear timer callback — skip if a higher-priority message is active."""
+        if self._priority > 3:
+            return
         self._write_message("")
 
     def update_cursor(self, row: int, col: int, address: str) -> None:

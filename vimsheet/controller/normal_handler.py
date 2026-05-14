@@ -72,22 +72,22 @@ class NormalHandler:
             # go{address}<Enter> — navigate to cell address
             case "go":
                 app._key_buffer = "go"
-                app.status_bar.show_message("go: ")
+                app.status_bar.set_persistent_message("go: ", priority=2)
                 return
             case s if s.startswith("go") and len(s) > 2:
                 if key == "escape":
                     app._key_buffer = ""
-                    app.status_bar.show_message("")
+                    app.status_bar.set_persistent_message("", priority=2)
                 elif key in ("enter", "\r", "\n"):
                     addr = app._key_buffer[2:]
                     self._goto_address(addr)
                     app._key_buffer = ""
                 elif key == "backspace":
                     app._key_buffer = buf[:-1] if len(buf) > 2 else "go"
-                    app.status_bar.show_message(f"go: {app._key_buffer[2:]}")
+                    app.status_bar.set_persistent_message(f"go: {app._key_buffer[2:]}", priority=2)
                 else:
                     app._key_buffer = s
-                    app.status_bar.show_message(f"go: {app._key_buffer[2:]}")
+                    app.status_bar.set_persistent_message(f"go: {app._key_buffer[2:]}", priority=2)
                 return
 
             # Sheet navigation
@@ -125,14 +125,14 @@ class NormalHandler:
                 app._swap_buf = ""
                 app._swap_mode = "cell"
                 app._swap_keep_cursor = False
-                app.status_bar.show_message("gx: ")
+                app.status_bar.set_persistent_message("gx: ", priority=2)
                 return
             case "gX":
                 app._key_buffer = ""
                 app._swap_buf = ""
                 app._swap_mode = "cell"
                 app._swap_keep_cursor = True
-                app.status_bar.show_message("gX: ")
+                app.status_bar.set_persistent_message("gX: ", priority=2)
                 return
 
             # grx prefix — swap row with target row
@@ -141,14 +141,14 @@ class NormalHandler:
                 app._swap_buf = ""
                 app._swap_mode = "row"
                 app._swap_keep_cursor = False
-                app.status_bar.show_message("grx: ")
+                app.status_bar.set_persistent_message("grx: ", priority=2)
                 return
             case "grX":
                 app._key_buffer = ""
                 app._swap_buf = ""
                 app._swap_mode = "row"
                 app._swap_keep_cursor = True
-                app.status_bar.show_message("grX: ")
+                app.status_bar.set_persistent_message("grX: ", priority=2)
                 return
 
             # gcx prefix — swap column with target column
@@ -157,14 +157,14 @@ class NormalHandler:
                 app._swap_buf = ""
                 app._swap_mode = "col"
                 app._swap_keep_cursor = False
-                app.status_bar.show_message("gcx: ")
+                app.status_bar.set_persistent_message("gcx: ", priority=2)
                 return
             case "gcX":
                 app._key_buffer = ""
                 app._swap_buf = ""
                 app._swap_mode = "col"
                 app._swap_keep_cursor = True
-                app.status_bar.show_message("gcX: ")
+                app.status_bar.set_persistent_message("gcX: ", priority=2)
                 return
 
             # c prefix — change (clear + enter insert)
