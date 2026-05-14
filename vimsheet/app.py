@@ -2725,12 +2725,29 @@ class VimSheetApp(App[None]):
             reg = self.macro_recorder.recording_register
             self.status_bar.message = f"Recording @{reg}..."
 
+    def _sync_grid_preview(self) -> None:
+        """Update grid live preview for insert/edit mode, or clear it otherwise."""
+        if self.mode == Mode.INSERT:
+            self.grid.set_preview(self.cursor_row, self.cursor_col, self._insert_buffer)
+            self.grid._rebuild_heights()
+            self.grid.refresh()
+        elif self.mode == Mode.EDIT:
+            self.grid.set_preview(self.cursor_row, self.cursor_col, self._edit_buffer)
+            self.grid._rebuild_heights()
+            self.grid.refresh()
+        else:
+            if self.grid._preview_row is not None:
+                self.grid.set_preview(None, None, "")
+                self.grid._rebuild_heights()
+                self.grid.refresh()
+
     def _on_sheet_changed(self) -> None:
         self._sync_sheet_tabs()
         self.grid.move_cursor(0, 0)
         self.grid.refresh_grid()
         self._sync_formula_bar()
         self._sync_status_bar()
+        self._sync_grid_preview()
 
     def _sync_sheet_tabs(self) -> None:
         names = [s.name for s in self.workbook.sheets]

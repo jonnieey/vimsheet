@@ -1,7 +1,8 @@
-"""GridWidget — virtual-scrolling spreadsheet grid."""
+"""GridWidget — virtual-scrolling spreadsheet grid with variable row heights."""
 
 from __future__ import annotations
 
+import bisect
 from typing import TYPE_CHECKING, Any
 
 from rich.segment import Segment
@@ -27,8 +28,12 @@ DEFAULT_COL_WIDTH = 10
 class GridWidget(ScrollView):
     """Virtual-scrolling spreadsheet grid.
 
+    Each data row occupies a variable number of virtual lines based on the
+    maximum newline count across all cells in that row.  A live preview
+    override allows insert/edit mode to show uncommitted multi-line content.
+
     The column-header row is *frozen* at viewport y=0 regardless of scroll
-    position. Data rows start at viewport y=1.
+    position.  Data rows start at viewport y=1.
     """
 
     # Suppress all ScrollView default bindings so our App.on_key gets clean events.
@@ -73,10 +78,21 @@ class GridWidget(ScrollView):
         self._config = config
         self._palette: GridPalette = GridPalette()
 
+        # Variable row heights
+        self._row_heights: list[int] = []
+        self._total_virtual_lines: int = 0
+        self._row_prefix: list[int] | None = None  # lazy prefix sum
+        self._needs_height_rebuild: bool = True
+
+        # Live preview during insert/edit mode
+        self._preview_row: int | None = None
+        self._preview_col: int | None = None
+        self._preview_text: str = ""
+
     def on_mount(self) -> None:
+        self._rebuild_heights()
         w = ROW_HEADER_WIDTH + sum(self.get_col_width(c) + 1 for c in range(26))
-        h = max(self.sheet.max_row + 200, 1000)
-        self.virtual_size = Size(w, h)
+        self.virtual_size = Size(w, self._total_virtual_lines + 200)
 
     # -----------------------------------------------------------------------
     # Shortcuts
@@ -101,6 +117,55 @@ class GridWidget(ScrollView):
         self.refresh()
 
     # -----------------------------------------------------------------------
+    # Variable row heights — public API
+    # -----------------------------------------------------------------------
+
+    def set_preview(self, row: int | None, col: int | None, text: str) -> None:
+        self._preview_row = row
+        self._preview_col = col
+        self._preview_text = text
+
+    def _rebuild_heights(self) -> None:
+        max_data_row = max(self.sheet.max_row, self.cursor_row, 99)
+        heights = []
+        for r in range(max_data_row + 1):
+            max_lines = 1
+            if r <= self.sheet.max_row:
+                for c in range(self.sheet.max_col + 1):
+                    cell = self.sheet.get_cell(r, c)
+                    text = (cell.display or "") if cell else ""
+                    lines = text.count("\n") + 1
+                    if lines > max_lines:
+                        max_lines = lines
+            # Live preview overrides the preview row's height
+            if self._preview_row is not None and r == self._preview_row:
+                preview_lines = self._preview_text.count("\n") + 1
+                if preview_lines > max_lines:
+                    max_lines = preview_lines
+            heights.append(max_lines)
+        self._row_heights = heights
+        self._total_virtual_lines = sum(heights)
+        self._row_prefix = None  # invalidate
+
+    def _get_prefix(self) -> list[int]:
+        if self._row_prefix is None:
+            prefix = [0]
+            for h in self._row_heights:
+                prefix.append(prefix[-1] + h)
+            self._row_prefix = prefix
+        return self._row_prefix
+
+    def _row_virtual_y(self, row: int) -> int:
+        return self._get_prefix()[row]
+
+    def _virtual_y_to_row(self, vy: int) -> tuple[int, int]:
+        prefix = self._get_prefix()
+        idx = bisect.bisect_right(prefix, vy) - 1
+        idx = max(0, min(idx, len(self._row_heights) - 1))
+        sub = vy - prefix[idx]
+        return (idx, sub)
+
+    # -----------------------------------------------------------------------
     # Virtual size — header is frozen, so virtual height = data rows only
     # -----------------------------------------------------------------------
 
@@ -112,8 +177,7 @@ class GridWidget(ScrollView):
         return total
 
     def get_content_height(self, container: Size, viewport: Size, width: int) -> int:
-        # Virtual height covers only data rows (header is painted at y=0 always).
-        return max(self.sheet.max_row, self.cursor_row, 99) + 3
+        return self._total_virtual_lines + 1  # +1 for frozen header row
 
     # -----------------------------------------------------------------------
     # Rendering
@@ -125,20 +189,18 @@ class GridWidget(ScrollView):
         width = self.size.width
 
         if y == 0:
-            # Frozen header — not affected by vertical scroll
             return self._render_header_row(scroll_x, width)
 
-        # Data rows: y=1 shows data_row scroll_y, y=2 shows scroll_y+1, etc.
         scroll_y = int(self.scroll_offset.y)
-        data_row = (y - 1) + scroll_y
-        return self._render_data_row(data_row, scroll_x, width)
+        virtual_y = (y - 1) + scroll_y
+        data_row, sub_line = self._virtual_y_to_row(virtual_y)
+        return self._render_data_row(data_row, scroll_x, width, sub_line=sub_line)
 
     def _render_header_row(self, scroll_x: int, width: int) -> Strip:
         if self._config is not None and not self._config.show_col_headers:
             return Strip([Segment(" " * width)])
         hdr = Style(bgcolor=self._palette.header_bg, color=self._palette.header_fg, bold=True)
         div = Style(bgcolor=self._palette.header_bg, color=self._palette.header_divider)
-        # Corner cell — always pinned at left regardless of horizontal scroll
         corner = Strip([Segment(" " * ROW_HEADER_WIDTH, hdr)])
         data_width = width - ROW_HEADER_WIDTH
         segs: list[Segment] = []
@@ -158,48 +220,63 @@ class GridWidget(ScrollView):
                 break
         return corner + Strip(segs).crop(scroll_x, scroll_x + data_width)
 
-    def _render_data_row(self, row: int, scroll_x: int, width: int) -> Strip:
+    def _cell_display_text(self, row: int, col: int, sub_line: int) -> str:
+        """Return the text to display for one cell at a given sub-line."""
+        if self._preview_row is not None and row == self._preview_row and col == self._preview_col:
+            text = self._preview_text
+        else:
+            cell = self.sheet.get_cell(row, col)
+            text = (cell.display or "") if cell else ""
+        lines = text.split("\n")
+        return lines[sub_line] if sub_line < len(lines) else ""
+
+    def _render_data_row(self, row: int, scroll_x: int, width: int, sub_line: int = 0) -> Strip:
         is_cursor_row = row == self.cursor_row
         is_hidden = row in self.sheet.hidden_rows
         freeze_rows = self.sheet.freeze_rows
 
-        # Frozen-row separator: a visible divider after the last frozen row
-        if freeze_rows > 0 and row == freeze_rows and not is_hidden:
+        # Frozen-row separator: only on sub_line 0
+        if freeze_rows > 0 and row == freeze_rows and sub_line == 0 and not is_hidden:
             sep_style = Style(bgcolor=self._palette.frozen_sep, color=self._palette.frozen_sep)
             return Strip([Segment("─" * width, sep_style)])
 
         is_frozen_row = freeze_rows > 0 and row < freeze_rows
-        row_hdr_style = Style(bgcolor=self._palette.header_bg, color=self._palette.header_fg)
-        if is_cursor_row:
-            row_hdr_style = Style(
-                bgcolor=self._palette.cursor_header_bg,
-                color=self._palette.cursor_header_fg,
-                bold=True,
-            )
-        elif is_frozen_row:
-            row_hdr_style = Style(
-                bgcolor=self._palette.frozen_header_bg,
-                color=self._palette.header_fg,
-                bold=True,
-            )
 
-        # Show fold indicator when this row is the start of a group
-        fold_indicator = self._fold_indicator(row)
-        row_label = str(row + 1).rjust(ROW_HEADER_WIDTH - 2) + fold_indicator + " "
+        if sub_line == 0:
+            row_hdr_style = Style(bgcolor=self._palette.header_bg, color=self._palette.header_fg)
+            if is_cursor_row:
+                row_hdr_style = Style(
+                    bgcolor=self._palette.cursor_header_bg,
+                    color=self._palette.cursor_header_fg,
+                    bold=True,
+                )
+            elif is_frozen_row:
+                row_hdr_style = Style(
+                    bgcolor=self._palette.frozen_header_bg,
+                    color=self._palette.header_fg,
+                    bold=True,
+                )
+            fold_indicator = self._fold_indicator(row)
+            row_label = str(row + 1).rjust(ROW_HEADER_WIDTH - 2) + fold_indicator + " "
+            if self._config is not None and not self._config.show_row_headers:
+                row_label = " " * ROW_HEADER_WIDTH
+                row_hdr_style = Style()
+            row_hdr_strip = Strip([Segment(row_label, row_hdr_style)])
+        else:
+            # Continuation header: blank but same bgcolor
+            cont_style = Style(bgcolor=self._palette.header_bg)
+            if is_cursor_row:
+                cont_style = Style(bgcolor=self._palette.cursor_header_bg)
+            elif is_frozen_row:
+                cont_style = Style(bgcolor=self._palette.frozen_header_bg)
+            row_hdr_strip = Strip([Segment(" " * ROW_HEADER_WIDTH, cont_style)])
 
-        if self._config is not None and not self._config.show_row_headers:
-            row_label = " " * ROW_HEADER_WIDTH
-            row_hdr_style = Style()
-
-        # Row number — always pinned at left regardless of horizontal scroll
-        row_hdr_strip = Strip([Segment(row_label, row_hdr_style)])
         data_width = width - ROW_HEADER_WIDTH
 
         if is_hidden:
             hidden_label = "…" + " " * (ROW_HEADER_WIDTH - 1)
-            return Strip([Segment(hidden_label, row_hdr_style)]) + Strip(
-                [Segment(" " * data_width)]
-            )
+            hdr = Style(bgcolor=self._palette.header_bg)
+            return Strip([Segment(hidden_label, hdr)]) + Strip([Segment(" " * data_width)])
 
         segs: list[Segment] = []
         x = 0
@@ -211,20 +288,19 @@ class GridWidget(ScrollView):
                 x += cw
                 col += 1
                 continue
-            # Frozen-col separator: insert a divider segment after last frozen col
             if freeze_cols > 0 and col == freeze_cols:
                 segs.append(Segment("│", Style(color=self._palette.frozen_sep, bgcolor=None)))
-            cell = self.sheet.get_cell(row, col)
-            text = (cell.display or "") if cell else ""
-            style = self._cell_style(row, col, cell)
-            # Slightly dimmer background for frozen cells (not cursor, not selected)
+            text = self._cell_display_text(row, col, sub_line)
+            style = self._cell_style(row, col, self.sheet.get_cell(row, col))
             if freeze_cols > 0 and col < freeze_cols and not is_cursor_row:
                 from vimsheet.model.cell import Cell as _CT
 
+                cell = self.sheet.get_cell(row, col)
                 if not isinstance(cell, _CT) or (cell.fmt.bg_color is None):
                     style = style + Style(bgcolor=self._palette.frozen_cell_bg)
             if len(text) > cw - 1:
                 text = text[: cw - 2] + "…"
+            cell = self.sheet.get_cell(row, col)
             align = cell.fmt.align if cell else "right"
             if align == "center":
                 text = text.center(cw)
@@ -233,7 +309,6 @@ class GridWidget(ScrollView):
             else:
                 text = text.rjust(cw)
             segs.append(Segment(text, style))
-            # Column divider (1 char wide, neutral colour)
             div_bg = self._palette.alt_row_bg if row % 2 == 1 else None
             no_lines = self._config is not None and not self._config.show_grid_lines
             divider = " " if no_lines else "│"
@@ -294,7 +369,6 @@ class GridWidget(ScrollView):
         return style
 
     def _fold_indicator(self, row: int) -> str:
-        """Return a 1-char fold indicator for the row header."""
         for r1, r2 in self.sheet.row_groups:
             if row == r1:
                 rows_hidden = any(r in self.sheet.hidden_rows for r in range(r1, r2 + 1))
@@ -323,11 +397,9 @@ class GridWidget(ScrollView):
         col = max(0, col)
         self.cursor_row = row
         self.cursor_col = col
-        # Expand virtual space so scroll_to() isn't clamped at initial boundary
-        min_height = row + 200
+        min_height = self._row_virtual_y(row) + 200
         if min_height > self.virtual_size.height:
             self.virtual_size = Size(self.virtual_size.width, min_height)
-        # Expand horizontal virtual space if needed
         x = ROW_HEADER_WIDTH
         for c in range(col + 1):
             x += self.get_col_width(c)
@@ -421,15 +493,19 @@ class GridWidget(ScrollView):
         )
 
     def go_to_visible_top(self) -> None:
-        self.move_cursor(int(self.scroll_offset.y), self.cursor_col)
+        vy = int(self.scroll_offset.y)
+        row, _ = self._virtual_y_to_row(vy)
+        self.move_cursor(row, self.cursor_col)
 
     def go_to_visible_middle(self) -> None:
-        top = int(self.scroll_offset.y)
-        self.move_cursor(top + (self.size.height - 2) // 2, self.cursor_col)
+        vy = int(self.scroll_offset.y) + (self.size.height - 2) // 2
+        row, _ = self._virtual_y_to_row(vy)
+        self.move_cursor(row, self.cursor_col)
 
     def go_to_visible_bottom(self) -> None:
-        top = int(self.scroll_offset.y)
-        self.move_cursor(top + self.size.height - 3, self.cursor_col)
+        vy = int(self.scroll_offset.y) + self.size.height - 3
+        row, _ = self._virtual_y_to_row(vy)
+        self.move_cursor(row, self.cursor_col)
 
     # -----------------------------------------------------------------------
     # Visual selection
@@ -458,15 +534,15 @@ class GridWidget(ScrollView):
     # -----------------------------------------------------------------------
 
     def _scroll_cursor_into_view(self) -> None:
+        virtual_y = self._row_virtual_y(self.cursor_row)
         scroll_y = int(self.scroll_offset.y)
-        data_rows_visible = max(1, self.size.height - 1)  # subtract frozen header
+        data_rows_visible = max(1, self.size.height - 1)
 
-        if self.cursor_row < scroll_y:
-            self.scroll_to(y=self.cursor_row, animate=False)
-        elif self.cursor_row >= scroll_y + data_rows_visible:
-            self.scroll_to(y=self.cursor_row - data_rows_visible + 1, animate=False)
+        if virtual_y < scroll_y:
+            self.scroll_to(y=virtual_y, animate=False)
+        elif virtual_y >= scroll_y + data_rows_visible:
+            self.scroll_to(y=virtual_y - data_rows_visible + 1, animate=False)
 
-        # Horizontal (+1 per col for divider)
         x = ROW_HEADER_WIDTH
         for c in range(self.cursor_col):
             x += self.get_col_width(c) + 1
@@ -479,16 +555,18 @@ class GridWidget(ScrollView):
             self.scroll_to(x=x + cw - vis_w, animate=False)
 
     def scroll_cell_to_top(self) -> None:
-        self.scroll_to(y=self.cursor_row, animate=False)
+        self.scroll_to(y=self._row_virtual_y(self.cursor_row), animate=False)
 
     def scroll_cell_to_center(self) -> None:
+        virtual_y = self._row_virtual_y(self.cursor_row)
         data_rows_visible = max(1, self.size.height - 1)
         half = data_rows_visible // 2
-        self.scroll_to(y=max(0, self.cursor_row - half), animate=False)
+        self.scroll_to(y=max(0, virtual_y - half), animate=False)
 
     def scroll_cell_to_bottom(self) -> None:
+        virtual_y = self._row_virtual_y(self.cursor_row)
         data_rows_visible = max(1, self.size.height - 1)
-        self.scroll_to(y=max(0, self.cursor_row - data_rows_visible + 1), animate=False)
+        self.scroll_to(y=max(0, virtual_y - data_rows_visible + 1), animate=False)
 
     # -----------------------------------------------------------------------
     # Reactive watchers
@@ -504,4 +582,7 @@ class GridWidget(ScrollView):
         self.refresh()
 
     def refresh_grid(self) -> None:
+        self._rebuild_heights()
+        w = ROW_HEADER_WIDTH + sum(self.get_col_width(c) + 1 for c in range(self.sheet.max_col + 1))
+        self.virtual_size = Size(w, max(self._total_virtual_lines + 200, 1000))
         self.refresh()

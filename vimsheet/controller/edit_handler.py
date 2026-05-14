@@ -46,6 +46,7 @@ class EditHandler:
 
         app._sync_formula_bar()
         app._sync_status_bar()
+        app._sync_grid_preview()
 
     # -----------------------------------------------------------------------
     # Sub-mode: normal (vi motion within the line)
@@ -155,6 +156,9 @@ class EditHandler:
                 app._edit_cursor = (
                     max(0, min(pos, len(app._edit_buffer) - 1)) if app._edit_buffer else 0
                 )
+            case "alt+enter":
+                app._edit_buffer = buf[:pos] + "\n" + buf[pos:]
+                app._edit_cursor = pos + 1
             case "enter":
                 self._commit()
             case "backspace":
@@ -226,6 +230,7 @@ class EditHandler:
                 app._edit_chord = ""
                 self._sub = "normal"
                 app._sync_formula_bar()
+                app._sync_grid_preview()
                 return
             cmd = SetCellCommand(sheet, r, c, val)
 
@@ -238,6 +243,7 @@ class EditHandler:
         self._sub = "normal"
         app._sync_formula_bar()
         app._sync_status_bar()
+        app._sync_grid_preview()
         app.grid.refresh_grid()
 
 

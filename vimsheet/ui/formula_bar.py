@@ -95,9 +95,13 @@ class FormulaBar(Widget):
         text = self.formula_text or ""
         pos = self.cursor_pos
         if pos >= 0:
-            before = text[:pos]
-            at = text[pos] if pos < len(text) else " "
-            after = text[pos + 1 :] if pos < len(text) else ""
+            # Show only the current line (after last \n)
+            last_nl = text.rfind("\n", 0, pos)
+            display_text = text[last_nl + 1 :]
+            display_pos = pos - (last_nl + 1)
+            before = display_text[:display_pos]
+            at = display_text[display_pos] if display_pos < len(display_text) else " "
+            after = display_text[display_pos + 1 :] if display_pos < len(display_text) else ""
             t.append(before, style="white")
             if self.mode == Mode.INSERT:
                 t.append(at, style=f"underline white on {self._palette.formula_cursor_bg}")
@@ -105,7 +109,10 @@ class FormulaBar(Widget):
                 t.append(at, style=f"bold white on {self._palette.formula_cursor_bg}")
             t.append(after, style="white")
         else:
-            t.append(text, style="white")
+            # Show only last line when no cursor
+            last_nl = text.rfind("\n")
+            display_text = text[last_nl + 1 :] if last_nl >= 0 else text
+            t.append(display_text, style="white")
 
         t.append(lock, style="dim")
         t.append(dirty, style="red")

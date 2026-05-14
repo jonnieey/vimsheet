@@ -33,6 +33,10 @@ class InsertHandler:
                 app.mode = Mode.NORMAL
                 app._insert_buffer = ""
                 app._insert_cursor = 0
+            case "alt+enter":
+                self._fn_completions = []
+                app._insert_buffer = buf[:pos] + "\n" + buf[pos:]
+                app._insert_cursor = pos + 1
             case "enter":
                 self._fn_completions = []
                 em = getattr(app.config, "enter_moves", "down")
@@ -96,6 +100,7 @@ class InsertHandler:
 
         app._sync_formula_bar()
         app._sync_status_bar()
+        app._sync_grid_preview()
         self._show_autocomplete_hint()
 
     def _try_formula_complete(self, buf: str, pos: int) -> bool:
@@ -198,6 +203,7 @@ class InsertHandler:
                 app._insert_buffer = ""
                 app._insert_cursor = 0
                 app._sync_formula_bar()
+                app._sync_grid_preview()
                 return
             cmd = SetCellCommand(sheet, r, c, val)
         app.undo_stack.push(cmd)
@@ -214,6 +220,7 @@ class InsertHandler:
         app.grid.move_by(dr, dc)
         app._sync_formula_bar()
         app._sync_status_bar()
+        app._sync_grid_preview()
         app.grid.refresh_grid()
 
 
