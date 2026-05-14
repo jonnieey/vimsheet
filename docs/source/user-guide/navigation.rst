@@ -35,9 +35,13 @@ Cell Movement
      - First column of row
    * - ``$``
      - Last column non-empty cell in the row
-   * - ``^``
-     - First non-empty cell in row
-   * - ``H``
+    * - ``^``
+      - First non-empty cell in row
+    * - ``Ctrl+Home``
+      - Move to first cell (A1)
+    * - ``Ctrl+End``
+      - Move to last cell in sheet
+    * - ``H``
      - Top of visible viewport
    * - ``M``
      - Middle of visible viewport

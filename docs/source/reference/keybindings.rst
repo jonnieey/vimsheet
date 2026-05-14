@@ -24,12 +24,14 @@ Normal Mode
      - Jump backward to previous edge of data
    * - ``gg`` / ``G``
      - Go to first / last cell of the column
-   * - ``{n}G``
-     - Go to row *n*
-   * - ``0`` / ``$``
-     - First / last column of row
-   * - ``^``
-     - First non-empty cell in row
+    * - ``{n}G``
+      - Go to row *n*
+    * - ``0`` / ``$``
+      - First / last column of row
+    * - ``^``
+      - First non-empty cell in row
+    * - ``Ctrl+Home`` / ``Ctrl+End``
+      - Jump to first / last cell in sheet
    * - ``H`` / ``M`` / ``L``
      - Top / middle / bottom of visible viewport
    * - ``Ctrl+f`` / ``Ctrl+b``
@@ -130,18 +132,20 @@ Normal Mode
      - Hide current row / column
    * - ``sr`` / ``sc``
      - Show hidden row / column
-   * - ``zl`` / ``zL``
-     - Lock / unlock current cell
+    * - ``zl`` / ``zL``
+      - Lock / unlock current cell
+    * - ``z_`` / ``z+``
+      - Collapse / expand row height
 
-   * - ``gsj`` / ``gsk`` / ``gsl`` / ``gsh``
-     - Shift cells down / up / right / left
+    * - ``gsj`` / ``gsk`` / ``gsl`` / ``gsh``
+      - Shift cells down / up / right / left
 
-   * - ``zc`` / ``zo``
-     - Close / open fold at cursor
-   * - ``za``
-     - Toggle fold at cursor
-   * - ``zR`` / ``zM``
-     - Open all folds / close all folds
+    * - ``zc`` / ``zo``
+      - Close / open fold at cursor
+    * - ``za``
+      - Toggle fold at cursor
+    * - ``zR`` / ``zM``
+      - Open all folds / close all folds
 
    * - ``tb`` / ``ti`` / ``tu`` / ``tl`` / ``tr`` / ``tc``
      - Toggle bold / italic / underline / left-align / right-align / center
@@ -160,8 +164,15 @@ Normal Mode
      - Save and quit
    * - ``ZQ``
      - Quit without saving
-   * - ``gw``
-     - Open current cell in external editor (``$EDITOR``)
+    * - ``gw``
+      - Open current cell in external editor (``$EDITOR``)
+
+    * - ``Ctrl+g``
+      - Show file info
+    * - ``f1``
+      - Open help screen
+    * - ``U``
+      - Restore previous cell value from history
 
 Insert Mode
 -----------
@@ -187,8 +198,10 @@ Insert Mode
      - Delete word before cursor
    * - ``Ctrl+u``
      - Clear entire cell content
-   * - ``Tab`` in formula
-     - Autocomplete ``@FUNCTION_NAME``
+    * - ``Tab`` in formula
+      - Autocomplete ``@FUNCTION_NAME``
+    * - ``Alt+Enter``
+      - Insert newline within cell content
 
 Edit Mode
 ---------
@@ -233,31 +246,45 @@ Visual Modes
 
    * - Key
      - Action
-   * - ``h`` / ``j`` / ``k`` / ``l``
-     - Extend selection
-   * - ``w`` / ``b``
-     - Extend by word
-   * - ``0`` / ``$``
-     - Extend to start / end of row
-   * - ``gg`` / ``G``
-     - Extend to top / bottom
-   * - ``y``
-     - Yank (copy) selection
-   * - ``d`` / ``x``
-     - Delete / cut selection
-   * - ``p`` / ``P``
-     - Paste over selection / paste above
-   * - ``>`` / ``<``
-     - Shift right / shift left
-   * - ``:``
-     - Execute command on selection (``:fill``, ``:sort``, ``:plot``, etc.)
-   * - ``tb`` / ``ti`` / ``tu``
-     - Bold / italic / underline formatting
-   * - ``tl`` / ``tr`` / ``tc``
-     - Align left / right / center
-   * - ``gsj`` / ``gsk`` / ``gsl`` / ``gsh``
-     - Shift selection down / up / right / left
-   * - ``!``
-     - Pipe selection through external command
-   * - ``Escape``
-     - Return to NORMAL mode
+    * - ``h`` / ``j`` / ``k`` / ``l``
+      - Extend selection
+    * - ``w`` / ``b``
+      - Extend by word
+    * - ``0`` / ``$``
+      - Extend to start / end of row
+    * - ``gg`` / ``G``
+      - Extend to top / bottom
+    * - ``H`` / ``M`` / ``L``
+      - Top / middle / bottom of visible viewport
+    * - ``Ctrl+f`` / ``Ctrl+b``
+      - Page down / page up
+    * - ``Ctrl+d`` / ``Ctrl+u``
+      - Half page down / half page up
+    * - ``go<addr>Enter``
+      - Extend selection to address
+    * - ``y``
+      - Yank (copy) selection
+    * - ``d`` / ``x``
+      - Delete / cut selection
+    * - ``p`` / ``P``
+      - Paste over selection / paste above
+    * - ``Ctrl+a``
+      - Increment all numeric cells in selection
+    * - ``Ctrl+x``
+      - Decrement all numeric cells in selection
+    * - ``>`` / ``<``
+      - Shift right / shift left
+    * - ``z_`` / ``z+``
+      - Collapse / expand selected rows
+    * - ``:``
+      - Execute command on selection (``:fill``, ``:sort``, ``:plot``, etc.)
+    * - ``tb`` / ``ti`` / ``tu``
+      - Bold / italic / underline formatting
+    * - ``tl`` / ``tr`` / ``tc``
+      - Align left / right / center
+    * - ``gsj`` / ``gsk`` / ``gsl`` / ``gsh``
+      - Shift selection down / up / right / left
+    * - ``!``
+      - Pipe selection through external command
+    * - ``Escape``
+      - Return to NORMAL mode

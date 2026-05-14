@@ -48,8 +48,8 @@ Buffer Management
      - List all open buffers
    * - ``:buf <n>``
      - Switch to buffer number *n*
-   * - ``:bd``
-     - Delete current buffer
+    * - ``:bd`` / ``:bdel`` / ``:bdelete``
+      - Delete current buffer
    * - ``:f`` / ``:file``
      - Show current file info
 
@@ -282,5 +282,7 @@ Miscellaneous
      - Description
    * - ``:help [topic]``
      - Show help
-   * - ``:version``
-     - Show version information
+    * - ``:version``
+      - Show version information
+    * - ``:messages`` / ``:mess``
+      - Show message history panel

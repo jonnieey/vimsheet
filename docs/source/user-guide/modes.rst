@@ -45,7 +45,9 @@ Insert Mode
 -----------
 
 Type directly into the active cell. Press ``Escape`` to return to NORMAL
-mode. Tab moves to the next cell to the right.
+mode. Tab moves to the next cell to the right. Press ``Alt+Enter`` to
+insert a newline within the cell content — the grid row expands
+vertically to show all lines.
 
 Edit Mode
 ---------
@@ -62,6 +64,10 @@ Select ranges using keyboard motions:
 * ``v`` then ``h`` / ``j`` / ``k`` / ``l`` — expand selection
 * ``V`` — select entire rows
 * ``Ctrl+v`` — select rectangular block
+* ``H`` / ``M`` / ``L`` — jump to top / middle / bottom of viewport
+* ``Ctrl+a`` / ``Ctrl+x`` — increment / decrement all numeric cells
+* ``go<addr>`` ``Enter`` — extend selection to address
+* ``z_`` / ``z+`` — collapse / expand all selected rows
 * ``y`` — yank (copy) selection
 * ``d`` — delete selection
 * ``x`` — cut selection

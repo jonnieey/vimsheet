@@ -5,6 +5,24 @@ Changelog
 
 Release notes for VimSheet.
 
+0.2.0 — 2026-05-14
+------------------
+
+Features
+~~~~~~~~
+
+* Multi-line cell content: ``Alt+Enter`` inserts newlines, grid rows
+  expand vertically to show all lines
+* Row collapse/expand: ``z_`` collapses current row, ``z+`` expands it
+* Visual mode row collapse: ``z_`` / ``z+`` collapses/expands all
+  selected rows
+* Live cell preview: uncommitted content shown in grid during
+  insert/edit mode
+* Message history: ``:messages`` opens a colored, timestamped log of
+  status messages
+* Help screen now covers all commands, keybindings, and built-in
+  functions
+
 0.1.0 — 2026-01-15
 ------------------
 

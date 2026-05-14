@@ -14,6 +14,31 @@ Entering Data
 #. Type the value or formula.
 #. Press ``Enter`` to confirm, ``Escape`` to cancel.
 
+Multi-line Cell Content
+-----------------------
+
+Cells can hold multiple lines of text. While in INSERT or EDIT mode:
+
+* Press ``Alt+Enter`` to insert a newline at the cursor position.
+* The grid row automatically expands to show all lines.
+* The formula bar shows the current line (the line after the last
+  newline) for focused editing.
+
+Collapse and expand row height with normal mode keys:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Key
+     - Action
+   * - ``z_``
+     - Collapse current row to height 1
+   * - ``z+``
+     - Expand current row to full content height
+
+In visual mode, ``z_`` and ``z+`` collapse or expand all rows in the
+selection.
+
 Editing Existing Cells
 ----------------------
 
@@ -124,7 +149,7 @@ Restrict the type of data that can be entered into a cell:
    :validate clear          Remove validation
 
 Cell History
-------------
+-----------
 
 VimSheet tracks changes to cell values. View the history:
 
@@ -132,6 +157,12 @@ VimSheet tracks changes to cell values. View the history:
 
    :history           Show history for current cell
    :history B5        Show history for cell B5
+
+Restore a previous cell value from history:
+
+.. code-block:: text
+
+   U   Restore current cell to previous value
 
 Fill Operations
 ---------------
@@ -143,3 +174,17 @@ Fill a range with sequential data:
    :fill 1 10  A1:A10
 
 This fills A1:A10 with values 1 through 10.
+
+Message History
+---------------
+
+VimSheet keeps a history of status messages, errors, and notifications.
+View them with:
+
+.. code-block:: console
+
+   :messages      Open the message history panel
+
+Messages are color-coded: red for errors, green for success, yellow
+for informational messages. The panel shows timestamps and scrolls
+chronologically (newest at the top).
