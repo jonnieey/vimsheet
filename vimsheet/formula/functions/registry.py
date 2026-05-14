@@ -91,7 +91,7 @@ def all_functions() -> dict[str, FunctionMeta]:
     return dict(_REGISTRY)
 
 
-def register_script_function(name: str, script_path: str) -> None:
+def register_script_function(name: str, script_path: str, desc: str = "") -> None:
     """Register an external Python script as a callable formula function."""
     import json
     import subprocess
@@ -186,6 +186,6 @@ def register_script_function(name: str, script_path: str) -> None:
             return f"#SCRIPT:{exc}"
 
     meta = FunctionMeta(
-        fn=_script_fn, names=(name.upper(),), category="other", _is_script_func=True
+        fn=_script_fn, names=(name.upper(),), category="other", _is_script_func=True, desc=desc
     )
     _REGISTRY[name.upper()] = meta

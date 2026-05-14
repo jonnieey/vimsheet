@@ -94,9 +94,8 @@ def get_func_categories() -> list[tuple[str, str]]:
 
     cats: dict[str, str] = {}
     for meta in all_functions().values():
-        if not meta._is_script_func:
-            cats[meta.category] = _CATEGORY_LABELS.get(meta.category, meta.category.title())
-    return sorted(cats.items())
+        cats[meta.category] = _CATEGORY_LABELS.get(meta.category, meta.category.title())
+    return sorted(cats.items(), key=lambda kv: (kv[0] == "other", kv[0]))
 
 
 # ── Rendering ──────────────────────────────────────────────────────────────
@@ -147,9 +146,7 @@ def build_func_category(category: str, collapsed: bool = False) -> str:
     from vimsheet.formula.functions.registry import all_functions
 
     fns = sorted(
-        (name, meta)
-        for name, meta in all_functions().items()
-        if meta.category == category and not meta._is_script_func
+        (name, meta) for name, meta in all_functions().items() if meta.category == category
     )
     if not fns:
         return ""
@@ -255,8 +252,6 @@ def search_matches(query: str) -> list[tuple[str, str, str, int]]:
     from vimsheet.formula.functions.registry import all_functions
 
     for name, meta in sorted(all_functions().items()):
-        if meta._is_script_func:
-            continue
         desc = (meta.desc or "").lower()
         if q in name.lower() or q in desc:
             results.append(("FUNC", "Formula", name, 0))

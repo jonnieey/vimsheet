@@ -1413,11 +1413,12 @@ class VimSheetApp(App[None]):
 
             # ---- External scripts ----
             case "func":
-                # :func <NAME> <script_path>
+                # :func <NAME> <script_path> [description]
                 if len(parts) >= 3:
-                    self._register_script_func(parts[1].upper(), parts[2])
+                    desc = " ".join(parts[3:]) if len(parts) >= 4 else ""
+                    self._register_script_func(parts[1].upper(), parts[2], desc=desc)
                 else:
-                    self.status_bar.show_message("Usage: :func <NAME> <script_path>")
+                    self.status_bar.show_message("Usage: :func <NAME> <script_path> [description]")
 
             # ---- Load plain-text file into cells ----
             case "loadtext" | "lt":
@@ -1463,8 +1464,16 @@ class VimSheetApp(App[None]):
                 # :<range> <FUNCNAME>  — apply registered script function to range in place
                 self._apply_script_func_to_range(parts[0].upper(), parts[1].upper())
             case _ if len(parts) == 2 and ":" in parts[0] and parts[1].isalpha():
-                # :<range> <BUILTIN>  — yank =FUNC(range); p=value P=formula
-                self._cmd_range_func(parts[0].upper(), parts[1].upper())
+                # :<range> <FUNCNAME>  — check global registry; error if unknown
+                from vimsheet.formula.functions.registry import get as _registry_get
+
+                func_name = parts[1].upper()
+                if _registry_get(func_name) is None:
+                    self.status_bar.show_message(
+                        f"Unknown function: {func_name} — use :func to register it"
+                    )
+                else:
+                    self._cmd_range_func(parts[0].upper(), func_name)
             # ---- Fetch range commands: <range> fetchstop / fetchnow ----
             case _ if len(parts) == 2 and parts[1].lower() == "fetchstop":
                 self._cmd_fetchstop_range(parts[0].upper())
@@ -2270,8 +2279,10 @@ class VimSheetApp(App[None]):
             p = self.config.get_scripts_dir() / p
         return p
 
-    def _register_script_func(self, name: str, script_path: str, *, silent: bool = False) -> None:
-        """Register *script_path* as formula function *name*."""
+    def _register_script_func(
+        self, name: str, script_path: str, *, silent: bool = False, desc: str = ""
+    ) -> None:
+        """Register *script_path* as formula function *name* with optional *desc*."""
         script = self._resolve_script_path(script_path)
         if not script.exists():
             msg = f"Script not found: {script}"
@@ -2281,7 +2292,7 @@ class VimSheetApp(App[None]):
         self._script_funcs[name] = str(script)
         from vimsheet.formula.functions.registry import register_script_function
 
-        register_script_function(name, str(script))
+        register_script_function(name, str(script), desc=desc)
         if not silent:
             self.status_bar.show_message(f"Registered function: @{name}")
 
@@ -2295,11 +2306,13 @@ class VimSheetApp(App[None]):
             line = raw.strip()
             if not line or line.startswith("#"):
                 continue
-            parts = line.split(None, 1)
-            if len(parts) != 2:
+            parts = line.split(None, 2)
+            if len(parts) < 2:
                 continue
-            name, path = parts[0].upper(), parts[1]
-            self._register_script_func(name, path, silent=True)
+            name = parts[0].upper()
+            path = parts[1]
+            desc = parts[2] if len(parts) >= 3 else ""
+            self._register_script_func(name, path, silent=True, desc=desc)
             loaded += 1
         if loaded:
             self.status_bar.show_message(f"Auto-loaded {loaded} script function(s)")
