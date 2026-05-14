@@ -46,6 +46,9 @@ class GridPalette:
     frozen_header_bg: str = "#222238"
     frozen_cell_bg: str = "#111122"
 
+    # ── Grid — collapsed-row indicator ─────────────────────────────────
+    collapsed_fg: str = "#888888"
+
     # ── Grid — error indicator ─────────────────────────────────────────
     error_fg: str = "#ff4444"
 
@@ -137,6 +140,7 @@ class GridPalette:
         p.frozen_header_bg = _lighten(surface, 0.05)
         p.frozen_cell_bg = _lighten(surface, 0.02)
 
+        p.collapsed_fg = text_muted
         p.error_fg = error
 
         p.tab_active_bg = primary

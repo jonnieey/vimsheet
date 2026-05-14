@@ -241,7 +241,10 @@ class GridWidget(ScrollView):
             cell = self.sheet.get_cell(row, col)
             text = (cell.display or "") if cell else ""
         lines = text.split("\n")
-        return lines[sub_line] if sub_line < len(lines) else ""
+        result = lines[sub_line] if sub_line < len(lines) else ""
+        if row in self._collapsed_rows and len(lines) > 1:
+            result += "…"
+        return result
 
     def _render_data_row(self, row: int, scroll_x: int, width: int, sub_line: int = 0) -> Strip:
         is_cursor_row = row == self.cursor_row
@@ -311,17 +314,24 @@ class GridWidget(ScrollView):
                 cell = self.sheet.get_cell(row, col)
                 if not isinstance(cell, _CT) or (cell.fmt.bg_color is None):
                     style = style + Style(bgcolor=self._palette.frozen_cell_bg)
+            cell = self.sheet.get_cell(row, col)
+            has_more = row in self._collapsed_rows and text.endswith("…")
+            if has_more:
+                text = text[:-1]
             if len(text) > cw - 1:
                 text = text[: cw - 2] + "…"
-            cell = self.sheet.get_cell(row, col)
+            effective_cw = cw - 1 if has_more else cw
             align = cell.fmt.align if cell else "right"
             if align == "center":
-                text = text.center(cw)
+                text = text.center(effective_cw)
             elif align == "left":
-                text = text.ljust(cw)
+                text = text.ljust(effective_cw)
             else:
-                text = text.rjust(cw)
+                text = text.rjust(effective_cw)
             segs.append(Segment(text, style))
+            if has_more:
+                ellipsis_style = Style(color=self._palette.collapsed_fg)
+                segs.append(Segment("…", ellipsis_style))
             div_bg = self._palette.alt_row_bg if row % 2 == 1 else None
             no_lines = self._config is not None and not self._config.show_grid_lines
             divider = " " if no_lines else "│"
@@ -386,7 +396,7 @@ class GridWidget(ScrollView):
             if row == r1:
                 rows_hidden = any(r in self.sheet.hidden_rows for r in range(r1, r2 + 1))
                 return "▶" if rows_hidden else "▼"
-        return " "
+        return "…" if row in self._collapsed_rows else " "
 
     def _in_visual_selection(self, row: int, col: int) -> bool:
         if not (self.mode.is_visual() or self.show_visual):
