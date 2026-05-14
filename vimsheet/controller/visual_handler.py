@@ -89,6 +89,18 @@ class VisualHandler:
                             self._shift_range_cells(sel, 0, 1)
                         case "h":
                             self._shift_range_cells(sel, 0, -1)
+            elif chord == "z":
+                sel = app.grid.visual_selection()
+                match key:
+                    case "_":
+                        if sel:
+                            for r in range(sel.start_row, sel.end_row + 1):
+                                app.grid.collapse_row(r)
+                    case "+":
+                        if sel:
+                            for r in range(sel.start_row, sel.end_row + 1):
+                                app.grid.expand_row(r)
+                app.mode = Mode.NORMAL
             app._sync_formula_bar()
             app._sync_status_bar()
             return
@@ -181,6 +193,11 @@ class VisualHandler:
                 sel = app.grid.visual_selection()
                 if sel:
                     self._shift_range(sel, -1)
+
+            # --- Row expand / collapse chord prefix ---
+            case "z":
+                app._visual_chord = "z"
+                return
 
             # --- Formatting chord prefix ---
             case "t":

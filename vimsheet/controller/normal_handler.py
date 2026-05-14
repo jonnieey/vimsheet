@@ -401,6 +401,16 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
 
+            # Row expand / collapse
+            case "z_":
+                app.grid.collapse_row(app.cursor_row)
+                app._key_buffer = ""
+                return
+            case "z+":
+                app.grid.expand_row(app.cursor_row)
+                app._key_buffer = ""
+                return
+
             # ZZ / ZQ
             case "ZZ":
                 app._save_and_quit()

@@ -83,6 +83,7 @@ class GridWidget(ScrollView):
         self._total_virtual_lines: int = 0
         self._row_prefix: list[int] | None = None  # lazy prefix sum
         self._needs_height_rebuild: bool = True
+        self._collapsed_rows: set[int] = set()
 
         # Live preview during insert/edit mode
         self._preview_row: int | None = None
@@ -125,6 +126,16 @@ class GridWidget(ScrollView):
         self._preview_col = col
         self._preview_text = text
 
+    def collapse_row(self, row: int) -> None:
+        self._collapsed_rows.add(row)
+        self._rebuild_heights()
+        self.refresh()
+
+    def expand_row(self, row: int) -> None:
+        self._collapsed_rows.discard(row)
+        self._rebuild_heights()
+        self.refresh()
+
     def _rebuild_heights(self) -> None:
         max_data_row = max(self.sheet.max_row, self.cursor_row, 99)
         heights = []
@@ -142,6 +153,8 @@ class GridWidget(ScrollView):
                 preview_lines = self._preview_text.count("\n") + 1
                 if preview_lines > max_lines:
                     max_lines = preview_lines
+            if r in self._collapsed_rows:
+                max_lines = 1
             heights.append(max_lines)
         self._row_heights = heights
         self._total_virtual_lines = sum(heights)
