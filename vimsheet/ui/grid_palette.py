@@ -109,9 +109,15 @@ class GridPalette:
             except Exception:
                 return fg_hex
 
+        def _contrast_text(bg_hex: str, light: str = "#ffffff", dark: str = "#000000") -> str:
+            """Return *light* or *dark* text based on background luminance."""
+            try:
+                return light if Color.parse(bg_hex).luminance < 0.5 else dark
+            except Exception:
+                return light
+
         surface = _var("surface", "#0f0f14")
         primary = _var("primary", "#0066cc")
-        text_primary = _var("text-primary", "#b0d4ff")
         error = _var("error", "#ff4444")
         success = _var("success", "#44cc44")
         warning = _var("warning", "#ccaa00")
@@ -126,9 +132,9 @@ class GridPalette:
         p.header_divider = _darken(surface, 0.08)
 
         p.cursor_cell_bg = primary
-        p.cursor_cell_fg = text_primary
+        p.cursor_cell_fg = _contrast_text(primary)
         p.cursor_header_bg = _darken(primary, 0.10)
-        p.cursor_header_fg = text_primary
+        p.cursor_header_fg = _contrast_text(p.cursor_header_bg)
 
         p.visual_sel_bg = _blend(primary, surface, 0.40)
         p.visual_sel_fg = text
@@ -144,9 +150,9 @@ class GridPalette:
         p.error_fg = error
 
         p.tab_active_bg = primary
-        p.tab_active_fg = text_primary
+        p.tab_active_fg = _contrast_text(primary)
         p.tab_inactive_bg = surface
-        p.tab_inactive_fg = text_muted
+        p.tab_inactive_fg = _contrast_text(surface, "#cccccc", "#555555")
         p.tab_add_bg = _lighten(surface, 0.10)
         p.tab_add_fg = text
 
