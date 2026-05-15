@@ -339,6 +339,48 @@ register_help(
 register_help(
     "CMD", ":loadtext <file>", "Fill cells from plain-text file", subgroup="Format", order=55
 )
+register_help(
+    "CMD",
+    ":<range> fmt <prop> [val]",
+    "Format every cell in range (color/bg/bold/…)",
+    subgroup="Format",
+    order=56,
+)
+register_help(
+    "CMD",
+    ":<range> cond <op> <val> …",
+    "Conditional format rule scoped to range",
+    subgroup="Format",
+    order=57,
+)
+register_help(
+    "CMD",
+    ':range comment "text"',
+    "Set comment on every cell in range",
+    subgroup="Format",
+    order=58,
+)
+register_help(
+    "CMD",
+    ":<range> hide",
+    "Hide all rows in range",
+    subgroup="Format",
+    order=59,
+)
+register_help(
+    "CMD",
+    ":<range> show",
+    "Unhide all rows in range",
+    subgroup="Format",
+    order=60,
+)
+register_help(
+    "CMD",
+    ":<range> <FUNC> [args]",
+    "Apply scalar function element-wise to each cell in range",
+    subgroup="Format",
+    order=61,
+)
 register_help("CMD", ":set autocalc", "Toggle auto-recalculation", subgroup="Config", order=60)
 register_help(
     "CMD",

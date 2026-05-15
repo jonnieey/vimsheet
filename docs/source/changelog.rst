@@ -22,6 +22,12 @@ Features
   status messages
 * Help screen now covers all commands, keybindings, and built-in
   functions
+* Range-prefix support for ``:format``, ``:condformat``, ``:comment``,
+  ``:hide``, and ``:show`` commands
+* Element-wise function apply via ``:<range> <FUNC> [args]``
+  (e.g., ``:A1:B10 UPPER`` uppercases every cell).  Aggregate functions
+  (SUM, AVG, etc.) continue to yank total to register.
+* Bold/normal/italic/underline formatting visual feedback in grid
 
 0.1.0 — 2026-01-15
 ------------------

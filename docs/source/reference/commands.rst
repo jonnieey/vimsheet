@@ -68,9 +68,17 @@ Cell Operations
    * - ``:fill <start> <step>``
      - Fill selected range with arithmetic sequence
    * - ``:fmt <addr> <prop> [value]``
-     - Format a cell (``color``, ``bg``, ``bold``, ``italic``, ``underline``)
+      - Format a cell (``color``, ``bg``, ``bold``, ``italic``, ``underline``)
+   * - ``:<range> fmt <prop> [value]``
+      - Format every cell in a range
+   * - ``:<range> <FUNC> [args]``
+      - Apply scalar function element-wise to each cell in range
+        (e.g., ``:A1:B10 UPPER`` uppercases every cell).
+        Aggregate functions (SUM, AVG, etc.) yank total to register instead.
    * - ``:comment <text>``
-     - Add comment to current cell
+      - Add comment to current cell
+   * - ``:<range> comment <text>``
+      - Add comment to every cell in range
    * - ``:comment``
      - Show comment on current cell
    * - ``:history [addr]``
@@ -180,9 +188,13 @@ Column and Row Management
    * - ``:unfreeze``
      - Unfreeze all panes
    * - ``:hiderow [n]``
-     - Hide current or specified row
+      - Hide current or specified row
+   * - ``:<range> hide``
+      - Hide all rows in range
    * - ``:showrow [n]``
-     - Show hidden row
+      - Show hidden row
+   * - ``:<range> show``
+      - Show hidden rows in range
    * - ``:hidecol [col]``
      - Hide current or specified column
    * - ``:showcol [col]``
@@ -201,7 +213,9 @@ Conditional Formatting
    * - Command
      - Description
    * - ``:cond <range> <op> <value> [color #hex] [bg #hex] [bold]``
-     - Add conditional formatting rule
+      - Add conditional formatting rule
+   * - ``:<range> cond <op> <value> [color #hex] [bg #hex] [bold]``
+      - Conditional format rule scoped to range (range-prefix syntax)
    * - ``:cond clear``
      - Clear all conditional formatting rules
 

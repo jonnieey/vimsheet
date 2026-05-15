@@ -591,6 +591,33 @@ class VimSheetApp(App[None]):
         self._sync_formula_bar()
         self._sync_status_bar()
 
+    # Functions that produce a single aggregate over a range (yank, not element-wise apply)
+    _AGGREGATE_FUNCS = frozenset(
+        {
+            "SUM",
+            "AVG",
+            "AVERAGE",
+            "COUNT",
+            "COUNTA",
+            "MIN",
+            "MAX",
+            "PROD",
+            "PRODUCT",
+            "STDDEV",
+            "STDEV",
+            "STDEVS",
+            "VAR",
+            "VARS",
+            "MEDIAN",
+            "MODE",
+            "PERCENTILE",
+            "SUMIF",
+            "COUNTIF",
+            "AVERAGEIF",
+            "SUBTOTAL",
+        }
+    )
+
     def _dispatch_command(self, cmd: str) -> None:
         """Dispatch a colon command string (without the leading colon)."""
         parts = cmd.split()
@@ -1091,6 +1118,127 @@ class VimSheetApp(App[None]):
                 # <range> sort [col] [asc|desc] ...  — range pre-filled from visual mode
                 self._cmd_range_sort(parts[0], parts[2:])
 
+            # ---- Range format ----
+            case _ if len(parts) >= 3 and parts[1].lower() in ("format", "fmt"):
+                from vimsheet.model.range import CellRange
+                from vimsheet.model.undo import CompositeCommand, FormatCommand
+
+                sheet = self.workbook.active_sheet
+                try:
+                    cr = CellRange.from_a1(parts[0].upper())
+                except Exception:
+                    self.status_bar.show_message(f"Invalid range: {parts[0]!r}")
+                    return
+                prop = parts[2].lower()
+                val_str = parts[3] if len(parts) > 3 else ""
+                cmds: list[FormatCommand] = []
+                for r in range(cr.start_row, cr.end_row + 1):
+                    for c in range(cr.start_col, cr.end_col + 1):
+                        match prop:
+                            case "color" | "fg":
+                                cmd = FormatCommand(sheet, r, c, fg_color=val_str)
+                            case "bg" | "background":
+                                cmd = FormatCommand(sheet, r, c, bg_color=val_str)
+                            case "bold":
+                                cmd = FormatCommand(sheet, r, c, bold=True)
+                            case "italic":
+                                cmd = FormatCommand(sheet, r, c, italic=True)
+                            case "underline":
+                                cmd = FormatCommand(sheet, r, c, underline=True)
+                            case _:
+                                self.status_bar.show_message(f"Unknown format property: {prop!r}")
+                                return
+                        cmds.append(cmd)
+                self.undo_stack.push(CompositeCommand(cmds))
+                self.grid.refresh_grid()
+                self.workbook.modified = True
+                self.status_bar.show_message(f"Formatted {cr}: {prop} {val_str}")
+
+            # ---- Range condformat ----
+            case _ if len(parts) >= 4 and parts[1].lower() in ("condformat", "cond", "cf"):
+                sheet = self.workbook.active_sheet
+                range_str = parts[0].upper()
+                args = parts[2:]
+                try:
+                    self._cmd_cond_format(sheet, range_str, args)
+                except Exception as exc:
+                    self.status_bar.show_message(f"Condformat error: {exc}")
+
+            # ---- Range comment ----
+            case _ if len(parts) >= 2 and parts[1].lower() in ("comment", "note"):
+                from vimsheet.model.range import CellRange
+
+                sheet = self.workbook.active_sheet
+                try:
+                    cr = CellRange.from_a1(parts[0].upper())
+                except Exception:
+                    self.status_bar.show_message(f"Invalid range: {parts[0]!r}")
+                    return
+                if len(parts) > 2:
+                    text = " ".join(parts[2:])
+                    for r in range(cr.start_row, cr.end_row + 1):
+                        for c in range(cr.start_col, cr.end_col + 1):
+                            cell = sheet.get_cell(r, c)
+                            if cell is None:
+                                sheet.set_cell_value(r, c, None)
+                                cell = sheet.get_cell(r, c)
+                            cell.comment = text  # type: ignore[union-attr]
+                    self.workbook.modified = True
+                    self.status_bar.show_message(f"Comment set on {cr}")
+                else:
+                    cell = sheet.get_cell(cr.start_row, cr.start_col)
+                    msg = cell.comment if cell and cell.comment else "(no comment)"
+                    self.status_bar.show_message(f"Comment: {msg}")
+
+            # ---- Range hide/show rows ----
+            case _ if len(parts) == 2 and parts[1].lower() == "hide":
+                from vimsheet.model.range import CellRange
+
+                sheet = self.workbook.active_sheet
+                try:
+                    cr = CellRange.from_a1(parts[0].upper())
+                except Exception:
+                    self.status_bar.show_message(f"Invalid range: {parts[0]!r}")
+                    return
+                for r in range(cr.start_row, cr.end_row + 1):
+                    sheet.hidden_rows.add(r)
+                self.workbook.modified = True
+                self.grid.refresh_grid()
+                self.status_bar.show_message(f"Hidden rows {cr.start_row + 1}–{cr.end_row + 1}")
+            case _ if len(parts) == 2 and parts[1].lower() == "show":
+                from vimsheet.model.range import CellRange
+
+                sheet = self.workbook.active_sheet
+                try:
+                    cr = CellRange.from_a1(parts[0].upper())
+                except Exception:
+                    self.status_bar.show_message(f"Invalid range: {parts[0]!r}")
+                    return
+                for r in range(cr.start_row, cr.end_row + 1):
+                    sheet.hidden_rows.discard(r)
+                self.workbook.modified = True
+                self.grid.refresh_grid()
+                self.status_bar.show_message(f"Shown rows {cr.start_row + 1}–{cr.end_row + 1}")
+
+            # ---- Range element-wise function apply (non-aggregate) ----
+            case _ if (
+                len(parts) >= 2
+                and ":" in parts[0]
+                and parts[1].isalpha()
+                and parts[1].upper() not in self._AGGREGATE_FUNCS
+            ):
+                from vimsheet.formula.functions.registry import get as _registry_get
+
+                func_name = parts[1].upper()
+                if func_name in self._get_script_func_names():
+                    self._apply_script_func_to_range(parts[0].upper(), func_name)
+                elif _registry_get(func_name) is None:
+                    self.status_bar.show_message(
+                        f"Unknown function: {func_name} — use :func to register it"
+                    )
+                else:
+                    self._apply_func_to_range(parts[0].upper(), func_name, parts[2:])
+
             # ---- Cell comment ----
             case "comment" | "note":
                 r, c = self.cursor_row, self.cursor_col
@@ -1301,48 +1449,7 @@ class VimSheetApp(App[None]):
                         self.grid.refresh_grid()
                         self.status_bar.show_message("All conditional formatting cleared")
                     elif len(parts) >= 4:
-                        from vimsheet.model.cell import CellFormat
-                        from vimsheet.model.sheet import CondFormatRule
-
-                        range_str = parts[1].upper()
-                        op = parts[2].lower()
-                        val_str = parts[3]
-                        try:
-                            value: Any = float(val_str)
-                        except ValueError:
-                            value = val_str
-                        fmt = CellFormat()
-                        extras = parts[4:]
-                        i = 0
-                        while i < len(extras):
-                            tok = extras[i].lower()
-                            if tok in ("color", "fg") and i + 1 < len(extras):
-                                fmt.fg_color = extras[i + 1]
-                                i += 2
-                            elif tok in ("bg", "background") and i + 1 < len(extras):
-                                fmt.bg_color = extras[i + 1]
-                                i += 2
-                            elif tok.startswith("fg="):
-                                fmt.fg_color = extras[i][3:]
-                                i += 1
-                            elif tok.startswith("bg="):
-                                fmt.bg_color = extras[i][3:]
-                                i += 1
-                            elif tok == "bold":
-                                fmt.bold = True
-                                i += 1
-                            elif tok == "italic":
-                                fmt.italic = True
-                                i += 1
-                            else:
-                                i += 1
-                        rule = CondFormatRule(
-                            range_str=range_str, operator=op, value=value, fmt=fmt
-                        )
-                        sheet.cond_formats.append(rule)
-                        self.grid.refresh_grid()
-                        self.workbook.modified = True
-                        self.status_bar.show_message(f"Cond format: {range_str} {op} {val_str}")
+                        self._cmd_cond_format(sheet, parts[1].upper(), parts[2:])
                     else:
                         self.status_bar.show_message(
                             "Usage: :cond <range> <op> <value> [color #hex] [bg #hex] [bold]"
@@ -2158,6 +2265,105 @@ class VimSheetApp(App[None]):
         )
         self._yanked_formula = formula
         self.status_bar.show_message(f"Yanked {func_name}={value}  (p=value  P=formula)")
+
+    def _cmd_cond_format(self, sheet: Any, range_str: str, args: list[str]) -> None:
+        """Create a conditional format rule.
+
+        Called from both ``:cond <range> ...`` and ``:<range> cond ...``.
+        *args* is everything after the range and operator, e.g.
+        ``["5", "color", "#ff0000"]``.
+        """
+        from vimsheet.model.cell import CellFormat
+        from vimsheet.model.sheet import CondFormatRule
+
+        if len(args) < 2:
+            self.status_bar.show_message(
+                "Usage: :cond <range> <op> <value> [color #hex] [bg #hex] [bold]"
+            )
+            return
+        op = args[0].lower()
+        val_str = args[1]
+        try:
+            value: Any = float(val_str)
+        except ValueError:
+            value = val_str
+        fmt = CellFormat()
+        extras = args[2:]
+        i = 0
+        while i < len(extras):
+            tok = extras[i].lower()
+            if tok in ("color", "fg") and i + 1 < len(extras):
+                fmt.fg_color = extras[i + 1]
+                i += 2
+            elif tok in ("bg", "background") and i + 1 < len(extras):
+                fmt.bg_color = extras[i + 1]
+                i += 2
+            elif tok.startswith("fg="):
+                fmt.fg_color = extras[i][3:]
+                i += 1
+            elif tok.startswith("bg="):
+                fmt.bg_color = extras[i][3:]
+                i += 1
+            elif tok == "bold":
+                fmt.bold = True
+                i += 1
+            elif tok == "italic":
+                fmt.italic = True
+                i += 1
+            else:
+                i += 1
+        rule = CondFormatRule(range_str=range_str, operator=op, value=value, fmt=fmt)
+        sheet.cond_formats.append(rule)
+        self.grid.refresh_grid()
+        self.workbook.modified = True
+        self.status_bar.show_message(f"Cond format: {range_str} {op} {val_str}")
+
+    def _apply_func_to_range(self, range_str: str, func_name: str, extra_args: list[str]) -> None:
+        """Apply a scalar function element-wise to every cell in *range_str*.
+
+        Called from ``:<range> <FUNCNAME>`` for non-aggregate functions.
+        Each cell *c* is replaced with ``=FUNCNAME(c, *extra_args)``.
+        Errors and unchanged values are skipped.
+        """
+        from vimsheet.formula.evaluator import Evaluator
+        from vimsheet.model.range import CellRange
+        from vimsheet.model.undo import FillRangeCommand
+
+        try:
+            cr = CellRange.from_a1(range_str)
+        except Exception:
+            self.status_bar.show_message(f"Invalid range: {range_str!r}")
+            return
+        sheet = self.workbook.active_sheet
+        ev = Evaluator(sheet, self.workbook)
+        updates: list[tuple[int, int, Any]] = []
+        for r in range(cr.start_row, cr.end_row + 1):
+            for c in range(cr.start_col, cr.end_col + 1):
+                cell = sheet.get_cell(r, c)
+                if cell is None:
+                    continue
+                val = cell.value
+                if val is None or val == "":
+                    continue
+                args_repr = [repr(val)] + extra_args
+                formula = f"={func_name}({', '.join(args_repr)})"
+                try:
+                    new_val = ev.eval_formula(formula)
+                except Exception:
+                    continue
+                if isinstance(new_val, str) and new_val.startswith("#"):
+                    continue
+                if new_val != val:
+                    updates.append((r, c, new_val))
+        if updates:
+            self.undo_stack.push(FillRangeCommand(sheet, updates))
+            self.grid.refresh_grid()
+            self.workbook.modified = True
+            self.status_bar.show_message(
+                f"Applied {func_name} to {len(updates)} cell{'s' if len(updates) != 1 else ''}"
+            )
+        else:
+            self.status_bar.show_message(f"{func_name}: no cells changed")
 
     # -----------------------------------------------------------------------
     # External scripts
