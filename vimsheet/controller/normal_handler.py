@@ -445,6 +445,7 @@ class NormalHandler:
                 return
 
         # Unrecognised chord → single-key dispatch
+        count = int(app._key_buffer) if app._key_buffer.isdigit() and app._key_buffer else 1
         app._key_buffer = ""
 
         match key:
@@ -572,12 +573,12 @@ class NormalHandler:
             case "+":
                 col = app.cursor_col
                 sheet = app.workbook.active_sheet
-                sheet.set_col_width(col, sheet.get_col_width(col) + 1)
+                sheet.set_col_width(col, sheet.get_col_width(col) + count)
                 app.grid.refresh_grid()
             case "-":
                 col = app.cursor_col
                 sheet = app.workbook.active_sheet
-                sheet.set_col_width(col, sheet.get_col_width(col) - 1)
+                sheet.set_col_width(col, sheet.get_col_width(col) - count)
                 app.grid.refresh_grid()
             case "_":
                 app.workbook.active_sheet.auto_fit_col(app.cursor_col)

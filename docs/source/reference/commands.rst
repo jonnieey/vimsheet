@@ -82,11 +82,15 @@ Cell Operations
    * - ``:comment``
      - Show comment on current cell
    * - ``:history [addr]``
-     - Show value history for a cell
+      - Show value history for a cell
+   * - ``:<range> history``
+      - Show cell change history for range (modal screen)
    * - ``:validate <type> [args]``
      - Set data validation rule on current cell
    * - ``:validate clear``
-     - Remove validation from current cell
+      - Remove validation from current cell
+   * - ``:<range> validate <type> [args]``
+      - Apply validation rule to every cell in range
    * - ``:name <NAME> <range>``
      - Define a named range
    * - ``:name <NAME>``
@@ -168,8 +172,10 @@ Sort and Filter
       - Sort columns within range (columnar, independent per column)
    * - ``:filter <col> <op> <value>``
      - Add column filter (ops: ``gt``, ``lt``, ``eq``, ``ne``, ``ge``, ``le``)
-   * - ``:clearfilter``
-     - Remove all filters
+    * - ``:clearfilter``
+      - Remove all filters
+   * - ``:<range> clearfilter``
+      - Clear filter on columns in range (e.g., ``:A:C clearfilter``)
 
 Column and Row Management
 -------------------------
@@ -180,9 +186,21 @@ Column and Row Management
    * - Command
      - Description
    * - ``:colwidth <n>``
-     - Set current column width to *n* characters
+      - Set current column width to *n* characters
+   * - ``:<range> colwidth <n>``
+      - Set width for all columns in range
    * - ``:autofit``
-     - Auto-fit current column to content
+      - Auto-fit current column to content
+   * - ``:colfit`` / ``:colf``
+      - Auto-fit current column to content (alias)
+   * - ``:rowfit`` / ``:rowf``
+      - Expand current row to fit content
+   * - ``:<range> autofit [col|row|both]``
+      - Fit columns/rows in range (default both)
+   * - ``:<range> colfit`` / ``:colf``
+      - Fit columns in range (alias)
+   * - ``:<range> rowfit`` / ``:rowf``
+      - Expand collapsed rows in range (alias)
    * - ``:freeze [rows] [cols]``
      - Freeze panes at given row/col
    * - ``:unfreeze``

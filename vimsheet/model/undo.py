@@ -133,6 +133,32 @@ class DeleteRangeCommand(Command):
             _restore_cell(self._sheet, r, c, snap)
 
 
+class ValidationCommand(Command):
+    """Set or clear a validation rule on a single cell, undoable."""
+
+    description = "set validation"
+
+    def __init__(self, sheet: Sheet, row: int, col: int, new_rule: Any) -> None:
+        self._sheet = sheet
+        self._row = row
+        self._col = col
+        self._new_rule = new_rule
+        self._old_rule: Any = None
+
+    def execute(self) -> None:
+        self._old_rule = self._sheet.validation.get(self._row, self._col)
+        if self._new_rule is None:
+            self._sheet.validation.remove(self._row, self._col)
+        else:
+            self._sheet.validation.add(self._row, self._col, self._new_rule)
+
+    def undo(self) -> None:
+        if self._old_rule is None:
+            self._sheet.validation.remove(self._row, self._col)
+        else:
+            self._sheet.validation.add(self._row, self._col, self._old_rule)
+
+
 class FillRangeCommand(Command):
     description = "fill range"
 

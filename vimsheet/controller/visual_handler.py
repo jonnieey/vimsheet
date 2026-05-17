@@ -194,6 +194,29 @@ class VisualHandler:
                 if sel:
                     self._shift_range(sel, -1)
 
+            # --- Widen / narrow columns in selection ---
+            case "+":
+                sel = app.grid.visual_selection()
+                if sel:
+                    sheet = app.workbook.active_sheet
+                    for c in range(sel.start_col, sel.end_col + 1):
+                        sheet.set_col_width(c, sheet.get_col_width(c) + count)
+                    app.grid.refresh_grid()
+            case "-":
+                sel = app.grid.visual_selection()
+                if sel:
+                    sheet = app.workbook.active_sheet
+                    for c in range(sel.start_col, sel.end_col + 1):
+                        sheet.set_col_width(c, sheet.get_col_width(c) - count)
+                    app.grid.refresh_grid()
+            case "_":
+                sel = app.grid.visual_selection()
+                if sel:
+                    sheet = app.workbook.active_sheet
+                    for c in range(sel.start_col, sel.end_col + 1):
+                        sheet.auto_fit_col(c)
+                    app.grid.refresh_grid()
+
             # --- Row expand / collapse chord prefix ---
             case "z":
                 app._visual_chord = "z"

@@ -28,6 +28,14 @@ Features
   (e.g., ``:A1:B10 UPPER`` uppercases every cell).  Aggregate functions
   (SUM, AVG, etc.) continue to yank total to register.
 * Bold/normal/italic/underline formatting visual feedback in grid
+* Range-prefix support for ``:colwidth``, ``:autofit``, ``:validate``,
+  ``:history``, and ``:clearfilter`` commands
+* ``ValidationCommand`` undo class for per-cell validation undo
+* ``HistoryScreen`` modal for browsing cell change history by range
+* ``:colfit`` / ``:colf`` and ``:rowfit`` / ``:rowf`` commands for
+  column-only or row-only fit
+* ``:<range> autofit`` now accepts ``col`` / ``row`` / ``both``
+  argument (default ``both``) to fit columns and/or rows in range
 
 0.1.0 — 2026-01-15
 ------------------

@@ -171,7 +171,14 @@ register_help(
     order=27,
 )
 register_help(
-    "VIS", "z_ / z+", "Collapse / expand all selected rows", subgroup="Operations", order=28
+    "VIS",
+    "+ / - / _",
+    "Widen / narrow / auto-fit columns in selection",
+    subgroup="Operations",
+    order=28,
+)
+register_help(
+    "VIS", "z_ / z+", "Collapse / expand all selected rows", subgroup="Operations", order=29
 )
 register_help(
     "VIS", "= (visual)", "Fill selection with value / sequence", subgroup="Operations", order=26
@@ -317,6 +324,33 @@ register_help(
     "CMD", ":fill <n> <value>", "Fill N cells with value/range", subgroup="Data", order=45
 )
 register_help("CMD", ":autofit / :af", "Auto-fit column at cursor", subgroup="Data", order=45)
+register_help(
+    "CMD", ":colfit / :colf", "Auto-fit column at cursor (alias)", subgroup="Data", order=45
+)
+register_help(
+    "CMD", ":rowfit / :rowf", "Expand/collapsed row to fit content", subgroup="Data", order=45
+)
+register_help(
+    "CMD",
+    ":<range> autofit [col|row|both]",
+    "Fit columns/rows in range (default both)",
+    subgroup="Data",
+    order=45,
+)
+register_help(
+    "CMD",
+    ":<range> colfit",
+    "Fit columns in range (alias for :range autofit col)",
+    subgroup="Data",
+    order=45,
+)
+register_help(
+    "CMD",
+    ":<range> rowfit",
+    "Fit rows in range (alias for :range autofit row)",
+    subgroup="Data",
+    order=45,
+)
 register_help("CMD", ":colwidth / :cw <n>", "Set column width at cursor", subgroup="Data", order=45)
 register_help("CMD", ":freeze row N", "Freeze top N rows", subgroup="Data", order=46)
 register_help("CMD", ":unfreeze", "Remove freeze", subgroup="Data", order=47)
@@ -380,6 +414,41 @@ register_help(
     "Apply scalar function element-wise to each cell in range",
     subgroup="Format",
     order=61,
+)
+register_help(
+    "CMD",
+    ":<range> colwidth <n>",
+    "Set width for all columns in range",
+    subgroup="Format",
+    order=62,
+)
+register_help(
+    "CMD",
+    ":<range> autofit",
+    "Auto-fit all columns in range",
+    subgroup="Format",
+    order=63,
+)
+register_help(
+    "CMD",
+    ":<range> validate <type> [args]",
+    "Apply validation rule to every cell in range",
+    subgroup="Format",
+    order=64,
+)
+register_help(
+    "CMD",
+    ":<range> history",
+    "Show cell change history for range",
+    subgroup="Format",
+    order=65,
+)
+register_help(
+    "CMD",
+    ":<range> clearfilter",
+    "Clear filter on columns in range",
+    subgroup="Format",
+    order=66,
 )
 register_help("CMD", ":set autocalc", "Toggle auto-recalculation", subgroup="Config", order=60)
 register_help(

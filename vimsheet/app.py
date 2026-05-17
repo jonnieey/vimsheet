@@ -846,6 +846,15 @@ class VimSheetApp(App[None]):
                 self.workbook.active_sheet.auto_fit_col(col)
                 self.grid.refresh_grid()
                 self.status_bar.show_message(f"Auto-fit column {col + 1}")
+            case "colfit" | "colf":
+                col = self.cursor_col
+                self.workbook.active_sheet.auto_fit_col(col)
+                self.grid.refresh_grid()
+                self.status_bar.show_message(f"Column fit: col {col + 1}")
+            case "rowfit" | "rowf":
+                self.grid.expand_row(self.cursor_row)
+                self.grid.refresh_grid()
+                self.status_bar.show_message(f"Row fit: row {self.cursor_row + 1}")
 
             # ---- Sort ----
             case "messages" | "mess":
@@ -1219,6 +1228,138 @@ class VimSheetApp(App[None]):
                 self.workbook.modified = True
                 self.grid.refresh_grid()
                 self.status_bar.show_message(f"Shown rows {cr.start_row + 1}–{cr.end_row + 1}")
+
+            # ---- Range colwidth ----
+            case _ if len(parts) >= 3 and parts[1].lower() in ("colwidth", "cw"):
+                from vimsheet.model.range import CellRange
+
+                try:
+                    cr = CellRange.from_a1(parts[0].upper())
+                    w = int(parts[2])
+                    sheet = self.workbook.active_sheet
+                    for c in range(cr.start_col, cr.end_col + 1):
+                        sheet.set_col_width(c, w)
+                    self.grid.refresh_grid()
+                    self.status_bar.show_message(
+                        f"Columns {cr.start_col + 1}–{cr.end_col + 1} width set to {w}"
+                    )
+                except Exception as e:
+                    self.status_bar.show_message(f"Error: {e}")
+
+            # ---- Range autofit / colfit / rowfit ----
+            case _ if len(parts) >= 2 and parts[1].lower() in ("autofit", "af"):
+                from vimsheet.model.range import CellRange
+
+                try:
+                    cr = CellRange.from_a1(parts[0].upper())
+                    sheet = self.workbook.active_sheet
+                    mode = parts[2].lower() if len(parts) > 2 else "both"
+                    if mode in ("col", "cols", "both"):
+                        for c in range(cr.start_col, cr.end_col + 1):
+                            sheet.auto_fit_col(c)
+                    if mode in ("row", "rows", "both"):
+                        for r in range(cr.start_row, cr.end_row + 1):
+                            self.grid.expand_row(r)
+                    self.grid.refresh_grid()
+                    self.status_bar.show_message(
+                        f"Fitted {'columns ' if mode in ('col', 'cols') else ''}"
+                        f"{'rows ' if mode in ('row', 'rows') else ''}"
+                        f"{'both ' if mode == 'both' else ''}"
+                        f"on {cr}"
+                    )
+                except Exception as e:
+                    self.status_bar.show_message(f"Error: {e}")
+            case _ if len(parts) >= 2 and parts[1].lower() in ("colfit", "colf"):
+                from vimsheet.model.range import CellRange
+
+                try:
+                    cr = CellRange.from_a1(parts[0].upper())
+                    sheet = self.workbook.active_sheet
+                    for c in range(cr.start_col, cr.end_col + 1):
+                        sheet.auto_fit_col(c)
+                    self.grid.refresh_grid()
+                    self.status_bar.show_message(f"Fitted columns on {cr}")
+                except Exception as e:
+                    self.status_bar.show_message(f"Error: {e}")
+            case _ if len(parts) >= 2 and parts[1].lower() in ("rowfit", "rowf"):
+                from vimsheet.model.range import CellRange
+
+                try:
+                    cr = CellRange.from_a1(parts[0].upper())
+                    for r in range(cr.start_row, cr.end_row + 1):
+                        self.grid.expand_row(r)
+                    self.grid.refresh_grid()
+                    self.status_bar.show_message(f"Fitted rows on {cr}")
+                except Exception as e:
+                    self.status_bar.show_message(f"Error: {e}")
+
+            # ---- Range validate ----
+            case _ if len(parts) >= 2 and parts[1].lower() == "validate":
+                from vimsheet.model.range import CellRange
+                from vimsheet.model.undo import CompositeCommand, ValidationCommand
+                from vimsheet.model.validation import ValidationRule
+
+                try:
+                    cr = CellRange.from_a1(parts[0].upper())
+                except Exception:
+                    self.status_bar.show_message(f"Invalid range: {parts[0]!r}")
+                    return
+                sheet = self.workbook.active_sheet
+                sub = parts[2:]
+                if not sub or sub[0] == "clear":
+                    cmds = []
+                    for r in range(cr.start_row, cr.end_row + 1):
+                        for c in range(cr.start_col, cr.end_col + 1):
+                            cmds.append(ValidationCommand(sheet, r, c, None))
+                    self.undo_stack.push(CompositeCommand(cmds))
+                    self.status_bar.show_message(f"Validation cleared on {cr}")
+                else:
+                    rule_type = sub[0].lower()
+                    rule: ValidationRule
+                    if rule_type == "list" and len(sub) > 1:
+                        choices = sub[1].split(",")
+                        rule = ValidationRule(rule_type="list", choices=choices)
+                    elif rule_type in ("number", "integer") and len(sub) > 2:
+                        op = sub[1].lower()
+                        v1 = float(sub[2])
+                        v2 = float(sub[3]) if len(sub) > 3 else None
+                        rule = ValidationRule(
+                            rule_type=rule_type, operator=op, value1=v1, value2=v2
+                        )
+                    else:
+                        rule = ValidationRule(rule_type=rule_type)
+                    cmds = []
+                    for r in range(cr.start_row, cr.end_row + 1):
+                        for c in range(cr.start_col, cr.end_col + 1):
+                            cmds.append(ValidationCommand(sheet, r, c, rule))
+                    self.undo_stack.push(CompositeCommand(cmds))
+                    self.status_bar.show_message(f"Validation set: {rule_type} on {cr}")
+
+            # ---- Range history ----
+            case _ if len(parts) >= 2 and parts[1].lower() == "history" and ":" in parts[0]:
+                from vimsheet.ui.history_screen import HistoryScreen
+
+                self.push_screen(HistoryScreen(self.workbook.active_sheet, parts[0].upper()))
+
+            # ---- Range clearfilter ----
+            case _ if len(parts) >= 2 and parts[1].lower() == "clearfilter":
+                from vimsheet.model.range import CellRange
+
+                try:
+                    range_str = parts[0].upper()
+                    if ":" not in range_str:
+                        range_str = f"{range_str}1:{range_str}1"
+                    cr = CellRange.from_a1(range_str)
+                    sheet = self.workbook.active_sheet
+                    for c in range(cr.start_col, cr.end_col + 1):
+                        sheet.filters.pop(c, None)
+                    sheet.apply_filters()
+                    self.grid.refresh_grid()
+                    self.status_bar.show_message(
+                        f"Filter cleared on columns {cr.start_col + 1}–{cr.end_col + 1}"
+                    )
+                except Exception as e:
+                    self.status_bar.show_message(f"Error: {e}")
 
             # ---- Range element-wise function apply (non-aggregate) ----
             case _ if (

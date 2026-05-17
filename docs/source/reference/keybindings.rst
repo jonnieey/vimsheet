@@ -274,6 +274,8 @@ Visual Modes
       - Decrement all numeric cells in selection
     * - ``>`` / ``<``
       - Shift right / shift left
+    * - ``+`` / ``-`` / ``_``
+      - Widen / narrow / auto-fit columns in selection
     * - ``z_`` / ``z+``
       - Collapse / expand selected rows
     * - ``:``
