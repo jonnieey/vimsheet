@@ -202,7 +202,7 @@ Column and Row Management
    * - ``:<range> rowfit`` / ``:rowf``
       - Expand collapsed rows in range (alias)
    * - ``:freeze [rows] [cols]``
-     - Freeze panes at given row/col
+      - Freeze panes at given row/col (rows stays pinned when scrolling down, columns pinned when scrolling right)
    * - ``:unfreeze``
      - Unfreeze all panes
    * - ``:hiderow [n]``

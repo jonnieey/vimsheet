@@ -352,7 +352,13 @@ register_help(
     order=45,
 )
 register_help("CMD", ":colwidth / :cw <n>", "Set column width at cursor", subgroup="Data", order=45)
-register_help("CMD", ":freeze row N", "Freeze top N rows", subgroup="Data", order=46)
+register_help(
+    "CMD",
+    ":freeze [rows] [cols]",
+    "Freeze top N rows and left M columns",
+    subgroup="Data",
+    order=46,
+)
 register_help("CMD", ":unfreeze", "Remove freeze", subgroup="Data", order=47)
 register_help(
     "CMD",

@@ -11,3 +11,4 @@ egg-info/
 .python-version
 dcs/build/
 docs/source/reference/_autosummary/
+vimsheet/tutorials/originals

@@ -87,6 +87,12 @@ def _build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     """CLI entry point."""
     _setup_logging()
+
+    # --- tutor subcommand (intercepted before argparse to avoid refactoring) ---
+    if len(sys.argv) >= 2 and sys.argv[1] == "tutor":
+        _run_tutor(sys.argv[2:])
+        return
+
     parser = _build_parser()
     args = parser.parse_args()
 
@@ -246,6 +252,153 @@ def _run_diff(file_a: str, file_b: str) -> None:
     print(f"\n{diffs} difference(s) found.")
     if diffs:
         sys.exit(1)
+
+
+def _run_tutor(argv: list[str]) -> None:
+    """Handle the ``vimsheet tutor`` subcommand."""
+    tutor_parser = argparse.ArgumentParser(
+        prog="vimsheet tutor",
+        description="Interactive tutorial for VimSheet",
+    )
+    tutor_parser.add_argument(
+        "-l",
+        "--lesson",
+        type=int,
+        default=None,
+        help="Launch a single lesson N (0–20) and exit. No auto-advance.",
+    )
+    tutor_parser.add_argument(
+        "-s",
+        "--start",
+        type=int,
+        default=None,
+        help="Start sequential mode from lesson N (0–20).",
+    )
+    tutor_parser.add_argument(
+        "-c",
+        "--resume",
+        action="store_true",
+        help="Resume sequential mode from the last visited lesson.",
+    )
+    tutor_parser.add_argument(
+        "-r",
+        "--reset",
+        type=int,
+        default=None,
+        help="Reset lesson N to its original state.",
+    )
+    tutor_parser.add_argument(
+        "--reset-progress",
+        action="store_true",
+        help="Clear saved progress without resetting any lesson.",
+    )
+    tutor_parser.add_argument(
+        "-L",
+        "--list",
+        action="store_true",
+        help="List all available lessons and exit.",
+    )
+    args = tutor_parser.parse_args(argv)
+
+    from vimsheet.tutorial_manager import TutorialError, TutorialManager
+
+    tm = TutorialManager()
+
+    # --- List ---
+    if args.list:
+        lessons = tm.list_lessons()
+        print(f"{'Num':>4}  {'Lesson':<30}  {'Description'}")
+        print(f"{'─' * 4}  {'─' * 30}  {'─' * 50}")
+        for le in lessons:
+            print(f"  {le['num']:2d}   {le['file']:<30}  {le['title']}")
+        return
+
+    # --- Reset progress ---
+    if args.reset_progress:
+        tm.reset_progress()
+        print("Progress cleared.")
+        return
+
+    # --- Reset lesson ---
+    if args.reset is not None:
+        try:
+            tm.reset_lesson(args.reset)
+            print(f"Lesson {args.reset} reset to original.")
+        except TutorialError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
+
+    # --- Single lesson mode (-l) ---
+    if args.lesson is not None:
+        _launch_single_lesson(tm, args.lesson)
+        return
+
+    # --- Sequential mode ---
+    start: int | None = args.start
+    if args.resume:
+        resumed = tm.load_progress()
+        if resumed is None:
+            print("No progress found. Starting from lesson 0.")
+            start = 0
+        else:
+            next_num = resumed + 1
+            if next_num > tm.max_lesson:
+                print("All lessons already complete. Starting from lesson 0.")
+                start = 0
+            else:
+                start = next_num
+                print(f"Resuming at lesson {start}.")
+    if start is None:
+        start = 0
+
+    _run_sequential(tm, start)
+
+
+def _launch_single_lesson(tm: Any, lesson_num: int) -> None:
+    """Open a single lesson and exit after the user quits."""
+    _launch_lesson(tm, lesson_num)
+
+
+def _launch_lesson(tm: Any, lesson_num: int) -> None:
+    """Open *lesson_num* in the TUI and block until the user exits."""
+    from vimsheet.app import VimSheetApp
+    from vimsheet.io.registry import get_adapter
+    from vimsheet.model.config import Config
+    from vimsheet.tutorial_manager import TutorialError
+
+    try:
+        path = tm.get_lesson(lesson_num)
+    except TutorialError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    config = Config.load(Config.default_path())
+    workbook = get_adapter(path).read(path)
+    workbook._bind_sheets()
+    app = VimSheetApp(workbook=workbook, config=config)
+    app.run()
+
+
+def _run_sequential(tm: Any, start: int) -> None:
+    """Run lessons from *start* through the end, prompting to continue."""
+    n = start
+    while n <= tm.max_lesson:
+        print(f"\n── Lesson {n} of {tm.max_lesson} ──")
+        _launch_lesson(tm, n)
+        tm.save_progress(n)
+
+        if n >= tm.max_lesson:
+            print("\nAll lessons complete! 🎉")
+            tm.reset_progress()
+            break
+
+        answer = input(f"\nContinue to lesson {n + 1}? [Y/n/q]: ").strip().lower()
+        if answer in ("n", "q", "no", "quit"):
+            if answer != "q" and answer != "quit":
+                print("Resume later with:  vimsheet tutor -c")
+            break
+        n += 1
 
 
 def _start_watch_mode(filepath: Path, app: Any) -> None:

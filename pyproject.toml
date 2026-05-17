@@ -38,6 +38,11 @@ vimsheet = "vimsheet.__main__:main"
 [tool.hatch.version]
 path = "vimsheet/__init__.py"
 
+[tool.hatch.build.targets.wheel]
+include = [
+  "vimsheet/**/*.py",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

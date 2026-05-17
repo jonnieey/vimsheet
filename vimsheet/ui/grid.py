@@ -190,7 +190,10 @@ class GridWidget(ScrollView):
         return total
 
     def get_content_height(self, container: Size, viewport: Size, width: int) -> int:
-        return self._total_virtual_lines + 1  # +1 for frozen header row
+        freeze_rows = self.sheet.freeze_rows
+        prefix = self._get_prefix()
+        frozen_height = prefix[freeze_rows] if freeze_rows > 0 else 0
+        return max(1, self._total_virtual_lines + 1 - frozen_height)
 
     # -----------------------------------------------------------------------
     # Rendering
@@ -204,8 +207,29 @@ class GridWidget(ScrollView):
         if y == 0:
             return self._render_header_row(scroll_x, width)
 
+        freeze_rows = self.sheet.freeze_rows
         scroll_y = int(self.scroll_offset.y)
-        virtual_y = (y - 1) + scroll_y
+        prefix = self._get_prefix()
+        frozen_height = prefix[freeze_rows] if freeze_rows > 0 else 0
+
+        if freeze_rows > 0:
+            if y - 1 < frozen_height:
+                virtual_y = y - 1
+            elif y - 1 == frozen_height:
+                row_hdr = Segment(
+                    " " * ROW_HEADER_WIDTH,
+                    Style(bgcolor=self._palette.frozen_header_bg),
+                )
+                data_sep = Segment(
+                    "─" * (width - ROW_HEADER_WIDTH),
+                    Style(color=self._palette.frozen_sep),
+                )
+                return Strip([row_hdr]) + Strip([data_sep])
+            else:
+                virtual_y = (y - 1 - 1) + scroll_y
+        else:
+            virtual_y = (y - 1) + scroll_y
+
         data_row, sub_line = self._virtual_y_to_row(virtual_y)
         return self._render_data_row(data_row, scroll_x, width, sub_line=sub_line)
 
@@ -216,22 +240,37 @@ class GridWidget(ScrollView):
         div = Style(bgcolor=self._palette.header_bg, color=self._palette.header_divider)
         corner = Strip([Segment(" " * ROW_HEADER_WIDTH, hdr)])
         data_width = width - ROW_HEADER_WIDTH
-        segs: list[Segment] = []
-        x = 0
+        freeze_cols = self.sheet.freeze_cols
+
+        frozen_segs: list[Segment] = []
+        frozen_width = 0
         col = 0
-        while x < scroll_x + data_width:
+        while col < freeze_cols:
             cw = self.get_col_width(col)
             if col not in self.sheet.hidden_cols:
                 label = col_index_to_letters(col).center(cw)
-                segs.append(Segment(label[:cw], hdr))
+                frozen_segs.append(Segment(label[:cw], hdr))
+                frozen_segs.append(Segment("│", div))
+            frozen_width += cw + 1
+            col += 1
+
+        scrollable_segs: list[Segment] = []
+        x = 0
+        while x < max(0, scroll_x - frozen_width) + data_width - frozen_width:
+            cw = self.get_col_width(col)
+            if col not in self.sheet.hidden_cols:
+                label = col_index_to_letters(col).center(cw)
+                scrollable_segs.append(Segment(label[:cw], hdr))
                 no_lines = self._config is not None and not self._config.show_grid_lines
                 div_char = " " if no_lines else "│"
-                segs.append(Segment(div_char, div))
+                scrollable_segs.append(Segment(div_char, div))
             x += cw + 1
             col += 1
             if col > 702:
                 break
-        return corner + Strip(segs).crop(scroll_x, scroll_x + data_width)
+        crop_start = max(0, scroll_x - frozen_width)
+        crop_end = crop_start + data_width - frozen_width
+        return corner + Strip(frozen_segs) + Strip(scrollable_segs).crop(crop_start, crop_end)
 
     def _cell_display_text(self, row: int, col: int, sub_line: int) -> str:
         """Return the text to display for one cell at a given sub-line."""
@@ -250,11 +289,6 @@ class GridWidget(ScrollView):
         is_cursor_row = row == self.cursor_row
         is_hidden = row in self.sheet.hidden_rows
         freeze_rows = self.sheet.freeze_rows
-
-        # Frozen-row separator: only on sub_line 0
-        if freeze_rows > 0 and row == freeze_rows and sub_line == 0 and not is_hidden:
-            sep_style = Style(bgcolor=self._palette.frozen_sep, color=self._palette.frozen_sep)
-            return Strip([Segment("─" * width, sep_style)])
 
         is_frozen_row = freeze_rows > 0 and row < freeze_rows
 
@@ -294,33 +328,19 @@ class GridWidget(ScrollView):
             hdr = Style(bgcolor=self._palette.header_bg)
             return Strip([Segment(hidden_label, hdr)]) + Strip([Segment(" " * data_width)])
 
-        segs: list[Segment] = []
-        x = 0
         freeze_cols = self.sheet.freeze_cols
-        col = 0
-        while x < scroll_x + data_width:
-            cw = self.get_col_width(col)
-            if col in self.sheet.hidden_cols:
-                x += cw
-                col += 1
-                continue
-            if freeze_cols > 0 and col == freeze_cols:
-                segs.append(Segment("│", Style(color=self._palette.frozen_sep, bgcolor=None)))
+
+        # Helper: build one cell's segments (text + divider) into a list
+        def _cell_segments(dest: list[Segment], row: int, col: int, cw: int) -> None:
             text = self._cell_display_text(row, col, sub_line)
             style = self._cell_style(row, col, self.sheet.get_cell(row, col))
-            if freeze_cols > 0 and col < freeze_cols and not is_cursor_row:
-                from vimsheet.model.cell import Cell as _CT
-
-                cell = self.sheet.get_cell(row, col)
-                if not isinstance(cell, _CT) or (cell.fmt.bg_color is None):
-                    style = style + Style(bgcolor=self._palette.frozen_cell_bg)
-            cell = self.sheet.get_cell(row, col)
             has_more = row in self._collapsed_rows and text.endswith("…")
             if has_more:
                 text = text[:-1]
             if len(text) > cw - 1:
                 text = text[: cw - 2] + "…"
             effective_cw = cw - 1 if has_more else cw
+            cell = self.sheet.get_cell(row, col)
             align = cell.fmt.align if cell else "right"
             if align == "center":
                 text = text.center(effective_cw)
@@ -328,22 +348,54 @@ class GridWidget(ScrollView):
                 text = text.ljust(effective_cw)
             else:
                 text = text.rjust(effective_cw)
-            segs.append(Segment(text, style))
+            dest.append(Segment(text, style))
             if has_more:
-                ellipsis_style = Style(color=self._palette.collapsed_fg)
-                segs.append(Segment("…", ellipsis_style))
+                dest.append(Segment("…", Style(color=self._palette.collapsed_fg)))
             div_bg = self._palette.alt_row_bg if row % 2 == 1 else None
             no_lines = self._config is not None and not self._config.show_grid_lines
             divider = " " if no_lines else "│"
             divider_style = (
                 Style() if no_lines else Style(color=self._palette.gridline, bgcolor=div_bg)
             )
-            segs.append(Segment(divider, divider_style))
-            x += cw + 1
+            dest.append(Segment(divider, divider_style))
+
+        # Compute frozen columns pixel width
+        frozen_width = 0
+        for c in range(freeze_cols):
+            frozen_width += self.get_col_width(c) + 1
+
+        # Build frozen column segments (cols 0..freeze_cols-1)
+        frozen_segs: list[Segment] = []
+        for c in range(freeze_cols):
+            if c in self.sheet.hidden_cols:
+                continue
+            cw = self.get_col_width(c)
+            _cell_segments(frozen_segs, row, c, cw)
+        # Frozen separator
+        if freeze_cols > 0:
+            frozen_segs.append(Segment("│", Style(color=self._palette.frozen_sep, bgcolor=None)))
+
+        # Build scrollable column segments
+        scrollable_segs: list[Segment] = []
+        col = freeze_cols
+        sx = 0
+        while sx < max(0, scroll_x - frozen_width) + data_width - frozen_width:
+            cw = self.get_col_width(col)
+            if col in self.sheet.hidden_cols:
+                sx += cw
+                col += 1
+                continue
+            _cell_segments(scrollable_segs, row, col, cw)
+            sx += cw + 1
             col += 1
             if col > 702:
                 break
-        return row_hdr_strip + Strip(segs).crop(scroll_x, scroll_x + data_width)
+
+        crop_start = max(0, scroll_x - frozen_width)
+        crop_end = crop_start + data_width - frozen_width
+        return (
+            row_hdr_strip + Strip(frozen_segs) + Strip(scrollable_segs).crop(crop_start, crop_end)
+        )
 
     def _cell_style(self, row: int, col: int, cell: object) -> Style:
         from vimsheet.model.cell import Cell as CellType
@@ -379,6 +431,29 @@ class GridWidget(ScrollView):
                         bold = True
             if isinstance(cell.value, str) and cell.value.startswith("#"):
                 fg = self._palette.error_fg
+
+        freeze_rows = self.sheet.freeze_rows
+        freeze_cols = self.sheet.freeze_cols
+
+        # Frozen zone text — use dedicated fg for contrast
+        if (
+            fg is None
+            and freeze_rows > 0
+            and row < freeze_rows
+            and freeze_cols > 0
+            and col < freeze_cols
+        ):
+            fg = self._palette.frozen_cell_fg
+
+        # Frozen zone bg — only in the intersection of frozen rows + columns
+        if (
+            bg is None
+            and freeze_rows > 0
+            and row < freeze_rows
+            and freeze_cols > 0
+            and col < freeze_cols
+        ):
+            bg = self._palette.frozen_cell_bg
 
         style = Style(
             bold=bold or None,
@@ -516,17 +591,25 @@ class GridWidget(ScrollView):
         )
 
     def go_to_visible_top(self) -> None:
-        vy = int(self.scroll_offset.y)
+        freeze_rows = self.sheet.freeze_rows
+        frozen_height = self._get_prefix()[freeze_rows] if freeze_rows > 0 else 0
+        vy = frozen_height + int(self.scroll_offset.y)
         row, _ = self._virtual_y_to_row(vy)
         self.move_cursor(row, self.cursor_col)
 
     def go_to_visible_middle(self) -> None:
-        vy = int(self.scroll_offset.y) + (self.size.height - 2) // 2
+        freeze_rows = self.sheet.freeze_rows
+        frozen_height = self._get_prefix()[freeze_rows] if freeze_rows > 0 else 0
+        visible_data = max(1, self.size.height - frozen_height - 2)
+        vy = frozen_height + int(self.scroll_offset.y) + visible_data // 2
         row, _ = self._virtual_y_to_row(vy)
         self.move_cursor(row, self.cursor_col)
 
     def go_to_visible_bottom(self) -> None:
-        vy = int(self.scroll_offset.y) + self.size.height - 3
+        freeze_rows = self.sheet.freeze_rows
+        frozen_height = self._get_prefix()[freeze_rows] if freeze_rows > 0 else 0
+        visible_data = max(1, self.size.height - frozen_height - 2)
+        vy = frozen_height + int(self.scroll_offset.y) + visible_data - 1
         row, _ = self._virtual_y_to_row(vy)
         self.move_cursor(row, self.cursor_col)
 
@@ -559,12 +642,15 @@ class GridWidget(ScrollView):
     def _scroll_cursor_into_view(self) -> None:
         virtual_y = self._row_virtual_y(self.cursor_row)
         scroll_y = int(self.scroll_offset.y)
-        data_rows_visible = max(1, self.size.height - 1)
+        freeze_rows = self.sheet.freeze_rows
+        prefix = self._get_prefix()
+        frozen_height = prefix[freeze_rows] if freeze_rows > 0 else 0
+        data_rows_visible = max(1, self.size.height - frozen_height - 2)
 
-        if virtual_y < scroll_y:
-            self.scroll_to(y=virtual_y, animate=False)
-        elif virtual_y >= scroll_y + data_rows_visible:
-            self.scroll_to(y=virtual_y - data_rows_visible + 1, animate=False)
+        if virtual_y < scroll_y + frozen_height:
+            self.scroll_to(y=max(0, virtual_y - frozen_height), animate=False)
+        elif virtual_y >= scroll_y + frozen_height + data_rows_visible:
+            self.scroll_to(y=virtual_y - frozen_height - data_rows_visible + 1, animate=False)
 
         x = ROW_HEADER_WIDTH
         for c in range(self.cursor_col):
@@ -572,24 +658,34 @@ class GridWidget(ScrollView):
         cw = self.get_col_width(self.cursor_col)
         scroll_x = int(self.scroll_offset.x)
         vis_w = self.size.width
+        freeze_cols = self.sheet.freeze_cols
+        frozen_width = sum(self.get_col_width(c) + 1 for c in range(freeze_cols))
         if x < scroll_x + ROW_HEADER_WIDTH:
             self.scroll_to(x=max(0, x - ROW_HEADER_WIDTH), animate=False)
-        elif x + cw > scroll_x + vis_w:
-            self.scroll_to(x=x + cw - vis_w, animate=False)
+        elif x + cw > scroll_x + vis_w - frozen_width:
+            self.scroll_to(x=x + cw - (vis_w - frozen_width), animate=False)
 
     def scroll_cell_to_top(self) -> None:
-        self.scroll_to(y=self._row_virtual_y(self.cursor_row), animate=False)
+        freeze_rows = self.sheet.freeze_rows
+        frozen_height = self._get_prefix()[freeze_rows] if freeze_rows > 0 else 0
+        self.scroll_to(
+            y=max(0, self._row_virtual_y(self.cursor_row) - frozen_height), animate=False
+        )
 
     def scroll_cell_to_center(self) -> None:
+        freeze_rows = self.sheet.freeze_rows
+        frozen_height = self._get_prefix()[freeze_rows] if freeze_rows > 0 else 0
         virtual_y = self._row_virtual_y(self.cursor_row)
-        data_rows_visible = max(1, self.size.height - 1)
+        data_rows_visible = max(1, self.size.height - frozen_height - 2)
         half = data_rows_visible // 2
-        self.scroll_to(y=max(0, virtual_y - half), animate=False)
+        self.scroll_to(y=max(0, virtual_y - frozen_height - half), animate=False)
 
     def scroll_cell_to_bottom(self) -> None:
+        freeze_rows = self.sheet.freeze_rows
+        frozen_height = self._get_prefix()[freeze_rows] if freeze_rows > 0 else 0
         virtual_y = self._row_virtual_y(self.cursor_row)
-        data_rows_visible = max(1, self.size.height - 1)
-        self.scroll_to(y=max(0, virtual_y - data_rows_visible + 1), animate=False)
+        data_rows_visible = max(1, self.size.height - frozen_height - 2)
+        self.scroll_to(y=max(0, virtual_y - frozen_height - data_rows_visible + 1), animate=False)
 
     # -----------------------------------------------------------------------
     # Reactive watchers
