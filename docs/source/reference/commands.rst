@@ -67,10 +67,10 @@ Cell Operations
      - Fill selected range with constant value
    * - ``:fill <start> <step>``
      - Fill selected range with arithmetic sequence
-   * - ``:fmt <addr> <prop> [value]``
-      - Format a cell (``color``, ``bg``, ``bold``, ``italic``, ``underline``)
-   * - ``:<range> fmt <prop> [value]``
-      - Format every cell in a range
+   * - ``:fmt <addr> <prop>=<val> …``
+      - Format a cell — supports ``bg=red fg=white bold align=left num_decimals=2``, or old syntax ``:fmt <addr> <prop> [val]`` for single properties
+   * - ``:<range> fmt <prop>=<val> …``
+      - Format every cell in a range (supports multiple properties)
    * - ``:<range> <FUNC> [args]``
       - Apply scalar function element-wise to each cell in range
         (e.g., ``:A1:B10 UPPER`` uppercases every cell).

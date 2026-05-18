@@ -1149,30 +1149,23 @@ class VimSheetApp(App[None]):
                 except Exception:
                     self.status_bar.show_message(f"Invalid range: {parts[0]!r}")
                     return
-                prop = parts[2].lower()
-                val_str = parts[3] if len(parts) > 3 else ""
+                if "=" in parts[2]:
+                    kwargs = self._parse_fmt_kwargs(parts[2:])
+                else:
+                    prop = parts[2].lower()
+                    val_str = parts[3] if len(parts) > 3 else ""
+                    kwargs = self._parse_fmt_kwargs([prop, val_str])
+                if kwargs is None:
+                    return
                 cmds: list[FormatCommand] = []
                 for r in range(cr.start_row, cr.end_row + 1):
                     for c in range(cr.start_col, cr.end_col + 1):
-                        match prop:
-                            case "color" | "fg":
-                                cmd = FormatCommand(sheet, r, c, fg_color=val_str)
-                            case "bg" | "background":
-                                cmd = FormatCommand(sheet, r, c, bg_color=val_str)
-                            case "bold":
-                                cmd = FormatCommand(sheet, r, c, bold=True)
-                            case "italic":
-                                cmd = FormatCommand(sheet, r, c, italic=True)
-                            case "underline":
-                                cmd = FormatCommand(sheet, r, c, underline=True)
-                            case _:
-                                self.status_bar.show_message(f"Unknown format property: {prop!r}")
-                                return
-                        cmds.append(cmd)
+                        cmds.append(FormatCommand(sheet, r, c, **kwargs))
                 self.undo_stack.push(CompositeCommand(cmds))
                 self.grid.refresh_grid()
                 self.workbook.modified = True
-                self.status_bar.show_message(f"Formatted {cr}: {prop} {val_str}")
+                labels = " ".join(f"{k}={v}" for k, v in kwargs.items())
+                self.status_bar.show_message(f"Formatted {cr}: {labels}")
 
             # ---- Range condformat ----
             case _ if len(parts) >= 4 and parts[1].lower() in ("condformat", "cond", "cf"):
@@ -1557,6 +1550,7 @@ class VimSheetApp(App[None]):
                 # :format <addr> color <#rrggbb>
                 # :format <addr> bg <#rrggbb>
                 # :format <addr> bold | italic | underline
+                # :format <addr> bg=#rrggbb fg=white align=left bold
                 from vimsheet.model.range import a1_to_rowcol
                 from vimsheet.model.undo import FormatCommand
 
@@ -1566,26 +1560,20 @@ class VimSheetApp(App[None]):
                     except Exception:
                         self.status_bar.show_message(f"Invalid address: {parts[1]!r}")
                         return
-                    prop = parts[2].lower()
-                    val_str = parts[3] if len(parts) > 3 else ""
-                    match prop:
-                        case "color" | "fg":
-                            cmd = FormatCommand(self.workbook.active_sheet, r, c, fg_color=val_str)
-                        case "bg" | "background":
-                            cmd = FormatCommand(self.workbook.active_sheet, r, c, bg_color=val_str)
-                        case "bold":
-                            cmd = FormatCommand(self.workbook.active_sheet, r, c, bold=True)
-                        case "italic":
-                            cmd = FormatCommand(self.workbook.active_sheet, r, c, italic=True)
-                        case "underline":
-                            cmd = FormatCommand(self.workbook.active_sheet, r, c, underline=True)
-                        case _:
-                            self.status_bar.show_message(f"Unknown format property: {prop!r}")
-                            return
+                    if "=" in parts[2]:
+                        kwargs = self._parse_fmt_kwargs(parts[2:])
+                    else:
+                        prop = parts[2].lower()
+                        val_str = parts[3] if len(parts) > 3 else ""
+                        kwargs = self._parse_fmt_kwargs([prop, val_str])
+                    if kwargs is None:
+                        return
+                    cmd = FormatCommand(self.workbook.active_sheet, r, c, **kwargs)
                     self.undo_stack.push(cmd)
                     self.grid.refresh_grid()
                     self.workbook.modified = True
-                    self.status_bar.show_message(f"Formatted {parts[1].upper()}: {prop} {val_str}")
+                    labels = " ".join(f"{k}={v}" for k, v in kwargs.items())
+                    self.status_bar.show_message(f"Formatted {parts[1].upper()}: {labels}")
                 else:
                     self.status_bar.show_message(
                         "Usage: :format <addr> color|bg|bold|italic|underline [value]"
@@ -2531,6 +2519,48 @@ class VimSheetApp(App[None]):
             )
         else:
             self.status_bar.show_message(f"{func_name}: no cells changed")
+
+    def _parse_fmt_kwargs(self, tokens: list[str]) -> dict | None:
+        """
+        Parse format property tokens (e.g. ``bg=red fg=white bold``) into
+        kwargs for FormatCommand.
+        """
+        kwargs: dict = {}
+        for token in tokens:
+            key = val = ""
+            if "=" in token:
+                key, val = token.split("=", 1)
+            else:
+                key = token
+                val = "true"
+            key = key.lower()
+            match key:
+                case "color" | "fg":
+                    kwargs["fg_color"] = val
+                case "bg" | "background":
+                    kwargs["bg_color"] = val
+                case "bold":
+                    kwargs["bold"] = True
+                case "italic":
+                    kwargs["italic"] = True
+                case "underline":
+                    kwargs["underline"] = True
+                case "align":
+                    kwargs["align"] = val
+                case "num_decimals":
+                    try:
+                        kwargs["num_decimals"] = int(val)
+                    except ValueError:
+                        self.status_bar.show_message(f"Invalid num_decimals: {val!r}")
+                        return None
+                case "num_format":
+                    kwargs["num_format"] = val
+                case "thousands_sep":
+                    kwargs["thousands_sep"] = val.lower() in ("true", "1", "yes")
+                case _:
+                    self.status_bar.show_message(f"Unknown format property: {key!r}")
+                    return None
+        return kwargs
 
     # -----------------------------------------------------------------------
     # External scripts

@@ -370,7 +370,12 @@ register_help(
     order=48,
 )
 register_help(
-    "CMD", ":format <cell> …", "Format cell (color/bg/bold/italic/…)", subgroup="Format", order=50
+    "CMD",
+    ":format <cell> …",
+    "Format cell — color/bg/bold/italic/underline/align/num_decimals/num_format."
+    "Use ``prop=val`` to set multiple at once",
+    subgroup="Format",
+    order=50,
 )
 register_help("CMD", ":cond <range> …", "Conditional format", subgroup="Format", order=51)
 register_help("CMD", ':comment "text"', "Add comment to cell", subgroup="Format", order=52)
@@ -383,8 +388,8 @@ register_help(
 )
 register_help(
     "CMD",
-    ":<range> fmt <prop> [val]",
-    "Format every cell in range (color/bg/bold/…)",
+    ":<range> fmt <prop>=<val> …",
+    "Format every cell in range — use ``prop=val`` to set multiple properties at once",
     subgroup="Format",
     order=56,
 )

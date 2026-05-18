@@ -36,6 +36,7 @@ Features
   column-only or row-only fit
 * ``:<range> autofit`` now accepts ``col`` / ``row`` / ``both``
   argument (default ``both``) to fit columns and/or rows in range
+* ``:format`` now supports ``prop=val`` syntax to set multiple properties (e.g. ``bg=red fg=white bold``) and exposes ``align``, ``num_decimals``, ``num_format``, and ``thousands_sep``
 
 0.1.0 — 2026-01-15
 ------------------
