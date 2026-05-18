@@ -162,6 +162,39 @@ class ValidationCommand(Command):
             self._sheet.validation.add(self._row, self._col, self._old_rule)
 
 
+class SortRangeCommand(Command):
+    """Snapshot a range before sorting, allow undo/redo."""
+
+    description = "sort range"
+
+    def __init__(
+        self,
+        sheet: Sheet,
+        r1: int,
+        c1: int,
+        sorted_data: list[list[tuple[Any, str | None]]],
+    ) -> None:
+        self._sheet = sheet
+        self._r1 = r1
+        self._c1 = c1
+        self._sorted_data = sorted_data
+        self._snaps: dict[tuple[int, int], Cell | None] = {}
+        for ri, row in enumerate(sorted_data):
+            for ci in range(len(row)):
+                r, c = r1 + ri, c1 + ci
+                self._snaps[(r, c)] = _snapshot_cell(sheet, r, c)
+
+    def execute(self) -> None:
+        for ri, row in enumerate(self._sorted_data):
+            for ci, (val, fml) in enumerate(row):
+                r, c = self._r1 + ri, self._c1 + ci
+                self._sheet.set_cell_value(r, c, val, fml)
+
+    def undo(self) -> None:
+        for (r, c), snap in self._snaps.items():
+            _restore_cell(self._sheet, r, c, snap)
+
+
 class FillRangeCommand(Command):
     description = "fill range"
 

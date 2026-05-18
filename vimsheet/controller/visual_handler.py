@@ -325,6 +325,8 @@ class VisualHandler:
 
     def _sort_range(self, cell_range: CellRange) -> None:
         """Sort rows in selection by the first column of the selection."""
+        from vimsheet.model.undo import SortRangeCommand
+
         app = self._app
         sheet = app.workbook.active_sheet
         r1, c1, r2, c2 = (
@@ -333,14 +335,16 @@ class VisualHandler:
             cell_range.end_row,
             cell_range.end_col,
         )
-        rows: list[list[Any]] = []
+        rows: list[list[tuple[Any, str | None]]] = []
         for r in range(r1, r2 + 1):
-            row = [sheet.cells.get((r, c)) for c in range(c1, c2 + 1)]
-            rows.append(row)
+            row_data: list[tuple[Any, str | None]] = []
+            for c in range(c1, c2 + 1):
+                cell = sheet.cells.get((r, c))
+                row_data.append((cell.value if cell else None, cell.formula if cell else None))
+            rows.append(row_data)
 
-        def sort_key(row: list[Any]) -> tuple[int, Any]:
-            cell = row[0]
-            val = cell.value if cell else None
+        def sort_key(row: list[tuple[Any, str | None]]) -> tuple[int, Any]:
+            val, _ = row[0]
             if val is None:
                 return (1, "")
             if isinstance(val, int | float):
@@ -349,14 +353,8 @@ class VisualHandler:
 
         rows.sort(key=sort_key)
 
-        # Write back
-        for ri, row in enumerate(rows):
-            for ci, cell in enumerate(row):
-                r, c = r1 + ri, c1 + ci
-                if cell is None:
-                    sheet.clear_cell(r, c)
-                else:
-                    sheet.set_cell_value(r, c, cell.value, cell.formula)
+        cmd = SortRangeCommand(sheet, r1, c1, rows)
+        app.undo_stack.push(cmd)
         app.workbook.modified = True
         app.grid.refresh_grid()
 
