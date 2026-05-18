@@ -200,6 +200,9 @@ class JSONAdapter(FormatAdapter):
                 r, c = cd["row"], cd["col"]
                 formula = cd.get("formula")
                 value = cd.get("value")
+                formula = cd.get("formula")
+                if not formula and isinstance(value, str) and value.startswith("="):
+                    formula = value
                 cell: Cell
                 if formula:
                     sheet.set_cell_value(r, c, value, formula=formula, record_history=False)

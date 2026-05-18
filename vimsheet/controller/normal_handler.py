@@ -352,7 +352,7 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
             case "dd":
-                self._clear_cell()
+                self._cut_row()
                 app._key_buffer = ""
                 return
 
@@ -711,18 +711,19 @@ class NormalHandler:
         app = self._app
         r, c = app.cursor_row, app.cursor_col
         reg = app._pending_register
+        cell = app.workbook.active_sheet.get_cell(r, c)
+        entry = RegisterEntry(
+            value=cell.value if cell else None,
+            formula=cell.formula if cell else None,
+            src_row=r,
+            src_col=c,
+        )
         if reg:
-            cell = app.workbook.active_sheet.get_cell(r, c)
-            if cell:
-                entry = RegisterEntry(
-                    value=cell.value,
-                    formula=cell.formula,
-                    src_row=r,
-                    src_col=c,
-                )
-                app._registers[reg] = entry
-                app.status_bar.show_message(f'Deleted → "{reg}')
-            app._pending_register = ""
+            app._registers[reg] = entry
+            app.status_bar.show_message(f'Deleted → "{reg}')
+        else:
+            app._default_register = entry
+        app._pending_register = ""
         cmd = ClearCellCommand(app.workbook.active_sheet, r, c)
         app.undo_stack.push(cmd)
         app.workbook.modified = True
@@ -740,6 +741,21 @@ class NormalHandler:
         r, c = app.cursor_row, app.cursor_col
         if sheet.max_col >= c:
             rng = CellRange(r, c, r, sheet.max_col)
+            # Yank to register before deleting
+            range_data: list[list[tuple[Any, str | None]]] = []
+            for col in range(c, sheet.max_col + 1):
+                cell = sheet.get_cell(r, col)
+                range_data.append([(cell.value if cell else None, cell.formula if cell else None)])
+            app._default_register = RegisterEntry(
+                value=None,
+                formula=None,
+                src_row=r,
+                src_col=c,
+                is_range=True,
+                range_data=[range_data],
+                range_src_top=r,
+                range_src_left=c,
+            )
             cmd = DeleteRangeCommand(sheet, rng)
             app.undo_stack.push(cmd)
             app.workbook.modified = True
@@ -859,7 +875,23 @@ class NormalHandler:
         dst_row, dst_col = app.cursor_row, app.cursor_col
 
         if entry.is_range:
-            self._paste_range_relative(entry, dst_row, dst_col)
+            data: list[list[Any]] = []
+            for i, row_data in enumerate(entry.range_data):
+                row: list[Any] = []
+                for j, (value, formula) in enumerate(row_data):
+                    src_r = entry.range_src_top + i
+                    src_c = entry.range_src_left + j
+                    adjusted = adjust_formula(formula, dst_row + i, dst_col + j, src_r, src_c)
+                    if formula is not None and adjusted is not None:
+                        row.append(YankedCell(value=value, formula=adjusted))
+                    else:
+                        row.append(value)
+                data.append(row)
+            cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
+            app.undo_stack.push(cmd)
+            app.workbook.modified = True
+            app.grid.refresh_grid()
+            app._last_action = ("paste", False, data)
         else:
             adjusted_formula = adjust_formula(
                 entry.formula, dst_row, dst_col, entry.src_row, entry.src_col
@@ -879,8 +911,7 @@ class NormalHandler:
         """P — paste at cursor without formula adjustment."""
         if self._check_lock():
             return
-        from vimsheet.formula.adjuster import adjust_formula
-        from vimsheet.model.undo import PasteCommand, YankedCell
+        from vimsheet.model.undo import PasteCommand
 
         app = self._app
         reg = app._pending_register
@@ -907,16 +938,10 @@ class NormalHandler:
 
         dst_row, dst_col = app.cursor_row, app.cursor_col
         data: list[list[Any]] = []
-        for _, row_data in enumerate(entry.range_data):
+        for row_data in entry.range_data:
             row: list[Any] = []
-            for _, (value, formula) in enumerate(row_data):
-                adjusted = adjust_formula(
-                    formula, dst_row, dst_col, entry.range_src_top, entry.range_src_left
-                )
-                if formula is not None and adjusted is not None:
-                    row.append(YankedCell(value=value, formula=adjusted))
-                else:
-                    row.append(value)
+            for value, _formula in row_data:
+                row.append(value)
             data.append(row)
         cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
         app.undo_stack.push(cmd)
@@ -1017,7 +1042,21 @@ class NormalHandler:
         from vimsheet.model.undo import DeleteRowCommand
 
         app = self._app
-        cmd = DeleteRowCommand(app.workbook.active_sheet, app.cursor_row)
+        r = app.cursor_row
+        sheet = app.workbook.active_sheet
+        max_c = sheet.max_col
+        row_values = [sheet.get_cell(r, c) and sheet.get_cell(r, c).value for c in range(max_c + 1)]
+        app._default_register = RegisterEntry(
+            value=None,
+            formula=None,
+            src_row=r,
+            src_col=0,
+            is_range=True,
+            range_data=[[(v, None) for v in row_values]],
+            range_src_top=r,
+            range_src_left=0,
+        )
+        cmd = DeleteRowCommand(sheet, r)
         app.undo_stack.push(cmd)
         app.workbook.modified = True
         app.grid.refresh_grid()
@@ -1028,7 +1067,23 @@ class NormalHandler:
         from vimsheet.model.undo import DeleteColCommand
 
         app = self._app
-        cmd = DeleteColCommand(app.workbook.active_sheet, app.cursor_col)
+        c = app.cursor_col
+        sheet = app.workbook.active_sheet
+        col_values: list[Any] = []
+        for r in range(sheet.max_row + 1):
+            cell = sheet.get_cell(r, c)
+            col_values.append(cell.value if cell else None)
+        app._default_register = RegisterEntry(
+            value=None,
+            formula=None,
+            src_row=0,
+            src_col=c,
+            is_range=True,
+            range_data=[[(v, None)] for v in col_values],
+            range_src_top=0,
+            range_src_left=c,
+        )
+        cmd = DeleteColCommand(sheet, c)
         app.undo_stack.push(cmd)
         app.workbook.modified = True
         app.grid.refresh_grid()
