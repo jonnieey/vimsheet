@@ -44,6 +44,7 @@ class Config:
     thousands_separator: str = ","
     scripts_dir: str = ""
     functions_file: str = ""
+    save_cursor: bool = True
     theme_overrides: dict[str, dict[str, str]] = field(default_factory=dict)
 
     # ------------------------------------------------------------------

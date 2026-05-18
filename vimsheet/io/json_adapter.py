@@ -196,11 +196,12 @@ class JSONAdapter(FormatAdapter):
             sheet.col_groups = [tuple(g) for g in sd.get("col_groups", [])]  # type: ignore[assignment]
             sheet.freeze_rows = sd.get("freeze_rows", 0)
             sheet.freeze_cols = sd.get("freeze_cols", 0)
+            sheet.cursor_row = sd.get("cursor_row", 0)
+            sheet.cursor_col = sd.get("cursor_col", 0)
             for cd in sd.get("cells", []):
                 r, c = cd["row"], cd["col"]
                 formula = cd.get("formula")
                 value = cd.get("value")
-                formula = cd.get("formula")
                 if not formula and isinstance(value, str) and value.startswith("="):
                     formula = value
                 cell: Cell
@@ -282,6 +283,8 @@ class JSONAdapter(FormatAdapter):
                     "col_groups": [list(g) for g in sheet.col_groups],
                     "freeze_rows": sheet.freeze_rows,
                     "freeze_cols": sheet.freeze_cols,
+                    "cursor_row": sheet.cursor_row,
+                    "cursor_col": sheet.cursor_col,
                 }
             )
         doc = {"version": 1, "active_sheet": workbook.active_sheet_idx, "sheets": sheets_data}

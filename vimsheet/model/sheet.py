@@ -115,6 +115,8 @@ class Sheet:
     max_row: int = 0
     max_col: int = 0
     validation: SheetValidation = field(default_factory=SheetValidation)
+    cursor_row: int = 0
+    cursor_col: int = 0
     _filter_rows: set[int] = field(default_factory=set, init=False, repr=False, compare=False)
     _dep_graph: DependencyGraph = field(
         default_factory=DependencyGraph, init=False, repr=False, compare=False

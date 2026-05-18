@@ -495,6 +495,8 @@ class GridWidget(ScrollView):
         col = max(0, col)
         self.cursor_row = row
         self.cursor_col = col
+        self.sheet.cursor_row = row
+        self.sheet.cursor_col = col
         min_height = self._row_virtual_y(row) + 200
         if min_height > self.virtual_size.height:
             self.virtual_size = Size(self.virtual_size.width, min_height)

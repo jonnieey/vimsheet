@@ -178,6 +178,10 @@ class VimSheetApp(App[None]):
         self.grid.focus()
         self._trigger_fetch_cells()
         self._load_script_functions()
+        # Restore saved cursor position (from .vimsheet file)
+        if self.config.save_cursor:
+            sheet = self.workbook.active_sheet
+            self.grid.move_cursor(sheet.cursor_row, sheet.cursor_col)
 
     def on_unmount(self) -> None:
         self._save_history()
@@ -1514,6 +1518,8 @@ class VimSheetApp(App[None]):
                     match option:
                         case "autocalc":
                             self._set_config("autocalc", str(not self.config.autocalc))
+                        case "savecursor" | "save-cursor":
+                            self._set_config("save_cursor", str(not self.config.save_cursor))
                         case _ if "=" in option:
                             key, _, val = option.partition("=")
                             self._set_config(key.strip(), val.strip())
@@ -3090,7 +3096,10 @@ class VimSheetApp(App[None]):
 
     def _on_sheet_changed(self) -> None:
         self._sync_sheet_tabs()
-        self.grid.move_cursor(0, 0)
+        sheet = self.workbook.active_sheet
+        r = sheet.cursor_row if self.config.save_cursor else 0
+        c = sheet.cursor_col if self.config.save_cursor else 0
+        self.grid.move_cursor(r, c)
         self.grid.refresh_grid()
         self._sync_formula_bar()
         self._sync_status_bar()
@@ -3274,6 +3283,8 @@ class VimSheetApp(App[None]):
         self._sync_status_bar()
 
     def on_sheet_tabs_sheet_selected(self, message: SheetTabs.SheetSelected) -> None:
+        current = self.workbook.active_sheet
+        current.cursor_row, current.cursor_col = self.grid.cursor_row, self.grid.cursor_col
         self.workbook.go_to_sheet(message.index)
         self._on_sheet_changed()
 
