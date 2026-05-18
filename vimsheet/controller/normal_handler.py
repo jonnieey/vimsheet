@@ -325,6 +325,14 @@ class NormalHandler:
                 self._delete_col()
                 app._key_buffer = ""
                 return
+            case "yr":
+                self._yank_row()
+                app._key_buffer = ""
+                return
+            case "yc":
+                self._yank_col()
+                app._key_buffer = ""
+                return
             case "hr":
                 self._hide_row()
                 app._key_buffer = ""
@@ -813,6 +821,53 @@ class NormalHandler:
         app.grid.refresh_grid()
         app.status_bar.show_message("Row cut (dd)")
         app._last_action = ("delete_row", r)
+
+    def _yank_row(self) -> None:
+        """yr — yank all cells in current row (into default register)."""
+        app = self._app
+        r = app.cursor_row
+        sheet = app.workbook.active_sheet
+        max_c = sheet.max_col
+        range_data: list[list[tuple[Any, str | None]]] = [[]]
+        for c in range(max_c + 1):
+            cell = sheet.get_cell(r, c)
+            v = cell.value if cell else None
+            f = cell.formula if cell else None
+            range_data[0].append((v, f))
+        app._default_register = RegisterEntry(
+            value=None,
+            formula=None,
+            src_row=r,
+            src_col=0,
+            is_range=True,
+            range_data=range_data,
+            range_src_top=r,
+            range_src_left=0,
+        )
+        app.status_bar.show_message("Yanked row (yr)")
+
+    def _yank_col(self) -> None:
+        """yc — yank all cells in current column (into default register)."""
+        app = self._app
+        c = app.cursor_col
+        sheet = app.workbook.active_sheet
+        range_data: list[list[tuple[Any, str | None]]] = []
+        for r in range(sheet.max_row + 1):
+            cell = sheet.get_cell(r, c)
+            v = cell.value if cell else None
+            f = cell.formula if cell else None
+            range_data.append([(v, f)])
+        app._default_register = RegisterEntry(
+            value=None,
+            formula=None,
+            src_row=0,
+            src_col=c,
+            is_range=True,
+            range_data=range_data,
+            range_src_top=0,
+            range_src_left=c,
+        )
+        app.status_bar.show_message("Yanked column (yc)")
 
     def _increment_cell(self, delta: int) -> None:
         """Add *delta* to the numeric value of the current cell."""

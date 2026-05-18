@@ -121,6 +121,7 @@ register_help("EDIT", "z_ / z+", "Collapse / expand current row", subgroup="Misc
 register_help("ROWS", "ir / iR", "Insert row above / below", subgroup="Insert", order=10)
 register_help("ROWS", "ic / iC", "Insert column left / right", subgroup="Insert", order=11)
 register_help("ROWS", "dr / dc", "Delete row / column", subgroup="Delete", order=20)
+register_help("ROWS", "yr / yc", "Yank row / column into register", subgroup="Delete", order=21)
 register_help("ROWS", "hr / hc", "Hide row / column", subgroup="Hide/Show", order=25)
 register_help("ROWS", "sr / sc", "Show row / column", subgroup="Hide/Show", order=26)
 register_help("ROWS", "+ / - / _", "Widen / narrow / auto-fit column", subgroup="Resize", order=30)
