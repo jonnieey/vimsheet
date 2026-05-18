@@ -439,7 +439,6 @@ class NormalHandler:
                 | "d"
                 | "y"
                 | "Y"
-                | "r"
                 | "t"
                 | "z"
                 | "Z"
@@ -622,6 +621,11 @@ class NormalHandler:
                     app.status_bar.show_message(f"Restored cell to: {prev_val!r}")
                 else:
                     app.status_bar.show_message("No history for this cell")
+
+            # ---- Replace cell ------------------------------------------------
+            case "r":
+                self._clear_cell()
+                app._enter_insert("right")
 
             # ---- Search ----------------------------------------------------
             case "/":

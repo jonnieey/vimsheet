@@ -72,6 +72,7 @@ register_help("EDIT", "x / X", "Clear cell / clear and move left", subgroup="She
 register_help(
     "EDIT", "gv", "Replace formula with current computed value", subgroup="Sheet", order=15
 )
+register_help("EDIT", "r", "Replace cell value (opens formula bar)", subgroup="Sheet", order=16)
 register_help("EDIT", "zl / zL", "Lock / unlock cell", subgroup="Sheet", order=16)
 register_help("EDIT", "Alt+Enter", "Insert newline in cell content", subgroup="Sheet", order=17)
 register_help(

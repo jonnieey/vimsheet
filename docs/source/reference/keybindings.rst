@@ -54,7 +54,9 @@ Normal Mode
    * - ``=``
      - Enter INSERT mode with ``=`` prepended (for formulas)
    * - ``e`` / ``E``
-     - Enter EDIT mode (edit cell content)
+      - Enter EDIT mode (edit cell content)
+   * - ``r``
+      - Replace cell value (opens formula bar)
    * - ``A``
      - Enter INSERT mode at end of cell
    * - ``I``
