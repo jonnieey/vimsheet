@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from vimsheet.model.cell import CellFormat
 
 
 @dataclass
@@ -15,6 +18,9 @@ class RegisterEntry:
     src_row: int  # 0-based source row
     src_col: int  # 0-based source col
     is_range: bool = False
-    range_data: list[list[tuple[Any, str | None]]] | None = None
+    range_data: list[list[tuple[Any, str | None, Any]]] | None = None
     range_src_top: int = 0
     range_src_left: int = 0
+    fmt: CellFormat | None = None
+    locked: bool = False
+    comment: str | None = None

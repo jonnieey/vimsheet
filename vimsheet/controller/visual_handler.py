@@ -257,15 +257,16 @@ class VisualHandler:
         app = self._app
         register = app._pending_register or ""
         sheet = app.workbook.active_sheet
-        data: list[list[tuple[Any, str | None]]] = []
+        data: list[list[tuple[Any, str | None, Any]]] = []
         for r in range(cell_range.start_row, cell_range.end_row + 1):
-            row_data: list[tuple[Any, str | None]] = []
+            row_data: list[tuple[Any, str | None, Any]] = []
             for c in range(cell_range.start_col, cell_range.end_col + 1):
                 cell = sheet.get_cell(r, c)
                 row_data.append(
                     (
                         cell.value if cell else None,
                         cell.formula if cell else None,
+                        cell.fmt.copy() if cell else None,
                     )
                 )
             data.append(row_data)
@@ -294,10 +295,19 @@ class VisualHandler:
 
         app = self._app
         sheet = app.workbook.active_sheet
-        values = sheet.get_range_values(cell_range)
-        range_data: list[list[tuple[Any, str | None]]] = [
-            [(v, None) for v in row] for row in values
-        ]
+        range_data: list[list[tuple[Any, str | None, Any]]] = []
+        for r in range(cell_range.start_row, cell_range.end_row + 1):
+            row_data: list[tuple[Any, str | None, Any]] = []
+            for c in range(cell_range.start_col, cell_range.end_col + 1):
+                cell = sheet.get_cell(r, c)
+                row_data.append(
+                    (
+                        cell.value if cell else None,
+                        cell.formula if cell else None,
+                        cell.fmt.copy() if cell else None,
+                    )
+                )
+            range_data.append(row_data)
         app._default_register = RegisterEntry(
             value=None,
             formula=None,

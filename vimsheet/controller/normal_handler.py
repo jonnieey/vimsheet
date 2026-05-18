@@ -725,6 +725,9 @@ class NormalHandler:
             formula=cell.formula if cell else None,
             src_row=r,
             src_col=c,
+            fmt=cell.fmt.copy() if cell else None,
+            locked=cell.locked if cell else False,
+            comment=cell.comment if cell else None,
         )
         if reg:
             app._registers[reg] = entry
@@ -750,10 +753,18 @@ class NormalHandler:
         if sheet.max_col >= c:
             rng = CellRange(r, c, r, sheet.max_col)
             # Yank to register before deleting
-            range_data: list[list[tuple[Any, str | None]]] = []
+            range_data: list[list[tuple[Any, str | None, Any]]] = []
             for col in range(c, sheet.max_col + 1):
                 cell = sheet.get_cell(r, col)
-                range_data.append([(cell.value if cell else None, cell.formula if cell else None)])
+                range_data.append(
+                    [
+                        (
+                            cell.value if cell else None,
+                            cell.formula if cell else None,
+                            cell.fmt.copy() if cell else None,
+                        )
+                    ]
+                )
             app._default_register = RegisterEntry(
                 value=None,
                 formula=None,
@@ -781,6 +792,9 @@ class NormalHandler:
             formula=cell_formula,
             src_row=r,
             src_col=c,
+            fmt=cell.fmt.copy() if cell else None,
+            locked=cell.locked if cell else False,
+            comment=cell.comment if cell else None,
         )
         reg = app._pending_register
         if reg == "+":
@@ -801,10 +815,14 @@ class NormalHandler:
         app = self._app
         r = app.cursor_row
         sheet = app.workbook.active_sheet
-        # Snapshot for register
         max_c = sheet.max_col
-        row_values = [sheet.get_cell(r, c) and sheet.get_cell(r, c).value for c in range(max_c + 1)]
-        range_data = [[(v, None) for v in row_values]]
+        range_data: list[list[tuple[Any, str | None, Any]]] = [[]]
+        for c in range(max_c + 1):
+            cell = sheet.get_cell(r, c)
+            v = cell.value if cell else None
+            f = cell.formula if cell else None
+            fmt = cell.fmt.copy() if cell else None
+            range_data[0].append((v, f, fmt))
         app._default_register = RegisterEntry(
             value=None,
             formula=None,
@@ -828,12 +846,13 @@ class NormalHandler:
         r = app.cursor_row
         sheet = app.workbook.active_sheet
         max_c = sheet.max_col
-        range_data: list[list[tuple[Any, str | None]]] = [[]]
+        range_data: list[list[tuple[Any, str | None, Any]]] = [[]]
         for c in range(max_c + 1):
             cell = sheet.get_cell(r, c)
             v = cell.value if cell else None
             f = cell.formula if cell else None
-            range_data[0].append((v, f))
+            fmt = cell.fmt.copy() if cell else None
+            range_data[0].append((v, f, fmt))
         app._default_register = RegisterEntry(
             value=None,
             formula=None,
@@ -851,12 +870,13 @@ class NormalHandler:
         app = self._app
         c = app.cursor_col
         sheet = app.workbook.active_sheet
-        range_data: list[list[tuple[Any, str | None]]] = []
+        range_data: list[list[tuple[Any, str | None, Any]]] = []
         for r in range(sheet.max_row + 1):
             cell = sheet.get_cell(r, c)
             v = cell.value if cell else None
             f = cell.formula if cell else None
-            range_data.append([(v, f)])
+            fmt = cell.fmt.copy() if cell else None
+            range_data.append([(v, f, fmt)])
         app._default_register = RegisterEntry(
             value=None,
             formula=None,
@@ -933,14 +953,15 @@ class NormalHandler:
             data: list[list[Any]] = []
             for i, row_data in enumerate(entry.range_data):
                 row: list[Any] = []
-                for j, (value, formula) in enumerate(row_data):
+                for j, cell_data in enumerate(row_data):
+                    value, formula, fmt = cell_data if len(cell_data) >= 3 else (*cell_data, None)
                     src_r = entry.range_src_top + i
                     src_c = entry.range_src_left + j
                     adjusted = adjust_formula(formula, dst_row + i, dst_col + j, src_r, src_c)
                     if formula is not None and adjusted is not None:
-                        row.append(YankedCell(value=value, formula=adjusted))
+                        row.append(YankedCell(value=value, formula=adjusted, fmt=fmt))
                     else:
-                        row.append(value)
+                        row.append(YankedCell(value=value, formula=None, fmt=fmt))
                 data.append(row)
             cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
             app.undo_stack.push(cmd)
@@ -952,9 +973,17 @@ class NormalHandler:
                 entry.formula, dst_row, dst_col, entry.src_row, entry.src_col
             )
             if entry.formula is not None and adjusted_formula is not None:
-                paste_entry: Any = YankedCell(value=entry.value, formula=adjusted_formula)
+                paste_entry: Any = YankedCell(
+                    value=entry.value,
+                    formula=adjusted_formula,
+                    fmt=entry.fmt,
+                )
             else:
-                paste_entry = entry.value
+                paste_entry = YankedCell(
+                    value=entry.value,
+                    formula=None,
+                    fmt=entry.fmt,
+                )
             data = [[paste_entry]]
             cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
             app.undo_stack.push(cmd)
@@ -966,7 +995,7 @@ class NormalHandler:
         """P — paste at cursor without formula adjustment."""
         if self._check_lock():
             return
-        from vimsheet.model.undo import PasteCommand
+        from vimsheet.model.undo import PasteCommand, YankedCell
 
         app = self._app
         reg = app._pending_register
@@ -995,8 +1024,9 @@ class NormalHandler:
         data: list[list[Any]] = []
         for row_data in entry.range_data:
             row: list[Any] = []
-            for value, _formula in row_data:
-                row.append(value)
+            for cell_data in row_data:
+                value, _formula, fmt = cell_data if len(cell_data) >= 3 else (*cell_data, None)
+                row.append(YankedCell(value=value, formula=None, fmt=fmt))
             data.append(row)
         cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
         app.undo_stack.push(cmd)
@@ -1005,11 +1035,11 @@ class NormalHandler:
         app._last_action = ("paste", False, data)
 
     def _paste_single_cell_absolute(self, entry: RegisterEntry) -> None:
-        from vimsheet.model.undo import PasteCommand
+        from vimsheet.model.undo import PasteCommand, YankedCell
 
         app = self._app
         dst_row, dst_col = app.cursor_row, app.cursor_col
-        data = [[entry.value]]
+        data = [[YankedCell(value=entry.value, formula=None, fmt=entry.fmt)]]
         cmd = PasteCommand(app.workbook.active_sheet, dst_row, dst_col, data)
         app.undo_stack.push(cmd)
         app.workbook.modified = True
@@ -1100,14 +1130,20 @@ class NormalHandler:
         r = app.cursor_row
         sheet = app.workbook.active_sheet
         max_c = sheet.max_col
-        row_values = [sheet.get_cell(r, c) and sheet.get_cell(r, c).value for c in range(max_c + 1)]
+        range_data: list[list[tuple[Any, str | None, Any]]] = [[]]
+        for c in range(max_c + 1):
+            cell = sheet.get_cell(r, c)
+            v = cell.value if cell else None
+            f = cell.formula if cell else None
+            fmt = cell.fmt.copy() if cell else None
+            range_data[0].append((v, f, fmt))
         app._default_register = RegisterEntry(
             value=None,
             formula=None,
             src_row=r,
             src_col=0,
             is_range=True,
-            range_data=[[(v, None) for v in row_values]],
+            range_data=range_data,
             range_src_top=r,
             range_src_left=0,
         )
@@ -1124,17 +1160,20 @@ class NormalHandler:
         app = self._app
         c = app.cursor_col
         sheet = app.workbook.active_sheet
-        col_values: list[Any] = []
+        range_data: list[list[tuple[Any, str | None, Any]]] = []
         for r in range(sheet.max_row + 1):
             cell = sheet.get_cell(r, c)
-            col_values.append(cell.value if cell else None)
+            v = cell.value if cell else None
+            f = cell.formula if cell else None
+            fmt = cell.fmt.copy() if cell else None
+            range_data.append([(v, f, fmt)])
         app._default_register = RegisterEntry(
             value=None,
             formula=None,
             src_row=0,
             src_col=c,
             is_range=True,
-            range_data=[[(v, None)] for v in col_values],
+            range_data=range_data,
             range_src_top=0,
             range_src_left=c,
         )

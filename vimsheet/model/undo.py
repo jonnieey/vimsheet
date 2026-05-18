@@ -22,6 +22,9 @@ class YankedCell:
 
     value: Any
     formula: str | None
+    fmt: CellFormat | None = None
+    locked: bool = False
+    comment: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -274,7 +277,11 @@ class PasteCommand(Command):
                 c = self._base_col + dc
                 self._snaps[(r, c)] = _snapshot_cell(self._sheet, r, c)
                 if isinstance(entry, YankedCell):
-                    self._sheet.set_cell_value(r, c, entry.value, entry.formula)
+                    cell = self._sheet.set_cell_value(r, c, entry.value, entry.formula)
+                    if entry.fmt is not None:
+                        cell.fmt = entry.fmt.copy()
+                    cell.locked = entry.locked
+                    cell.comment = entry.comment
                 else:
                     self._sheet.set_cell_value(r, c, entry)
 
