@@ -381,8 +381,12 @@ class VisualHandler:
         sheet = app.workbook.active_sheet
         if delta == 1:
             sheet.insert_col(cell_range.start_col)
+            app.grid.visual_anchor_col += 1
+            app.grid.cursor_col += 1
         elif delta == -1 and cell_range.start_col > 0:
             sheet.delete_col(cell_range.start_col - 1)
+            app.grid.visual_anchor_col -= 1
+            app.grid.cursor_col -= 1
         app.workbook.modified = True
         app.grid.refresh_grid()
 
