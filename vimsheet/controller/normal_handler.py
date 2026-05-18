@@ -83,7 +83,8 @@ class NormalHandler:
                     self._goto_address(addr)
                     app._key_buffer = ""
                 elif key == "backspace":
-                    app._key_buffer = buf[:-1] if len(buf) > 2 else "go"
+                    current = app._key_buffer
+                    app._key_buffer = current[:-1] if len(current) > 2 else "go"
                     app.status_bar.set_persistent_message(f"go: {app._key_buffer[2:]}", priority=2)
                 else:
                     app._key_buffer = s
