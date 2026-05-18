@@ -963,6 +963,13 @@ class VimSheetApp(App[None]):
                             i += 1
                     if not sort_keys:
                         sort_keys = [(self.cursor_col, True)]
+                    # Exclude frozen columns from sort keys
+                    sort_keys = [(c, asc) for c, asc in sort_keys if c >= sheet.freeze_cols]
+                    if not sort_keys:
+                        self.status_bar.show_message(
+                            "All selected columns are frozen — nothing to sort"
+                        )
+                        return
                     cmd = SortCommand(sheet, sort_keys)
                     self.undo_stack.push(cmd)
                     self.grid.refresh_grid()
@@ -2382,11 +2389,24 @@ class VimSheetApp(App[None]):
                 i += 1
 
         if not sort_keys:
-            sort_keys = [(c, True) for c in range(c1, c2 + 1)]
+            sort_keys = [
+                (c, True) for c in range(c1, c2 + 1) if c >= self.workbook.active_sheet.freeze_cols
+            ]
+
+        # Clamp sort range to exclude frozen rows/cols
+        sheet = self.workbook.active_sheet
+        r1 = max(r1, sheet.freeze_rows)
+        if r1 > r2:
+            self.status_bar.show_message("Sort range is entirely frozen")
+            return
+        sort_keys = [(c, asc) for c, asc in sort_keys if c >= sheet.freeze_cols]
+        if not sort_keys:
+            self.status_bar.show_message("All selected columns are frozen — nothing to sort")
+            return
 
         from vimsheet.model.undo import SortCommand
 
-        cmd = SortCommand(self.workbook.active_sheet, sort_keys, range_bounds=(r1, c1, r2, c2))
+        cmd = SortCommand(sheet, sort_keys, range_bounds=(r1, c1, r2, c2))
         self.undo_stack.push(cmd)
         self.grid.refresh_grid()
         self.workbook.modified = True

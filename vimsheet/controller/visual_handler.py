@@ -363,8 +363,12 @@ class VisualHandler:
             cell_range.end_row,
             cell_range.end_col,
         )
+        actual_r1 = max(r1, sheet.freeze_rows)
+        if actual_r1 > r2:
+            app.status_bar.show_message("Selection is entirely frozen — nothing to sort")
+            return
         rows: list[list[tuple[Any, str | None]]] = []
-        for r in range(r1, r2 + 1):
+        for r in range(actual_r1, r2 + 1):
             row_data: list[tuple[Any, str | None]] = []
             for c in range(c1, c2 + 1):
                 cell = sheet.cells.get((r, c))
@@ -381,7 +385,7 @@ class VisualHandler:
 
         rows.sort(key=sort_key)
 
-        cmd = SortRangeCommand(sheet, r1, c1, rows)
+        cmd = SortRangeCommand(sheet, actual_r1, c1, rows)
         app.undo_stack.push(cmd)
         app.workbook.modified = True
         app.grid.refresh_grid()
@@ -396,8 +400,15 @@ class VisualHandler:
             cell_range.end_row,
             cell_range.end_col,
         )
-        sort_keys = [(c, ascending) for c in range(c1, c2 + 1)]
-        sheet.sort_range_columns(r1, c1, r2, c2, sort_keys)
+        sort_keys = [(c, ascending) for c in range(c1, c2 + 1) if c >= sheet.freeze_cols]
+        actual_r1 = max(r1, sheet.freeze_rows)
+        if actual_r1 > r2:
+            app.status_bar.show_message("Selection is entirely frozen — nothing to sort")
+            return
+        if not sort_keys:
+            app.status_bar.show_message("All selected columns are frozen — nothing to sort")
+            return
+        sheet.sort_range_columns(actual_r1, c1, r2, c2, sort_keys)
         app.workbook.modified = True
         app.grid.refresh_grid()
 

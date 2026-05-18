@@ -404,18 +404,20 @@ class Sheet:
         from vimsheet.model.cell import Cell as CellCls
 
         for col, ascending in sort_keys:
+            if col < self.freeze_cols:
+                continue
             gathered: list[tuple[tuple, CellCls | None]] = []
-            for r in range(self.max_row + 1):
+            for r in range(self.freeze_rows, self.max_row + 1):
                 cell = self.get_cell(r, col)
                 gathered.append((_sort_key(cell.value if cell else None, ascending), cell))
             gathered.sort(key=lambda x: x[0])
             for new_r, (_, src_cell) in enumerate(gathered):
-                key = (new_r, col)
+                key = (self.freeze_rows + new_r, col)
                 if src_cell is None:
                     self.cells.pop(key, None)
                 else:
                     c = src_cell.copy()
-                    c.row = new_r
+                    c.row = self.freeze_rows + new_r
                     c.col = col
                     self.cells[key] = c
 
@@ -444,15 +446,18 @@ class Sheet:
                 return (0, 0, tuple(-ord(c) for c in s))
 
         for col, ascending in sort_keys:
-            if col < c1 or col > c2:
+            if col < self.freeze_cols or col < c1 or col > c2:
+                continue
+            actual_r1 = max(r1, self.freeze_rows)
+            if actual_r1 > r2:
                 continue
             gathered: list[tuple[tuple, Cell | None]] = []
-            for r in range(r1, r2 + 1):
+            for r in range(actual_r1, r2 + 1):
                 cell = self.get_cell(r, col)
                 gathered.append((_key(cell.value if cell else None, ascending), cell))
             gathered.sort(key=lambda x: x[0])
             for new_idx, (_, src) in enumerate(gathered):
-                dst_r = r1 + new_idx
+                dst_r = actual_r1 + new_idx
                 if src is None:
                     self.cells.pop((dst_r, col), None)
                 else:
