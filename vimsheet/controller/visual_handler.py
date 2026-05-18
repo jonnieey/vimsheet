@@ -77,6 +77,34 @@ class VisualHandler:
                         case "d":
                             self._sort_range_columns(sel, ascending=False)
                             app.mode = Mode.NORMAL
+                        case "R":
+                            sheet = app.workbook.active_sheet
+                            for r in range(sel.start_row, sel.end_row + 1):
+                                sheet.hidden_rows.add(r)
+                            app.workbook.modified = True
+                            app.grid.refresh_grid()
+                            app.mode = Mode.NORMAL
+                        case "C":
+                            sheet = app.workbook.active_sheet
+                            for c in range(sel.start_col, sel.end_col + 1):
+                                sheet.hidden_cols.add(c)
+                            app.workbook.modified = True
+                            app.grid.refresh_grid()
+                            app.mode = Mode.NORMAL
+                        case "r":
+                            sheet = app.workbook.active_sheet
+                            for row in range(sel.start_row, sel.end_row + 1):
+                                sheet.hidden_rows.discard(row)
+                            app.workbook.modified = True
+                            app.grid.refresh_grid()
+                            app.mode = Mode.NORMAL
+                        case "c":
+                            sheet = app.workbook.active_sheet
+                            for col in range(sel.start_col, sel.end_col + 1):
+                                sheet.hidden_cols.discard(col)
+                            app.workbook.modified = True
+                            app.grid.refresh_grid()
+                            app.mode = Mode.NORMAL
             elif chord == "gs":
                 sel = app.grid.visual_selection()
                 if sel:

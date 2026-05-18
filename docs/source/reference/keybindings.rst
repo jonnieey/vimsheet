@@ -128,12 +128,12 @@ Normal Mode
      - Insert row below / above current row
    * - ``ic`` / ``iC``
      - Insert column right / left of current column
-   * - ``dr`` / ``dc``
-     - Delete current row / column
-   * - ``hr`` / ``hc``
-     - Hide current row / column
-   * - ``sr`` / ``sc``
-     - Show hidden row / column
+    * - ``dr`` / ``dc``
+      - Delete current row / column
+    * - ``sR`` / ``sC``
+      - Hide current row / column
+    * - ``sr`` / ``sc``
+      - Show hidden row / column
     * - ``zl`` / ``zL``
       - Lock / unlock current cell
     * - ``z_`` / ``z+``
@@ -276,6 +276,10 @@ Visual Modes
       - Decrement all numeric cells in selection
     * - ``>`` / ``<``
       - Shift right / shift left
+    * - ``sR`` / ``sC``
+      - Hide rows / columns in selection
+    * - ``sr`` / ``sc``
+      - Show hidden rows / columns in selection
     * - ``+`` / ``-`` / ``_``
       - Widen / narrow / auto-fit columns in selection
     * - ``z_`` / ``z+``

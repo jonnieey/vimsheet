@@ -334,11 +334,11 @@ class NormalHandler:
                 self._yank_col()
                 app._key_buffer = ""
                 return
-            case "hr":
+            case "sR":
                 self._hide_row()
                 app._key_buffer = ""
                 return
-            case "hc":
+            case "sC":
                 self._hide_col()
                 app._key_buffer = ""
                 return
@@ -440,6 +440,7 @@ class NormalHandler:
                 | "d"
                 | "y"
                 | "Y"
+                | "s"
                 | "t"
                 | "z"
                 | "Z"
