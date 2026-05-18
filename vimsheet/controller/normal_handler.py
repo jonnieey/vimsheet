@@ -251,6 +251,7 @@ class NormalHandler:
                         app._key_buffer = ""
                         return
                     app._replaying_macros.add(actual_reg)
+                    app._key_buffer = ""
                     try:
                         app._replay_keys(keys)
                     finally:
