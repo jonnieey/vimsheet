@@ -148,6 +148,10 @@ Normal Mode
       - Toggle fold at cursor
     * - ``zR`` / ``zM``
       - Open all folds / close all folds
+    * - ``zC`` / ``zO`` / ``zA``
+      - Close / open / toggle column group at cursor
+    * - ``zr`` / ``ZR``
+      - Remove row / column group at cursor
 
    * - ``tb`` / ``ti`` / ``tu`` / ``tl`` / ``tr`` / ``tc``
      - Toggle bold / italic / underline / left-align / right-align / center

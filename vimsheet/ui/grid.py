@@ -90,6 +90,21 @@ class GridWidget(ScrollView):
         self._preview_col: int | None = None
         self._preview_text: str = ""
 
+        # Search highlight state
+        self._search_matches: list[tuple[int, int]] = []
+        self._search_current_match: tuple[int, int] | None = None
+        self._search_matches_set: set[tuple[int, int]] = set()
+        self._search_pattern: str = ""
+
+    def set_search_state(
+        self, matches: list[tuple[int, int]], current: tuple[int, int] | None, pattern: str = ""
+    ) -> None:
+        self._search_matches = matches
+        self._search_current_match = current
+        self._search_matches_set = set(matches)
+        self._search_pattern = pattern
+        self.refresh()
+
     def on_mount(self) -> None:
         self._rebuild_heights()
         w = ROW_HEADER_WIDTH + sum(self.get_col_width(c) + 1 for c in range(26))
@@ -155,6 +170,8 @@ class GridWidget(ScrollView):
                     max_lines = preview_lines
             if r in self._collapsed_rows:
                 max_lines = 1
+            if r in self.sheet.hidden_rows:
+                max_lines = 0
             heights.append(max_lines)
         self._row_heights = heights
         self._total_virtual_lines = sum(heights)
@@ -249,9 +266,16 @@ class GridWidget(ScrollView):
             cw = self.get_col_width(col)
             if col not in self.sheet.hidden_cols:
                 label = col_index_to_letters(col).center(cw)
+                # Column group fold indicator
+                for c1, c2 in self.sheet.col_groups:
+                    if col == c1:
+                        hidden = any(c in self.sheet.hidden_cols for c in range(c1, c2 + 1))
+                        label = label[:-1] + ("▶" if hidden else "▼")
+                        break
                 frozen_segs.append(Segment(label[:cw], hdr))
                 frozen_segs.append(Segment("│", div))
-            frozen_width += cw + 1
+            if col not in self.sheet.hidden_cols:
+                frozen_width += cw + 1
             col += 1
 
         scrollable_segs: list[Segment] = []
@@ -260,11 +284,18 @@ class GridWidget(ScrollView):
             cw = self.get_col_width(col)
             if col not in self.sheet.hidden_cols:
                 label = col_index_to_letters(col).center(cw)
+                # Column group fold indicator
+                for c1, c2 in self.sheet.col_groups:
+                    if col == c1:
+                        hidden = any(c in self.sheet.hidden_cols for c in range(c1, c2 + 1))
+                        label = label[:-1] + ("▶" if hidden else "▼")
+                        break
                 scrollable_segs.append(Segment(label[:cw], hdr))
                 no_lines = self._config is not None and not self._config.show_grid_lines
                 div_char = " " if no_lines else "│"
                 scrollable_segs.append(Segment(div_char, div))
-            x += cw + 1
+            if col not in self.sheet.hidden_cols:
+                x += cw + 1
             col += 1
             if col > 702:
                 break
@@ -324,31 +355,68 @@ class GridWidget(ScrollView):
         data_width = width - ROW_HEADER_WIDTH
 
         if is_hidden:
-            hidden_label = "…" + " " * (ROW_HEADER_WIDTH - 1)
-            hdr = Style(bgcolor=self._palette.header_bg)
-            return Strip([Segment(hidden_label, hdr)]) + Strip([Segment(" " * data_width)])
+            hdr = Style(bgcolor=self._palette.header_bg, color=self._palette.frozen_sep)
+            label = str(row + 1).rjust(ROW_HEADER_WIDTH - 2) + " " + self._fold_indicator(row) + " "
+            return Strip([Segment(label, hdr)]) + Strip([Segment(" " * data_width)])
 
         freeze_cols = self.sheet.freeze_cols
 
         # Helper: build one cell's segments (text + divider) into a list
         def _cell_segments(dest: list[Segment], row: int, col: int, cw: int) -> None:
-            text = self._cell_display_text(row, col, sub_line)
+            raw = self._cell_display_text(row, col, sub_line)
             style = self._cell_style(row, col, self.sheet.get_cell(row, col))
-            has_more = row in self._collapsed_rows and text.endswith("…")
+            has_more = row in self._collapsed_rows and raw.endswith("…")
             if has_more:
-                text = text[:-1]
-            if len(text) > cw - 1:
-                text = text[: cw - 2] + "…"
+                raw = raw[:-1]
+            if len(raw) > cw - 1:
+                raw = raw[: cw - 2] + "…"
             effective_cw = cw - 1 if has_more else cw
-            cell = self.sheet.get_cell(row, col)
-            align = cell.fmt.align if cell else "right"
-            if align == "center":
-                text = text.center(effective_cw)
-            elif align == "left":
-                text = text.ljust(effective_cw)
+
+            # Word-level search match highlight
+            pat = self._search_pattern
+            p = -1
+            is_match = (row, col) in self._search_matches_set
+            if pat and is_match:
+                p = raw.lower().find(pat.lower())
+            if p != -1:
+                m_end = p + len(pat)
+                hl_bg = (
+                    self._palette.search_current_bg
+                    if self._search_current_match == (row, col)
+                    else self._palette.search_highlight_bg
+                )
+                hl_style = Style(color=self._palette.search_highlight_fg, bgcolor=hl_bg)
+
+                before_part = raw[:p]
+                match_part = raw[p:m_end]
+                after_part = raw[m_end:]
+                text_width = len(before_part) + len(match_part) + len(after_part)
+                pad = effective_cw - text_width
+
+                cell = self.sheet.get_cell(row, col)
+                align = cell.fmt.align if cell else "right"
+                left_pad = pad if align == "left" else (pad // 2 if align == "center" else 0)
+                right_pad = pad - left_pad
+
+                if left_pad:
+                    dest.append(Segment(" " * left_pad, style))
+                if before_part:
+                    dest.append(Segment(before_part, style))
+                dest.append(Segment(match_part, hl_style))
+                if after_part:
+                    dest.append(Segment(after_part, style))
+                if right_pad:
+                    dest.append(Segment(" " * right_pad, style))
             else:
-                text = text.rjust(effective_cw)
-            dest.append(Segment(text, style))
+                cell = self.sheet.get_cell(row, col)
+                align = cell.fmt.align if cell else "right"
+                if align == "center":
+                    raw = raw.center(effective_cw)
+                elif align == "left":
+                    raw = raw.ljust(effective_cw)
+                else:
+                    raw = raw.rjust(effective_cw)
+                dest.append(Segment(raw, style))
             if has_more:
                 dest.append(Segment("…", Style(color=self._palette.collapsed_fg)))
             div_bg = self._palette.alt_row_bg if row % 2 == 1 else None
@@ -359,10 +427,11 @@ class GridWidget(ScrollView):
             )
             dest.append(Segment(divider, divider_style))
 
-        # Compute frozen columns pixel width
+        # Compute frozen columns pixel width (visible columns only)
         frozen_width = 0
         for c in range(freeze_cols):
-            frozen_width += self.get_col_width(c) + 1
+            if c not in self.sheet.hidden_cols:
+                frozen_width += self.get_col_width(c) + 1
 
         # Build frozen column segments (cols 0..freeze_cols-1)
         frozen_segs: list[Segment] = []
@@ -382,7 +451,6 @@ class GridWidget(ScrollView):
         while sx < max(0, scroll_x - frozen_width) + data_width - frozen_width:
             cw = self.get_col_width(col)
             if col in self.sheet.hidden_cols:
-                sx += cw
                 col += 1
                 continue
             _cell_segments(scrollable_segs, row, col, cw)
@@ -446,14 +514,11 @@ class GridWidget(ScrollView):
             fg = self._palette.frozen_cell_fg
 
         # Frozen zone bg — only in the intersection of frozen rows + columns
-        if (
-            bg is None
-            and freeze_rows > 0
-            and row < freeze_rows
-            and freeze_cols > 0
-            and col < freeze_cols
-        ):
-            bg = self._palette.frozen_cell_bg
+        if bg is None:
+            freeze_rows = self.sheet.freeze_rows
+            freeze_cols = self.sheet.freeze_cols
+            if freeze_rows > 0 and row < freeze_rows and freeze_cols > 0 and col < freeze_cols:
+                bg = self._palette.frozen_cell_bg
 
         style = Style(
             bold=bold or None,
@@ -493,6 +558,21 @@ class GridWidget(ScrollView):
     def move_cursor(self, row: int, col: int) -> None:
         row = max(0, row)
         col = max(0, col)
+        # Skip hidden columns — find nearest visible column in movement direction
+        hidden = self.sheet.hidden_cols
+        if col in hidden:
+            dr = 1 if col >= self.cursor_col else -1
+            for d in (dr, -dr):
+                found = -1
+                c = col
+                while 0 <= c <= self.sheet.max_col:
+                    c += d
+                    if 0 <= c <= self.sheet.max_col and c not in hidden:
+                        found = c
+                        break
+                if found >= 0:
+                    col = found
+                    break
         self.cursor_row = row
         self.cursor_col = col
         self.sheet.cursor_row = row
@@ -655,13 +735,15 @@ class GridWidget(ScrollView):
             self.scroll_to(y=virtual_y - frozen_height - data_rows_visible + 1, animate=False)
 
         x = ROW_HEADER_WIDTH
+        hidden = self.sheet.hidden_cols
         for c in range(self.cursor_col):
-            x += self.get_col_width(c) + 1
+            if c not in hidden:
+                x += self.get_col_width(c) + 1
         cw = self.get_col_width(self.cursor_col)
         scroll_x = int(self.scroll_offset.x)
         vis_w = self.size.width
         freeze_cols = self.sheet.freeze_cols
-        frozen_width = sum(self.get_col_width(c) + 1 for c in range(freeze_cols))
+        frozen_width = sum(self.get_col_width(c) + 1 for c in range(freeze_cols) if c not in hidden)
         if x < scroll_x + ROW_HEADER_WIDTH:
             self.scroll_to(x=max(0, x - ROW_HEADER_WIDTH), animate=False)
         elif x + cw > scroll_x + vis_w - frozen_width:
@@ -704,6 +786,10 @@ class GridWidget(ScrollView):
 
     def refresh_grid(self) -> None:
         self._rebuild_heights()
-        w = ROW_HEADER_WIDTH + sum(self.get_col_width(c) + 1 for c in range(self.sheet.max_col + 1))
+        hidden = self.sheet.hidden_cols
+        visible_w = sum(
+            self.get_col_width(c) + 1 for c in range(self.sheet.max_col + 1) if c not in hidden
+        )
+        w = ROW_HEADER_WIDTH + visible_w
         self.virtual_size = Size(w, max(self._total_virtual_lines + 200, 1000))
         self.refresh()

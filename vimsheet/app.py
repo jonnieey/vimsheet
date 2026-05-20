@@ -1067,25 +1067,27 @@ class VimSheetApp(App[None]):
                 else:
                     self.status_bar.show_message("Usage: :replaceall <pattern> <replacement>")
             case _ if re.match(r"^%s/", cmd):
-                import re as _re
+                sheet = self.workbook.active_sheet
+                from vimsheet.model.range import col_index_to_letters
 
-                m = _re.match(r"^%s/(.+?)/(.*?)/([gi]*)$", cmd, _re.DOTALL)
-                if not m:
-                    self.status_bar.show_message("Usage: :%s/pattern/replacement/[gi]")
-                    return
-                pattern, replacement, flags = m.groups()
-                flags = flags or ""
-                global_flag = "g" in flags.lower()
-                state = SearchState(
-                    pattern=pattern,
-                    replace=replacement,
-                    use_regex=global_flag,
-                    whole_cell=not global_flag,
-                )
-                self._search_state = state
-                searcher = Searcher(self.workbook.active_sheet)
-                updates = searcher.collect_replacements(state)
-                self._execute_substitute(updates, "%s")
+                range_str = f"A1:{col_index_to_letters(sheet.max_col)}{sheet.max_row + 1}"
+                self._cmd_substitute(range_str, cmd[1:])
+            case _ if re.match(r"^\d+,\d+s/", parts[0]):
+                m = re.match(r"^(\d+),(\d+)s/", parts[0])
+                r1, r2 = int(m.group(1)) - 1, int(m.group(2)) - 1
+                sheet = self.workbook.active_sheet
+                from vimsheet.model.range import col_index_to_letters
+
+                range_str = f"A{r1 + 1}:{col_index_to_letters(sheet.max_col)}{r2 + 1}"
+                sub_cmd = "s/" + parts[0][m.end() :]
+                self._cmd_substitute(range_str, sub_cmd)
+            case _ if parts[0].startswith("s/") and len(parts[0]) > 2:
+                r = self.cursor_row
+                sheet = self.workbook.active_sheet
+                from vimsheet.model.range import col_index_to_letters
+
+                range_str = f"A{r + 1}:{col_index_to_letters(sheet.max_col)}{r + 1}"
+                self._cmd_substitute(range_str, parts[0])
             case _ if re.match(r"^(?:[A-Za-z]+,[A-Za-z]+)?cs", parts[0]) and "/" in cmd:
                 self._cmd_col_substitute(cmd)
             case _ if re.match(r"^(?:\d+,\d+)?rs", parts[0]) and "/" in cmd:
@@ -1365,6 +1367,10 @@ class VimSheetApp(App[None]):
                 except Exception as e:
                     self.status_bar.show_message(f"Error: {e}")
 
+            # ---- Range substitute -----
+            case _ if len(parts) >= 2 and parts[1].startswith("s/"):
+                self._cmd_substitute(parts[0].upper(), parts[1])
+
             # ---- Range element-wise function apply (non-aggregate) ----
             case _ if (
                 len(parts) >= 2
@@ -1627,29 +1633,58 @@ class VimSheetApp(App[None]):
 
             # ---- Row / col grouping ----
             case "rowgroup":
-                if len(parts) >= 3:
+                if len(parts) >= 2 and parts[1].lower() in ("open", "close", "toggle"):
+                    self._fold_group(parts[1].lower())
+                elif len(parts) >= 2 and parts[1].lower() == "remove":
+                    self._fold_group("remove")
+                elif len(parts) >= 3:
                     try:
                         r1, r2 = int(parts[1]) - 1, int(parts[2]) - 1
                         grp = (min(r1, r2), max(r1, r2))
                         self.workbook.active_sheet.row_groups.append(grp)
+                        self.grid.refresh_grid()
                         self.workbook.modified = True
                         self.status_bar.show_message(f"Row group: rows {r1 + 1}–{r2 + 1}")
                     except ValueError:
-                        self.status_bar.show_message("Usage: :rowgroup <r1> <r2>")
+                        self.status_bar.show_message(
+                            "Usage: :rowgroup <open|close|toggle> | <r1> <r2>"
+                        )
                 else:
-                    self.status_bar.show_message("Usage: :rowgroup <r1> <r2>")
+                    self.status_bar.show_message("Usage: :rowgroup <open|close|toggle> | <r1> <r2>")
             case "colgroup":
-                if len(parts) >= 3:
+                if len(parts) >= 2 and parts[1].lower() in ("open", "close", "toggle"):
+                    self._fold_col_group(parts[1].lower())
+                elif len(parts) >= 2 and parts[1].lower() == "remove":
+                    self._fold_col_group("remove")
+                elif len(parts) >= 3:
+
+                    def _col(s: str) -> int:
+                        s = s.strip().upper()
+                        if s.isdigit():
+                            return int(s) - 1
+                        from vimsheet.model.range import col_letters_to_index
+
+                        return col_letters_to_index(s)
+
                     try:
-                        c1, c2 = int(parts[1]) - 1, int(parts[2]) - 1
+                        c1, c2 = _col(parts[1]), _col(parts[2])
                         grp = (min(c1, c2), max(c1, c2))
                         self.workbook.active_sheet.col_groups.append(grp)
+                        self.grid.refresh_grid()
                         self.workbook.modified = True
-                        self.status_bar.show_message(f"Col group: cols {c1 + 1}–{c2 + 1}")
-                    except ValueError:
-                        self.status_bar.show_message("Usage: :colgroup <c1> <c2>")
+                        from vimsheet.model.range import col_index_to_letters
+
+                        lab1 = col_index_to_letters(c1)
+                        lab2 = col_index_to_letters(c2)
+                        self.status_bar.show_message(f"Col group: cols {lab1}–{lab2}")
+                    except (ValueError, IndexError):
+                        self.status_bar.show_message(
+                            "Usage: :colgroup <open|close|toggle> | <colA> <colB>"
+                        )
                 else:
-                    self.status_bar.show_message("Usage: :colgroup <c1> <c2>")
+                    self.status_bar.show_message(
+                        "Usage: :colgroup <open|close|toggle> | <colA> <colB>"
+                    )
 
             # ---- Theme ----
             case "theme":
@@ -1933,6 +1968,7 @@ class VimSheetApp(App[None]):
             self.status_bar.show_message(f"/{pattern}  [{1}/{len(matches)}]")
         else:
             self.status_bar.show_message(f"Pattern not found: {pattern!r}")
+        self.grid.set_search_state(matches, state.current_match, pattern=state.pattern)
 
     def _cmd_find_next(self) -> None:
         """Jump to the next search match."""
@@ -1948,6 +1984,7 @@ class VimSheetApp(App[None]):
             self.status_bar.show_message(f"/{state.pattern}  [next]")
         else:
             self.status_bar.show_message("No matches")
+        self.grid.set_search_state(state.matches, state.current_match, pattern=state.pattern)
 
     def _cmd_find_prev(self) -> None:
         """Jump to the previous search match."""
@@ -1963,6 +2000,7 @@ class VimSheetApp(App[None]):
             self.status_bar.show_message(f"/{state.pattern}  [prev]")
         else:
             self.status_bar.show_message("No matches")
+        self.grid.set_search_state(state.matches, state.current_match, pattern=state.pattern)
 
     def _cmd_replace(self, pattern: str, replacement: str) -> None:
         """Replace the first occurrence at the cursor."""
@@ -2008,6 +2046,37 @@ class VimSheetApp(App[None]):
         r"^(?:(\d+),(\d+))?" r"rs" r"(\d+)?" r"/(.+?)" r"/(.*?)" r"/([gi]*)$",
         re.IGNORECASE,
     )
+
+    def _cmd_substitute(self, range_str: str, sub_cmd: str) -> None:
+        """Apply ``:s/pattern/replacement/flags`` within *range_str* (an A1 range)."""
+        m = re.match(r"^s/(.+?)/(.*?)/([gi]*)$", sub_cmd, re.DOTALL)
+        if not m:
+            self.status_bar.show_message("Usage: :s/pattern/replacement/[gi]")
+            return
+        pattern, replacement, flags = m.groups()
+        flags = flags or ""
+        global_flag = "g" in flags.lower()
+        case_sensitive = "i" not in flags.lower()
+        state = SearchState(
+            pattern=pattern,
+            replace=replacement,
+            use_regex=global_flag,
+            whole_cell=not global_flag,
+            case_sensitive=case_sensitive,
+        )
+        self._search_state = state
+        from vimsheet.model.range import CellRange
+
+        try:
+            cr = CellRange.from_a1(range_str)
+        except Exception:
+            self.status_bar.show_message(f"Invalid range: {range_str!r}")
+            return
+        rows = list(range(cr.start_row, cr.end_row + 1))
+        cols = list(range(cr.start_col, cr.end_col + 1))
+        searcher = Searcher(self.workbook.active_sheet)
+        updates = searcher.collect_replacements(state, rows=rows, cols=cols)
+        self._execute_substitute(updates, f":{range_str}")
 
     def _cmd_col_substitute(self, cmd: str) -> None:
         """Handle column substitute commands.
@@ -3301,7 +3370,7 @@ class VimSheetApp(App[None]):
             return
         if action == "close_all":
             for r1, r2 in sheet.row_groups:
-                for r in range(r1, r2 + 1):
+                for r in range(r1 + 1, r2 + 1):
                     sheet.hidden_rows.add(r)
             self.grid.refresh_grid()
             self.status_bar.show_message("All row groups closed")
@@ -3316,11 +3385,63 @@ class VimSheetApp(App[None]):
         currently_hidden = rows_in_group & sheet.hidden_rows
 
         if action == "close" or (action == "toggle" and not currently_hidden):
-            sheet.hidden_rows |= rows_in_group
+            for r in range(r1 + 1, r2 + 1):
+                sheet.hidden_rows.add(r)
             self.status_bar.show_message(f"Folded rows {r1 + 1}–{r2 + 1}")
+        elif action == "remove":
+            sheet.row_groups.remove(grp)
+            sheet.hidden_rows -= rows_in_group
+            self.status_bar.show_message(f"Removed row group {r1 + 1}–{r2 + 1}")
         else:
             sheet.hidden_rows -= rows_in_group
             self.status_bar.show_message(f"Unfolded rows {r1 + 1}–{r2 + 1}")
+        self.workbook.modified = True
+        self.grid.refresh_grid()
+
+    def _fold_col_group(self, action: str) -> None:
+        """Fold/unfold the column group containing the cursor column.
+
+        action: 'close' | 'open' | 'toggle' | 'open_all' | 'close_all'
+        """
+        sheet = self.workbook.active_sheet
+        col = self.cursor_col
+
+        if action == "open_all":
+            sheet.hidden_cols.clear()
+            self.grid.refresh_grid()
+            self.status_bar.show_message("All column groups opened")
+            return
+        if action == "close_all":
+            for c1, c2 in sheet.col_groups:
+                for c in range(c1 + 1, c2 + 1):
+                    sheet.hidden_cols.add(c)
+            self.grid.refresh_grid()
+            self.status_bar.show_message("All column groups closed")
+            return
+
+        grp = next(((c1, c2) for c1, c2 in sheet.col_groups if c1 <= col <= c2), None)
+        if grp is None:
+            self.status_bar.show_message("No column group at cursor — use :colgroup c1 c2 first")
+            return
+        c1, c2 = grp
+        cols_in_group = set(range(c1, c2 + 1))
+        currently_hidden = cols_in_group & sheet.hidden_cols
+
+        if action == "close" or (action == "toggle" and not currently_hidden):
+            for c in range(c1 + 1, c2 + 1):
+                sheet.hidden_cols.add(c)
+            self.status_bar.show_message(f"Folded columns {c1 + 1}–{c2 + 1}")
+        elif action == "remove":
+            from vimsheet.model.range import col_index_to_letters
+
+            sheet.col_groups.remove(grp)
+            sheet.hidden_cols -= cols_in_group
+            self.status_bar.show_message(
+                f"Removed column group {col_index_to_letters(c1)}–{col_index_to_letters(c2)}"
+            )
+        else:
+            sheet.hidden_cols -= cols_in_group
+            self.status_bar.show_message(f"Unfolded columns {c1 + 1}–{c2 + 1}")
         self.workbook.modified = True
         self.grid.refresh_grid()
 

@@ -131,6 +131,10 @@ register_help(
     "ROWS", "zc / zo / za", "Close / open / toggle row group", subgroup="Groups", order=40
 )
 register_help("ROWS", "zR / zM", "Open / close all row groups", subgroup="Groups", order=41)
+register_help(
+    "ROWS", "zC / zO / zA", "Close / open / toggle column group", subgroup="Groups", order=42
+)
+register_help("ROWS", "zr / ZR", "Remove row / column group at cursor", subgroup="Groups", order=43)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # VISUAL MODE
@@ -278,6 +282,34 @@ register_help("CMD", ":swap col <c>", "Swap current col with col c", subgroup="D
 register_help("CMD", ":find <pat>", "Highlight matching cells", subgroup="Data", order=34)
 register_help("CMD", ":findnext / n", "Jump to next search match", subgroup="Data", order=34)
 register_help("CMD", ":findprev / N", "Jump to previous search match", subgroup="Data", order=34)
+register_help(
+    "CMD",
+    ":s/pat/repl/[gi]",
+    "Current-row substitute (default case-sensitive, /i = insensitive)",
+    subgroup="Data",
+    order=35,
+)
+register_help(
+    "CMD",
+    ":%s/pat/repl/[gi]",
+    "Entire-sheet substitute (case-sensitive, /i = insensitive)",
+    subgroup="Data",
+    order=35,
+)
+register_help(
+    "CMD",
+    ":<range> s/pat/repl/[gi]",
+    "Range-prefixed substitute (visual mode)",
+    subgroup="Data",
+    order=35,
+)
+register_help(
+    "CMD",
+    ":2,4s/pat/repl/[gi]",
+    "Row-range substitute (rows 2-4, /i = insensitive)",
+    subgroup="Data",
+    order=35,
+)
 register_help(
     "CMD", ":replace <old> <new>", "Find and replace (whole-value match)", subgroup="Data", order=35
 )
@@ -485,12 +517,16 @@ register_help("CMD", ":fetchlist", "Show all active FETCH cells", subgroup="Conf
 register_help("CMD", ":funcs", "List registered formula functions", subgroup="Config", order=67)
 register_help("CMD", ":help", "Show this screen", subgroup="Config", order=68)
 register_help(
-    "CMD", ":rowgroup <open|close|toggle> <row>", "Manage row groups", subgroup="Config", order=69
+    "CMD",
+    ":rowgroup <open|close|toggle|remove>",
+    "Manage row groups — :rowgroup 5 10 to create",
+    subgroup="Config",
+    order=69,
 )
 register_help(
     "CMD",
-    ":colgroup <open|close|toggle> <col>",
-    "Manage column groups",
+    ":colgroup <open|close|toggle|remove>",
+    "Manage column groups — :colgroup <A> <C> to create group A–C",
     subgroup="Config",
     order=70,
 )

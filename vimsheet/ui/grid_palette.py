@@ -53,6 +53,11 @@ class GridPalette:
     # ── Grid — error indicator ─────────────────────────────────────────
     error_fg: str = "#ff4444"
 
+    # ── Search highlight colours ───────────────────────────────────────
+    search_highlight_bg: str = "#335577"
+    search_current_bg: str = "#5588bb"
+    search_highlight_fg: str = "#ffffff"
+
     # ── Sheet tabs ─────────────────────────────────────────────────────
     tab_active_bg: str = "#4488ff"
     tab_active_fg: str = "#ffffff"

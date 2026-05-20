@@ -117,9 +117,15 @@ Search and Replace
    * - ``:findprev``
      - Jump to previous match
    * - ``:replace <pat> <repl>``
-     - Replace all whole-cell exact matches
+      - Replace all whole-cell exact matches
+   * - ``:s/pat/repl/[gi]``
+      - Current-row substitute (current row only)
    * - ``:%s/pat/repl/[gi]``
-     - Whole-sheet substitute (``/g`` = regex, ``/i`` = case-insensitive)
+      - Whole-sheet substitute (``/g`` = regex, ``/i`` = case-insensitive)
+   * - ``:<range> s/pat/repl/[gi]``
+      - Range-prefixed substitute (from visual mode)
+   * - ``:2,4s/pat/repl/[gi]``
+      - Row-range substitute (rows 2-4)
    * - ``:cs/pat/repl/[gi]``
      - Column substitute (current column, ``/g`` = regex)
    * - ``:csB/pat/repl/[gi]``
@@ -217,10 +223,10 @@ Column and Row Management
      - Hide current or specified column
    * - ``:showcol [col]``
      - Show hidden column
-   * - ``:rowgroup [n]``
-     - Toggle row group fold at row *n*
-   * - ``:colgroup [n]``
-     - Toggle column group fold at column *n*
+   * - ``:rowgroup <open|close|toggle|remove>``
+      - Manage row groups, or ``:rowgroup <r1> <r2>`` to create
+   * - ``:colgroup <open|close|toggle|remove>``
+      - Manage column groups, or ``:colgroup <colA> <colB>`` to create (e.g. ``:colgroup B D``)
 
 Conditional Formatting
 ----------------------

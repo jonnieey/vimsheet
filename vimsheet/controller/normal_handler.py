@@ -396,6 +396,26 @@ class NormalHandler:
                 app._fold_group("close_all")
                 app._key_buffer = ""
                 return
+            case "zC":
+                app._fold_col_group("close")
+                app._key_buffer = ""
+                return
+            case "zO":
+                app._fold_col_group("open")
+                app._key_buffer = ""
+                return
+            case "zA":
+                app._fold_col_group("toggle")
+                app._key_buffer = ""
+                return
+            case "zr":
+                app._fold_group("remove")
+                app._key_buffer = ""
+                return
+            case "ZR":
+                app._fold_col_group("remove")
+                app._key_buffer = ""
+                return
 
             # z-enter / z. / z-  — scroll cell to top/center/bottom
             case "zenter":
@@ -661,6 +681,7 @@ class NormalHandler:
                         app.status_bar.show_message(f"/^{cell.display}$  [{idx}/{len(matches)}]")
                     else:
                         app.status_bar.show_message(f"Pattern not found: {cell.display!r}")
+                    app.grid.set_search_state(matches, state.current_match, pattern=cell.display)
                 else:
                     app.status_bar.show_message("* — empty cell")
             case "#":
@@ -679,6 +700,7 @@ class NormalHandler:
                         app.status_bar.show_message(f"?^{cell.display}$  [{idx}/{len(matches)}]")
                     else:
                         app.status_bar.show_message(f"Pattern not found: {cell.display!r}")
+                    app.grid.set_search_state(matches, state.current_match, pattern=cell.display)
                 else:
                     app.status_bar.show_message("# — empty cell")
 
@@ -697,6 +719,8 @@ class NormalHandler:
                 app._key_buffer = ""
                 app._pending_register = ""
                 app.status_bar.set_persistent_message("")
+                app._search_state = None
+                app.grid.set_search_state([], None)
 
         self._end_key()
 
