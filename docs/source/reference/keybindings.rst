@@ -266,29 +266,11 @@ Visual Modes
       - Page down / page up
     * - ``Ctrl+d`` / ``Ctrl+u``
       - Half page down / half page up
-    * - ``go<addr>Enter``
-      - Extend selection to address
-    * - ``y``
-      - Yank (copy) selection
-    * - ``d`` / ``x``
-      - Delete / cut selection
-    * - ``p`` / ``P``
-      - Paste over selection / paste above
-    * - ``Ctrl+a``
-      - Increment all numeric cells in selection
-    * - ``Ctrl+x``
-      - Decrement all numeric cells in selection
-    * - ``>`` / ``<``
-      - Shift right / shift left
-    * - ``sR`` / ``sC``
-      - Hide rows / columns in selection
-    * - ``sr`` / ``sc``
-      - Show hidden rows / columns in selection
-    * - ``+`` / ``-`` / ``_``
-      - Widen / narrow / auto-fit columns in selection
-    * - ``z_`` / ``z+``
-      - Collapse / expand selected rows
-    * - ``:``
+   * - ``Ctrl+e`` / ``Ctrl+y``
+      - Scroll down / up one line (cursor stays)
+   * - ``zs`` / ``ze``
+      - Scroll viewport left / right by one column (cursor stays)
+   * - ``:``
       - Execute command on selection (``:fill``, ``:sort``, ``:plot``, etc.)
     * - ``tb`` / ``ti`` / ``tu``
       - Bold / italic / underline formatting

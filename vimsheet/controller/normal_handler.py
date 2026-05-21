@@ -441,6 +441,22 @@ class NormalHandler:
                 app._key_buffer = ""
                 return
 
+            # Horizontal scroll — viewport left/right one column
+            case "zs":
+                sx = int(app.grid.scroll_offset.x)
+                cw = app.grid.get_col_width(app.grid.cursor_col) + 1
+                app.grid.scroll_to(x=max(0, sx - cw), animate=False, force=True)
+                app.grid.refresh()
+                app._key_buffer = ""
+                return
+            case "ze":
+                sx = int(app.grid.scroll_offset.x)
+                cw = app.grid.get_col_width(app.grid.cursor_col) + 1
+                app.grid.scroll_to(x=sx + cw, animate=False, force=True)
+                app.grid.refresh()
+                app._key_buffer = ""
+                return
+
             # ZZ / ZQ
             case "ZZ":
                 app._save_and_quit()
@@ -713,6 +729,12 @@ class NormalHandler:
                 app._show_file_info()
             case "ctrl+l":
                 app.refresh()
+            case "ctrl+e":
+                sy = int(app.grid.scroll_offset.y)
+                app.grid.scroll_to(y=sy + 1, animate=False)
+            case "ctrl+y":
+                sy = int(app.grid.scroll_offset.y)
+                app.grid.scroll_to(y=max(0, sy - 1), animate=False)
             case "f1":
                 app._dispatch_command("help")
             case "escape":

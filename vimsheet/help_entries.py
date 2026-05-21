@@ -31,7 +31,11 @@ register_help(
     "NAV", "Ctrl+Home / Ctrl+End", "Jump to first / last cell in sheet", subgroup="Cursor", order=14
 )
 register_help("NAV", "Ctrl+d / Ctrl+u", "Half-page down / up", subgroup="Scrolling", order=20)
-register_help("NAV", "Ctrl+f / Ctrl+b", "Page down / up", subgroup="Scrolling", order=21)
+register_help("NAV", "Ctrl+e / Ctrl+y", "Scroll down/up one line", subgroup="Scrolling", order=21)
+register_help(
+    "NAV", "zs / ze", "Scroll viewport left/right by one column", subgroup="Scrolling", order=22
+)
+register_help("NAV", "Ctrl+f / Ctrl+b", "Page down / up", subgroup="Scrolling", order=22)
 register_help("NAV", "Space", "Page down", subgroup="Scrolling", order=22)
 register_help("NAV", "gg / G", "Jump to first / last row", subgroup="Jumps", order=30)
 register_help(
