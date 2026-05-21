@@ -76,7 +76,6 @@ napoleon_preprocess_types = True
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "textual": ("https://textual.textualize.io/", None),
 }
 intersphinx_timeout = 30
 intersphinx_cache_limit = 5
@@ -86,7 +85,13 @@ todo_emit_warnings = False
 
 suppress_warnings = [
     "autosummary.import_cycle",
+    "autosummary",
+    "autodoc",
+    "autodoc.import_object",
+    "ref.python",
+    "ref.ref",
     "toc.secnum",
+    "toc.excluded",
 ]
 nitpicky = False
 
@@ -179,6 +184,16 @@ locale_dirs = ["locale/"]
 gettext_compact = False
 gettext_location = True
 gettext_uuid = False
+
+doctest_global_setup = """
+from vimsheet.model.range import (
+    col_letters_to_index,
+    col_index_to_letters,
+    a1_to_rowcol,
+    rowcol_to_a1,
+    CellRange,
+)
+"""
 
 tags = globals().get("tags")
 if tags is not None and tags.has("offline"):

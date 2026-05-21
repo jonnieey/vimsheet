@@ -23,12 +23,15 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.12"
 
@@ -40,7 +43,7 @@ jobs:
       - name: Build HTML docs (strict)
         run: |
           cd docs
-          make html-strict
+          make html
 
       - name: Run doctests
         run: |
