@@ -364,11 +364,13 @@ class FormatCommand(Command):
         self._old_fmt = copy.deepcopy(existing.fmt)
         for key, val in self._new_fmt_kwargs.items():
             setattr(existing.fmt, key, val)
+        existing.display = existing.format_value()
 
     def undo(self) -> None:
         existing = self._sheet.get_cell(self._row, self._col)
         if existing is not None and self._old_fmt is not None:
             existing.fmt = copy.deepcopy(self._old_fmt)
+            existing.display = existing.format_value()
 
 
 class SortCommand(Command):
