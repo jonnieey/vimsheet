@@ -1102,22 +1102,35 @@ class VimSheetApp(App[None]):
 
             # ---- Plot ----
             case "plot":
-                # :plot [range] <type> [title]
-                # :plot line  /  :plot A1:B5 bar  /  :A1:B5 plot line
-                _chart_types = {"line", "bar", "scatter", "pie", "histogram", "hist"}
-                if (
-                    len(parts) > 1
-                    and parts[1].upper() not in {t.upper() for t in _chart_types}
-                    and ":" in parts[1]
-                ):
-                    # :plot <range> <type>
-                    data_range = parts[1]
-                    chart_type = parts[2] if len(parts) > 2 else "bar"
-                    title = " ".join(parts[3:]) if len(parts) > 3 else ""
-                else:
-                    data_range = ""
-                    chart_type = parts[1] if len(parts) > 1 else "bar"
-                    title = " ".join(parts[2:]) if len(parts) > 2 else ""
+                # :plot bar C1:F10          — type + range
+                # :plot C1:F10 bar          — range + type
+                # :plot bar                 — type only (cursor column)
+                # :plot                     — defaults to bar on cursor column
+                known_types = {"line", "bar", "scatter", "pie", "histogram", "hist"}
+                data_range = ""
+                chart_type = "bar"
+                title = ""
+                if len(parts) > 1:
+                    if ":" in parts[1]:
+                        data_range = parts[1]
+                        chart_type = (
+                            parts[2]
+                            if len(parts) > 2 and parts[2].lower() in known_types
+                            else chart_type
+                        )
+                        title = " ".join(parts[3:]) if len(parts) > 3 else ""
+                    elif parts[1].lower() in known_types:
+                        chart_type = parts[1]
+                        data_range = parts[2] if len(parts) > 2 else ""
+                        title = " ".join(parts[3:]) if len(parts) > 3 else ""
+                    else:
+                        data_range = parts[1]
+                        chart_type = (
+                            parts[2]
+                            if len(parts) > 2 and parts[2].lower() in known_types
+                            else chart_type
+                        )
+                        title = " ".join(parts[3:]) if len(parts) > 3 else ""
                 self._cmd_plot(data_range, chart_type, title)
             case _ if len(parts) >= 2 and parts[1] == "fill":
                 # <range> fill [start] [step] [func]
@@ -1252,7 +1265,7 @@ class VimSheetApp(App[None]):
                 except Exception as e:
                     self.status_bar.show_message(f"Error: {e}")
 
-            # ---- Range autofit / colfit / rowfit ----
+            # ---- Range autofit ----
             case _ if len(parts) >= 2 and parts[1].lower() in ("autofit", "af"):
                 from vimsheet.model.range import CellRange
 
@@ -1267,12 +1280,7 @@ class VimSheetApp(App[None]):
                         for r in range(cr.start_row, cr.end_row + 1):
                             self.grid.expand_row(r)
                     self.grid.refresh_grid()
-                    self.status_bar.show_message(
-                        f"Fitted {'columns ' if mode in ('col', 'cols') else ''}"
-                        f"{'rows ' if mode in ('row', 'rows') else ''}"
-                        f"{'both ' if mode == 'both' else ''}"
-                        f"on {cr}"
-                    )
+                    self.status_bar.show_message(f"Fitted {mode} on {cr}")
                 except Exception as e:
                     self.status_bar.show_message(f"Error: {e}")
             case _ if len(parts) >= 2 and parts[1].lower() in ("colfit", "colf"):
@@ -1370,6 +1378,14 @@ class VimSheetApp(App[None]):
             # ---- Range substitute -----
             case _ if len(parts) >= 2 and parts[1].startswith("s/"):
                 self._cmd_substitute(parts[0].upper(), parts[1])
+
+            # ---- Range plot (visual mode, no "plot" keyword) ----
+            case _ if (
+                len(parts) >= 2
+                and ":" in parts[0]
+                and parts[1].lower() in {"line", "bar", "scatter", "pie", "histogram", "hist"}
+            ):
+                self._cmd_plot(parts[0].upper(), parts[1])
 
             # ---- Range element-wise function apply (non-aggregate) ----
             case _ if (
