@@ -2914,7 +2914,25 @@ class VimSheetApp(App[None]):
                 self.undo_stack.push(cmd)
                 self.workbook.modified = True
                 self.grid.refresh_grid()
-            case _:
+            case "delete_row":
+                from vimsheet.model.undo import DeleteRowCommand
+
+                r = self.cursor_row
+                cmd = DeleteRowCommand(self.workbook.active_sheet, r)
+                self.undo_stack.push(cmd)
+                self.workbook.modified = True
+                self.grid.refresh_grid()
+            case "delete_col":
+                from vimsheet.model.undo import DeleteColCommand
+
+                c = self.cursor_col
+                cmd = DeleteColCommand(self.workbook.active_sheet, c)
+                self.undo_stack.push(cmd)
+                self.workbook.modified = True
+                self.grid.refresh_grid()
+            case "incr":
+                _, delta = action
+                self.normal_handler._increment_cell(delta)
                 self.status_bar.show_message("Cannot repeat this action")
         self._sync_formula_bar()
         self._sync_status_bar()

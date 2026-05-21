@@ -48,11 +48,13 @@ class NormalHandler:
             case s if s.endswith("ctrl+a") and s[: -len("ctrl+a")].isdigit():
                 self._increment_cell(int(s[: -len("ctrl+a")]))
                 app._key_buffer = ""
+                app._last_action = ("incr", int(s[: -len("ctrl+a")]))
                 app.status_bar.set_persistent_message("")
                 return
             case s if s.endswith("ctrl+x") and s[: -len("ctrl+x")].isdigit():
                 self._increment_cell(-int(s[: -len("ctrl+x")]))
                 app._key_buffer = ""
+                app._last_action = ("incr", -int(s[: -len("ctrl+x")]))
                 app.status_bar.set_persistent_message("")
                 return
 
@@ -612,8 +614,10 @@ class NormalHandler:
             # ---- Increment / decrement cell value --------------------------
             case "ctrl+a":
                 self._increment_cell(1)
+                app._last_action = ("incr", 1)
             case "ctrl+x":
                 self._increment_cell(-1)
+                app._last_action = ("incr", -1)
 
             # ---- Column resize ---------------------------------------------
             case "+":
@@ -1204,6 +1208,7 @@ class NormalHandler:
         app.undo_stack.push(cmd)
         app.workbook.modified = True
         app.grid.refresh_grid()
+        app._last_action = ("delete_row",)
 
     def _delete_col(self) -> None:
         if self._check_lock():
@@ -1234,6 +1239,7 @@ class NormalHandler:
         app.undo_stack.push(cmd)
         app.workbook.modified = True
         app.grid.refresh_grid()
+        app._last_action = ("delete_col",)
 
     def _hide_row(self) -> None:
         app = self._app
