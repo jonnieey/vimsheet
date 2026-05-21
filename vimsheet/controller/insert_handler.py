@@ -193,24 +193,23 @@ class InsertHandler:
         from vimsheet.model.undo import SetCellCommand
 
         if raw.startswith("="):
-            cmd = SetCellCommand(sheet, r, c, raw, new_formula=raw)
+            from vimsheet.formula.evaluator import Evaluator
+
+            ev = Evaluator(sheet, getattr(sheet, "_workbook", None))
+            deps = ev.collect_deps(raw)
+            has_func = "(" in raw[1:]
+            if deps or has_func:
+                cmd = SetCellCommand(sheet, r, c, raw, new_formula=raw)
+            else:
+                val = ev.eval_formula(raw, r, c)
+                cmd = SetCellCommand(sheet, r, c, val)
         else:
-            val: Any = _coerce(raw)
-            valid, msg = sheet.validation.validate(r, c, val)
-            if not valid:
-                app.status_bar.show_message(f"Validation failed: {msg}")
-                app.mode = Mode.NORMAL
-                app._insert_buffer = ""
-                app._insert_cursor = 0
-                app._sync_formula_bar()
-                app._sync_grid_preview()
-                return
-            cmd = SetCellCommand(sheet, r, c, val)
+            cmd = SetCellCommand(sheet, r, c, raw)
         app.undo_stack.push(cmd)
         # Apply alignment hint
         cell = sheet.get_cell(r, c)
         if cell is not None:
-            cell.fmt.align = "left" if app._insert_align == "left" else "right"  # type: ignore[assignment]
+            cell.fmt.align = app._insert_align  # type: ignore[assignment]
 
         app.workbook.modified = True
         app.mode = Mode.NORMAL

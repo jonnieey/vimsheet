@@ -37,7 +37,7 @@ def app_with_data() -> VimSheetApp:
 @pytest.mark.asyncio
 async def test_typing_builds_insert_buffer(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
-        await pilot.press("=")
+        await pilot.press("\\")
         assert app.mode == Mode.INSERT
 
         for ch in "hello":
@@ -49,7 +49,7 @@ async def test_typing_builds_insert_buffer(app: VimSheetApp) -> None:
 @pytest.mark.asyncio
 async def test_backspace_removes_last_char(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
-        await pilot.press("=")
+        await pilot.press("\\")
         for ch in "abc":
             await pilot.press(ch)
         assert app._insert_buffer == "abc"
@@ -69,7 +69,7 @@ async def test_backspace_removes_last_char(app: VimSheetApp) -> None:
 @pytest.mark.asyncio
 async def test_left_right_moves_insert_cursor(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
-        await pilot.press("=")
+        await pilot.press("\\")
         for ch in "abc":
             await pilot.press(ch)
         # cursor at position 3
@@ -88,7 +88,7 @@ async def test_left_right_moves_insert_cursor(app: VimSheetApp) -> None:
 @pytest.mark.asyncio
 async def test_left_clamps_at_zero(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
-        await pilot.press("=")
+        await pilot.press("\\")
         await pilot.press("left")
         await pilot.press("left")
         assert app._insert_cursor == 0
@@ -102,7 +102,7 @@ async def test_left_clamps_at_zero(app: VimSheetApp) -> None:
 @pytest.mark.asyncio
 async def test_enter_commits_and_moves_down(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
-        await pilot.press("=")
+        await pilot.press("\\")
         for ch in "hello":
             await pilot.press(ch)
         assert app.cursor_row == 0
@@ -130,7 +130,7 @@ async def test_enter_commits_and_moves_down(app: VimSheetApp) -> None:
 @pytest.mark.asyncio
 async def test_tab_commits_and_moves_right(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
-        await pilot.press("=")
+        await pilot.press("\\")
         for ch in "data":
             await pilot.press(ch)
         assert app.cursor_col == 0
@@ -155,7 +155,7 @@ async def test_tab_commits_and_moves_right(app: VimSheetApp) -> None:
 @pytest.mark.asyncio
 async def test_escape_cancels_insert(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
-        await pilot.press("=")
+        await pilot.press("\\")
         for ch in "test":
             await pilot.press(ch)
         assert app._insert_buffer == "test"
@@ -178,7 +178,7 @@ async def test_escape_cancels_insert(app: VimSheetApp) -> None:
 @pytest.mark.asyncio
 async def test_ctrl_u_clears_buffer(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
-        await pilot.press("=")
+        await pilot.press("\\")
         for ch in "clearme":
             await pilot.press(ch)
         assert app._insert_buffer == "clearme"
@@ -208,12 +208,13 @@ async def test_numeric_value_stored_as_int(app: VimSheetApp) -> None:
         cell = sheet.get_cell(0, 0)
         assert cell is not None
         assert cell.value == 42
+        assert cell.formula is None  # =42 → value-ized to plain number
 
 
 @pytest.mark.asyncio
 async def test_string_value_stored_correctly(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
-        await pilot.press("=")
+        await pilot.press("\\")
         for ch in "vimsheet":
             await pilot.press(ch)
         await pilot.press("enter")
@@ -227,9 +228,9 @@ async def test_string_value_stored_correctly(app: VimSheetApp) -> None:
 
 @pytest.mark.asyncio
 async def test_insert_mode_cursor_position_after_entry(app: VimSheetApp) -> None:
-    """After entering insert mode via =, cursor starts at position 0."""
+    r"""After entering insert mode via \, cursor starts at position 0."""
     async with app.run_test() as pilot:
-        await pilot.press("=")
+        await pilot.press("\\")
         assert app._insert_cursor == 0
         assert app._insert_buffer == ""
 
@@ -238,7 +239,7 @@ async def test_insert_mode_cursor_position_after_entry(app: VimSheetApp) -> None
 async def test_typing_mid_buffer_inserts_at_cursor(app: VimSheetApp) -> None:
     """Chars typed at a non-end cursor position are inserted at that position."""
     async with app.run_test() as pilot:
-        await pilot.press("=")
+        await pilot.press("\\")
         for ch in "ac":
             await pilot.press(ch)
         # buffer = "ac", cursor at 2

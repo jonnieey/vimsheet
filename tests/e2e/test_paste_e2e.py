@@ -72,10 +72,11 @@ async def test_p_adjusts_column(app: VimSheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_P_keeps_exact_formula(app: VimSheetApp) -> None:
-    """Enter formula at B2, yy, move to C2, P → C2 has exact formula."""
+async def test_P_pastes_value_only(app: VimSheetApp) -> None:
+    """yy yanks a formula cell, P pastes value-only (no formula)."""
     sheet = app.workbook.active_sheet
-    sheet.set_cell_value(1, 1, "t", formula='=IF(B2>10,"t","f")')
+    sheet.set_cell_value(0, 1, 10)  # B1 = 10
+    sheet.set_cell_value(1, 1, 20, formula="=B1*2")  # B2 = 20
     async with app.run_test() as pilot:
         await pilot.press("g")
         await pilot.press("o")
@@ -94,9 +95,10 @@ async def test_P_keeps_exact_formula(app: VimSheetApp) -> None:
         await pilot.press("P")
         await pilot.pause()
 
-        cell = sheet.get_cell(1, 2)
+        cell = sheet.get_cell(1, 2)  # C2
         assert cell is not None
-        assert cell.formula == '=IF(B2>10,"t","f")'
+        assert cell.value == 20
+        assert cell.formula is None
 
 
 @pytest.mark.asyncio

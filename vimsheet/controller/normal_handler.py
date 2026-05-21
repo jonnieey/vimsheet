@@ -552,6 +552,8 @@ class NormalHandler:
                 app._enter_insert("left")
             case ">":
                 app._enter_insert("right")
+            case "|":
+                app._enter_insert("center")
             case "e":
                 app.edit_handler.enter(at_end=True)
             case "E":
