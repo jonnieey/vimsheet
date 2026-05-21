@@ -580,12 +580,14 @@ class GridWidget(ScrollView):
         min_height = self._row_virtual_y(row) + 200
         if min_height > self.virtual_size.height:
             self.virtual_size = Size(self.virtual_size.width, min_height)
+        # Expand virtual width so scroll_x can reach the cursor
+        hidden = self.sheet.hidden_cols
         x = ROW_HEADER_WIDTH
         for c in range(col + 1):
-            x += self.get_col_width(c)
-        min_width = x + 100
-        if min_width > self.virtual_size.width:
-            self.virtual_size = Size(min_width, self.virtual_size.height)
+            if c not in hidden:
+                x += self.get_col_width(c) + 1
+        if x + 100 > self.virtual_size.width:
+            self.virtual_size = Size(x + 100, self.virtual_size.height)
         self._scroll_cursor_into_view()
         self.post_message(self.CursorMoved(row, col))
         self.refresh()
