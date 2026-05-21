@@ -49,6 +49,8 @@ sort the selection ascending by the first column of the selection.
 #. Rows with no value in any sort column are pushed to the bottom.
 #. All rows are rewritten in the new order, preserving formulas,
    formatting, comments, and locked state.
+#. **Frozen rows and columns are excluded** — rows above the freeze
+   line and columns left of the freeze line are never reordered.
 
 Filtering
 ---------

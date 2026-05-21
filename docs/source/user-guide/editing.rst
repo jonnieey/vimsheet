@@ -8,11 +8,16 @@ Enter values, formulas, and manipulate cell content.
 Entering Data
 -------------
 
-#. Navigate to a cell.
-#. Press ``\`` to enter INSERT mode for plain values, or ``=`` to
-   enter INSERT mode with ``=`` prepended for formulas.
-#. Type the value or formula.
-#. Press ``Enter`` to confirm, ``Escape`` to cancel.
+VimSheet distinguishes **strings** from **numbers and formulas** at entry time:
+
+* ``\`` — enter INSERT mode for a **string** (stored as text, left-aligned by default).
+  Use ``<``, ``>``, or ``|`` for left-, right-, or center-aligned string insert.
+* ``=`` — enter INSERT mode for a **number or formula**.
+  Typing ``=100`` stores the number 100; ``=SUM(A1:A5)`` stores a live formula.
+  All content entered after ``=`` is evaluated — pure numbers are stored as numbers,
+  expressions as formulas.
+
+To confirm, press ``Enter``; to cancel, press ``Escape``.
 
 Multi-line Cell Content
 -----------------------
@@ -58,6 +63,10 @@ Copy, Cut, and Paste
      - Action
    * - ``yy``
       - Yank (copy) current cell
+   * - ``yr``
+      - Yank entire current row
+   * - ``yc``
+      - Yank entire current column
    * - ``y`` (visual)
       - Yank selected range
    * - ``p``
@@ -106,6 +115,8 @@ Quickly adjust numeric values using these normal mode keys:
      - Decrement the number under the cursor by 1
    * - ``5 Ctrl+a``
      - Increment the number under the cursor by 5
+
+Increment, decrement, ``dd``, ``dr``, and ``dc`` are all repeatable with ``.``.
 
 Valueize
 --------

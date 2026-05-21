@@ -29,15 +29,20 @@ Cell Format Properties
 Cell Format Commands
 --------------------
 
-Use the ``:format`` command to set formatting properties on specific cells:
+Use the ``:format`` command to set formatting properties on specific cells.
+Multiple properties can be combined using ``prop=val`` syntax:
 
 .. code-block:: console
 
+   # Single property (legacy syntax still works)
    :format A1 bold
-   :format B2 color #ff0000
-   :format B2 bg #eeeeee
    :format C5 italic
-   :format D10 underline
+
+   # Multi-property prop=val syntax
+   :format B1:B5 bold=1 italic=1
+   :format D3 align=center num_decimals=2
+   :format A1 fg=#ff0000 bg=#eeeeee
+   :format E1:E10 bold=1 align=right num_decimals=0
 
 Number Formatting
 -----------------

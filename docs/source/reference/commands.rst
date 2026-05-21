@@ -251,10 +251,15 @@ Plotting
 
    * - Command
      - Description
-   * - ``:plot [range] <type> [title]``
-     - Plot a chart (types: ``bar``, ``line``, ``scatter``, ``pie``, ``histogram``)
-   * - ``:A1:B10 plot bar``
-     - Plot range as bar chart (range-prefix syntax)
+   * - ``:plot <type> [range] [title]``
+     - Plot a chart — type first, optional range and title
+       (types: ``bar``, ``line``, ``scatter``, ``pie``, ``histogram``)
+   * - ``:plot <range> <type> [title]``
+     - Plot a chart — range first, then type
+   * - ``:plot``
+     - Plot cursor column as bar chart (default)
+   * - ``:<range> <type>``
+     - Visual-mode shorthand — e.g., ``:A1:B10 line`` (no ``plot`` keyword needed)
 
 HTTP Fetching
 -------------

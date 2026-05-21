@@ -38,6 +38,10 @@ Normal Mode
      - Page down / page up
    * - ``Ctrl+d`` / ``Ctrl+u``
      - Half page down / half page up
+   * - ``Ctrl+e`` / ``Ctrl+y``
+     - Scroll down / up one line (cursor does not move)
+   * - ``zs`` / ``ze``
+     - Scroll viewport left / right by one column
    * - ``z Enter`` / ``z.`` / ``z-``
      - Scroll cell to top / center / bottom
    * - ``:``
@@ -50,23 +54,25 @@ Normal Mode
      - Search forward / backward for word under cursor
 
    * - ``\``
-     - Enter INSERT mode (type plain values)
+     - Enter INSERT mode — **string** value (left-aligned)
+   * - ``<``
+     - Enter INSERT mode — **string**, left-aligned
+   * - ``>``
+     - Enter INSERT mode — **string**, right-aligned
+   * - ``|``
+     - Enter INSERT mode — **string**, center-aligned
    * - ``=``
-     - Enter INSERT mode with ``=`` prepended (for formulas)
+     - Enter INSERT mode — **number or formula** (``=100`` → number, ``=SUM(…)`` → formula)
    * - ``e`` / ``E``
-      - Enter EDIT mode (edit cell content)
+      - Enter EDIT mode (edit existing cell content)
    * - ``r``
       - Replace cell value (opens formula bar)
    * - ``A``
-     - Enter INSERT mode at end of cell
+     - Enter INSERT mode at end of cell content
    * - ``I``
-     - Enter INSERT mode at start of cell
+     - Enter INSERT mode at start of cell content
    * - ``S``
-     - Clear cell and enter INSERT mode (left-aligned)
-   * - ``<``
-     - Enter INSERT mode, left-aligned
-   * - ``>``
-     - Enter INSERT mode, right-aligned
+     - Clear cell and enter INSERT mode (string, left-aligned)
 
    * - ``v`` / ``V`` / ``Ctrl+v``
      - Enter VISUAL / VISUAL LINE / VISUAL BLOCK mode
@@ -85,6 +91,8 @@ Normal Mode
      - Delete cell content to end of formula bar
    * - ``yy``
      - Yank (copy) current cell
+   * - ``yr`` / ``yc``
+     - Yank entire current row / column
    * - ``dd``
      - Delete (cut) current cell
    * - ``x``

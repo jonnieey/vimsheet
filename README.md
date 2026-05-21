@@ -2,6 +2,8 @@
 
 A vim-like TUI spreadsheet for the terminal.
 
+**[Full documentation](https://jonnieey.github.io/vimsheet/)**
+
 ```
 ╭─────────────────────────────────────────────────────────╮
 │ Vimsheet 0.2.7                                          │
@@ -77,8 +79,9 @@ Basic flow:
 | Action | Key |
 |--------|-----|
 | Move | `h j k l` |
-| Enter a value | `\` then type, `Enter` |
-| Enter a formula | `=` then type, `Enter` |
+| Enter a string | `\` then type, `Enter` |
+| Enter a number | `=100`, `Enter` |
+| Enter a formula | `=SUM(A1:A5)`, `Enter` |
 | Edit a cell | `e` |
 | Yank / paste | `yy` / `p` |
 | Undo / redo | `u` / `Ctrl+r` |

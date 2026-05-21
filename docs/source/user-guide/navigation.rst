@@ -64,6 +64,10 @@ Scrolling
      - Half page down
    * - ``Ctrl+u``
      - Half page up
+   * - ``Ctrl+e`` / ``Ctrl+y``
+     - Scroll down / up one line (cursor does not move)
+   * - ``zs`` / ``ze``
+     - Scroll viewport left / right by one column
    * - ``z`` + ``Enter``
      - Scroll current cell to top
    * - ``z.``
