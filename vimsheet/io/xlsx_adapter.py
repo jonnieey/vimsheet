@@ -3,11 +3,29 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from openpyxl.styles.colors import Color as XlColor
 
 from vimsheet.io.base import FormatAdapter
 from vimsheet.model.sheet import Sheet
 from vimsheet.model.workbook import Workbook
+
+_HEX_CHARS = set("0123456789ABCDEFabcdef")
+
+
+def _set_color(fmt: Any, attr: str, xl_color: XlColor) -> None:
+    """Convert an openpyxl Color to a hex RGB string and set it on *fmt*."""
+    try:
+        raw = str(xl_color.rgb)
+    except Exception:
+        return
+    if raw in ("00000000", "0"):
+        return
+    rgb = raw[-6:] if len(raw) >= 6 else raw
+    if len(rgb) == 6 and all(c in _HEX_CHARS for c in rgb):
+        setattr(fmt, attr, f"#{rgb}")
 
 
 class XLSXAdapter(FormatAdapter):
@@ -44,8 +62,28 @@ class XLSXAdapter(FormatAdapter):
                         val = None
                     sheet.set_cell_value(r, c, val, formula=formula, record_history=False)
                     vim_cell = sheet.get_cell(r, c)
-                    if cell.comment and vim_cell is not None:
-                        vim_cell.comment = cell.comment.text
+                    if vim_cell is not None:
+                        try:
+                            xf = cell.font
+                            if xf:
+                                vim_cell.fmt.bold = xf.bold or False
+                                vim_cell.fmt.italic = xf.italic or False
+                                vim_cell.fmt.underline = isinstance(
+                                    xf.underline, str
+                                ) and xf.underline not in ("", "none")
+                                if xf.color:
+                                    _set_color(vim_cell.fmt, "fg_color", xf.color)
+                            if cell.alignment and cell.alignment.horizontal:
+                                vim_cell.fmt.align = cell.alignment.horizontal
+                            else:
+                                vim_cell.fmt.align = "left"
+                            if cell.fill and cell.fill.fgColor:
+                                _set_color(vim_cell.fmt, "bg_color", cell.fill.fgColor)
+                            if cell.comment:
+                                vim_cell.comment = cell.comment.text
+                        except Exception:
+                            pass
+
             # Column widths
             for col_letter, col_dim in ws.column_dimensions.items():
                 from openpyxl.utils import column_index_from_string

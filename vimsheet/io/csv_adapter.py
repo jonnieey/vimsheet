@@ -28,7 +28,8 @@ class CSVAdapter(FormatAdapter):
             for r, row in enumerate(reader):
                 for c, raw in enumerate(row):
                     val: Any = _coerce(raw)
-                    sheet.set_cell_value(r, c, val)
+                    cell = sheet.set_cell_value(r, c, val)
+                    cell.fmt.align = "left"
 
         wb.sheets.append(sheet)
         wb.filepath = path

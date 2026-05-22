@@ -37,6 +37,9 @@ Features
 * ``:<range> autofit`` now accepts ``col`` / ``row`` / ``both``
   argument (default ``both``) to fit columns and/or rows in range
 * ``:format`` now supports ``prop=val`` syntax to set multiple properties (e.g. ``bg=red fg=white bold``) and exposes ``align``, ``num_decimals``, ``num_format``, and ``thousands_sep``
+* XLSX: import now restores cell font, alignment, fill colors (ARGB→RGB) and defaults to left-align on import. Invalid ``#00000000`` colors no longer crash the grid rendering.
+* CSV/TSV: imported cells now default to left alignment
+* Plain JSON: imported cells now default to left alignment
 
 0.1.0 — 2026-01-15
 ------------------

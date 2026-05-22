@@ -173,7 +173,8 @@ class JSONAdapter(FormatAdapter):
             for h, c in seen_keys.items():
                 val = record.get(h)
                 if val is not None:
-                    sheet.set_cell_value(r, c, val, record_history=False)
+                    cell = sheet.set_cell_value(r, c, val, record_history=False)
+                    cell.fmt.align = "left"
 
         wb.sheets.append(sheet)
         wb.filepath = path
