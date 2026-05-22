@@ -76,7 +76,11 @@ class Config:
         try:
             text = path.read_text(encoding="utf-8")
             data = json.loads(text)
-        except (FileNotFoundError, json.JSONDecodeError):
+        except FileNotFoundError:
+            instance = cls()
+            instance.save(path)
+            return instance
+        except json.JSONDecodeError:
             data = {}
 
         # Only pass fields that are valid Config field names so that unknown
