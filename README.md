@@ -50,16 +50,9 @@ VimSheet puts a full-featured spreadsheet in your terminal with a keymap you alr
 ## Install
 
 ```bash
-pip install vimsheet
-```
-
-Optional extras:
-
-```bash
-pip install vimsheet[xlsx]     # Excel support
-pip install vimsheet[plot]     # Inline charts
-pip install vimsheet[fetch]    # =FETCH() live data cells
-pip install vimsheet[watch]    # Auto-reload on file change
+git clone https://github.com/jonnieey/vimsheet.git
+cd vimsheet
+`uv tool install . --force --no-cache` or `pip install`  or `pipx https://github.com/jonnieey/vimsheet.git`. 
 ```
 
 Requires Python 3.11+ and a terminal that supports 256 colours.
