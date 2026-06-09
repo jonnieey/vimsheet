@@ -1,14 +1,17 @@
-"""Manage the interactive tutorial system — install, reset, and launch lessons."""
+"""Manage the interactive tutorial system — generate, reset, and launch lessons.
+
+Lessons are generated on demand from Python code (``vimsheet.tutorial_data``)
+and cached in ``XDG_DATA_HOME/vimsheet/tutorials/``.  User modifications to
+working copies persist between sessions.
+"""
 
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 
 from vimsheet.model.config import _user_data_dir
 
-_PACKAGE_ORIGINALS = Path(__file__).parent / "tutorials" / "originals"
 _XDG_TUTORIALS = _user_data_dir() / "vimsheet" / "tutorials"
 
 _LESSONS: list[tuple[int, str, str]] = [
@@ -41,16 +44,14 @@ class TutorialError(Exception):
 
 
 class TutorialManager:
-    """Install, list, load, and reset interactive tutorial lessons.
+    """Generate, list, load, and reset interactive tutorial lessons.
 
-    Originals are bundled inside the installed package under
-    ``vimsheet/tutorials/originals/``.  Working copies live in
-    ``XDG_DATA_HOME/vimsheet/tutorials/`` so that user modifications
-    persist between sessions.
+    Working copies live in ``XDG_DATA_HOME/vimsheet/tutorials/`` so that
+    user modifications persist between sessions.  Lessons are re-generated
+    from Python code only when missing or explicitly reset.
     """
 
     def __init__(self) -> None:
-        self._originals_dir = _PACKAGE_ORIGINALS
         self._tutorials_dir = _XDG_TUTORIALS
 
     # ------------------------------------------------------------------
@@ -63,18 +64,20 @@ class TutorialManager:
         return self._tutorials_dir
 
     def ensure_installed(self) -> None:
-        """Copy bundled originals to the XDG data directory if missing or stale."""
-        if not self._originals_dir.is_dir():
-            raise TutorialError(f"Tutorial originals not found at {self._originals_dir}")
+        """Generate any missing lesson files in the XDG data directory."""
+        from vimsheet.tutorial_data import generate_lesson
+
         self._tutorials_dir.mkdir(parents=True, exist_ok=True)
-        for f in sorted(self._originals_dir.iterdir()):
-            if f.suffix == ".vimsheet":
-                dest = self._tutorials_dir / f.name
-                if not dest.exists() or f.stat().st_mtime > dest.stat().st_mtime:
-                    shutil.copy2(f, dest)
+        for num, fname, _ in _LESSONS:
+            dest = self._tutorials_dir / f"{fname}.vimsheet"
+            if not dest.exists():
+                wb = generate_lesson(num)
+                import json as _json
+
+                dest.write_text(_json.dumps(wb, indent=2), encoding="utf-8")
 
     def get_lesson(self, num: int) -> Path:
-        """Return the path to lesson *num*, installing originals first."""
+        """Return the path to lesson *num*, generating it if missing."""
         self.ensure_installed()
         try:
             fname = _LESSONS[num][1]
@@ -86,17 +89,17 @@ class TutorialManager:
         return path
 
     def reset_lesson(self, num: int) -> None:
-        """Restore lesson *num* to its original state."""
+        """Regenerate lesson *num* from Python code, overwriting any changes."""
+        from vimsheet.tutorial_data import generate_lesson
+
         try:
             fname = _LESSONS[num][1]
         except IndexError as err:
             raise TutorialError(f"Lesson {num} does not exist (0–{self.max_lesson})") from err
-        src = self._originals_dir / f"{fname}.vimsheet"
-        dst = self._tutorials_dir / f"{fname}.vimsheet"
-        if not src.exists():
-            raise TutorialError(f"Original for lesson {num} not found: {src}")
+        wb = generate_lesson(num)
         self._tutorials_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dst)
+        dest = self._tutorials_dir / f"{fname}.vimsheet"
+        dest.write_text(json.dumps(wb, indent=2), encoding="utf-8")
 
     # ------------------------------------------------------------------
     # Progress tracking
@@ -130,8 +133,7 @@ class TutorialManager:
         self._progress_path.unlink(missing_ok=True)
 
     def list_lessons(self) -> list[dict]:
-        """Return metadata for every lesson."""
-        self.ensure_installed()
+        """Return metadata for every lesson (no file I/O)."""
         return [{"num": num, "file": fname, "title": title} for num, fname, title in _LESSONS]
 
     @property
