@@ -580,7 +580,7 @@ class NormalHandler:
                     )
                     app._insert_buffer = content
                     app._insert_cursor = len(app._insert_buffer)
-                    app._insert_align = "right"
+                    app._insert_align = cell.fmt.align if cell else "right"
                     app.mode = Mode.INSERT
             case "I":
                 cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
@@ -592,7 +592,7 @@ class NormalHandler:
                     )
                     app._insert_buffer = content
                     app._insert_cursor = 1 if content.startswith("=") else 0
-                    app._insert_align = "left"
+                    app._insert_align = cell.fmt.align if cell else "left"
                     app.mode = Mode.INSERT
             case "S":
                 self._clear_cell()
