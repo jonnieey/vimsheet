@@ -639,29 +639,13 @@ class VimSheetApp(App[None]):
             case "q" | "quit":
                 unsaved = [(i, wb) for i, wb in enumerate(self._buffers) if wb.modified]
                 if unsaved:
-                    names = ", ".join(
-                        str(wb.filepath.name if wb.filepath else f"buf {i + 1}")
-                        for i, wb in unsaved
-                    )
-                    plural = "buffers have" if len(unsaved) > 1 else "buffer has"
                     self.status_bar.show_message(
-                        f"{len(unsaved)} {plural} unsaved changes: {names} — use :q! to force quit"
+                        "No write since last change — use :q! to discard and quit"
                     )
                 else:
                     self.exit()
             case "q!":
-                n_total = len(self._buffers)
-                unsaved = [(i, wb) for i, wb in enumerate(self._buffers) if wb.modified]
-                buf_word = "buffer" if n_total == 1 else "buffers"
-                if unsaved:
-                    names = ", ".join(
-                        str(wb.filepath.name if wb.filepath else f"buf {i + 1}")
-                        for i, wb in unsaved
-                    )
-                    msg = f"Close {n_total} {buf_word}? {len(unsaved)} unsaved: {names}"
-                else:
-                    msg = f"Close {n_total} {buf_word}?"
-                self._ask_confirm(msg, self.exit)
+                self.exit()
             case "wq" | "x":
                 self._save_and_quit()
             case "w" | "write":
