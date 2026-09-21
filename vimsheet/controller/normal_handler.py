@@ -173,7 +173,14 @@ class NormalHandler:
             # c prefix — change (clear + enter insert)
             case "cw" | "cc":
                 self._clear_cell()
-                app._enter_insert("right")
+                app.edit_handler.enter(
+                    start_sub="insert",
+                    cursor="start",
+                    prefill="",
+                    align="right",
+                    intent="value",
+                    auto_move=True,
+                )
                 app._key_buffer = ""
                 return
 
@@ -543,24 +550,64 @@ class NormalHandler:
 
             # ---- Mode entry ------------------------------------------------
             case "=":
-                app._enter_insert("right")
-                app._insert_buffer = "="
-                app._insert_cursor = 1
+                app.edit_handler.enter(
+                    start_sub="insert",
+                    cursor="start_formula",
+                    prefill="=",
+                    align="right",
+                    intent="value",
+                    auto_move=True,
+                )
             case "\\":
-                app._enter_insert("right")
+                app.edit_handler.enter(
+                    start_sub="insert",
+                    cursor="start",
+                    prefill="",
+                    align="left",
+                    intent="text",
+                    auto_move=True,
+                )
             case "<":
-                app._enter_insert("left")
+                app.edit_handler.enter(
+                    start_sub="insert",
+                    cursor="start",
+                    prefill="",
+                    align="left",
+                    intent="text",
+                    auto_move=True,
+                )
             case ">":
-                app._enter_insert("right")
+                app.edit_handler.enter(
+                    start_sub="insert",
+                    cursor="start",
+                    prefill="",
+                    align="right",
+                    intent="text",
+                    auto_move=True,
+                )
             case "|":
-                app._enter_insert("center")
+                app.edit_handler.enter(
+                    start_sub="insert",
+                    cursor="start",
+                    prefill="",
+                    align="center",
+                    intent="text",
+                    auto_move=True,
+                )
             case "e":
                 app.edit_handler.enter(start_sub="normal", cursor="end")
             case "E":
                 app.edit_handler.enter(start_sub="normal", cursor="start")
             case "C":
                 self._clear_cell()
-                app._enter_insert("right")
+                app.edit_handler.enter(
+                    start_sub="insert",
+                    cursor="start",
+                    prefill="",
+                    align="right",
+                    intent="value",
+                    auto_move=True,
+                )
             case "v":
                 app.grid.start_visual(Mode.VISUAL)
                 app.mode = Mode.VISUAL
@@ -571,32 +618,19 @@ class NormalHandler:
                 app.grid.start_visual(Mode.VISUAL_BLOCK)
                 app.mode = Mode.VISUAL_BLOCK
             case "A":
-                cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
-                if cell and cell.locked:
-                    app.status_bar.show_message("Cell is locked — use 'zL' to unlock")
-                else:
-                    content = cell.formula or (
-                        str(cell.value) if cell and cell.value is not None else ""
-                    )
-                    app._insert_buffer = content
-                    app._insert_cursor = len(app._insert_buffer)
-                    app._insert_align = cell.fmt.align if cell else "right"
-                    app.mode = Mode.INSERT
+                app.edit_handler.enter(start_sub="insert", cursor="end", intent="value")
             case "I":
-                cell = app.workbook.active_sheet.get_cell(app.cursor_row, app.cursor_col)
-                if cell and cell.locked:
-                    app.status_bar.show_message("Cell is locked — use 'zL' to unlock")
-                else:
-                    content = cell.formula or (
-                        str(cell.value) if cell and cell.value is not None else ""
-                    )
-                    app._insert_buffer = content
-                    app._insert_cursor = 1 if content.startswith("=") else 0
-                    app._insert_align = cell.fmt.align if cell else "left"
-                    app.mode = Mode.INSERT
+                app.edit_handler.enter(start_sub="insert", cursor="start_formula", intent="value")
             case "S":
                 self._clear_cell()
-                app._enter_insert("left")
+                app.edit_handler.enter(
+                    start_sub="insert",
+                    cursor="start",
+                    prefill="",
+                    align="left",
+                    intent="value",
+                    auto_move=True,
+                )
             case ":":
                 app._enter_command_mode()
 
@@ -670,7 +704,14 @@ class NormalHandler:
             # ---- Replace cell ------------------------------------------------
             case "r":
                 self._clear_cell()
-                app._enter_insert("right")
+                app.edit_handler.enter(
+                    start_sub="insert",
+                    cursor="start",
+                    prefill="",
+                    align="right",
+                    intent="value",
+                    auto_move=True,
+                )
 
             # ---- Search ----------------------------------------------------
             case "/":

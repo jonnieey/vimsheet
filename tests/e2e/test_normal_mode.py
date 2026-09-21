@@ -96,10 +96,11 @@ async def test_yy_then_p_pastes_at_cursor(app_with_data: VimSheetApp) -> None:
 
 
 @pytest.mark.asyncio
-async def test_equals_enters_insert_mode(app: VimSheetApp) -> None:
+async def test_equals_enters_unified_editor(app: VimSheetApp) -> None:
     async with app.run_test() as pilot:
         await pilot.press("=")
-        assert app.mode == Mode.INSERT
+        assert app.mode == Mode.EDIT
+        assert app.edit_handler._sub == "insert"
 
 
 @pytest.mark.asyncio

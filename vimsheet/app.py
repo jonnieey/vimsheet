@@ -2356,21 +2356,6 @@ class VimSheetApp(App[None]):
         self.push_screen(ChartScreen(chart_text=chart, title=spec.title))
 
     # -----------------------------------------------------------------------
-    # Insert mode entry
-    # -----------------------------------------------------------------------
-
-    def _enter_insert(self, align: str = "right") -> None:
-        cell = self.workbook.active_sheet.get_cell(self.cursor_row, self.cursor_col)
-        if cell is not None and cell.locked:
-            self.status_bar.show_message("Cell is locked — use 'ru' to unlock")
-            return
-        self._insert_buffer = ""
-        self._insert_cursor = 0
-        self._insert_align = align
-        self.mode = Mode.INSERT
-        self._sync_formula_bar()
-
-    # -----------------------------------------------------------------------
     # Range sort  (<range> sort [col] [asc|desc] ...)
     # -----------------------------------------------------------------------
 
