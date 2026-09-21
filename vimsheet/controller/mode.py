@@ -9,7 +9,6 @@ class Mode(Enum):
     """Application editing modes, mirroring vim modal behaviour."""
 
     NORMAL = auto()
-    INSERT = auto()
     EDIT = auto()
     COMMAND = auto()
     SEARCH = auto()
@@ -22,8 +21,6 @@ class Mode(Enum):
         match self:
             case Mode.NORMAL:
                 return "NORMAL"
-            case Mode.INSERT:
-                return "INSERT"
             case Mode.EDIT:
                 return "EDIT"
             case Mode.COMMAND:
@@ -42,8 +39,6 @@ class Mode(Enum):
         match self:
             case Mode.NORMAL:
                 return "mode-normal"
-            case Mode.INSERT:
-                return "mode-insert"
             case Mode.EDIT:
                 return "mode-edit"
             case Mode.COMMAND:
@@ -64,7 +59,6 @@ class Mode(Enum):
 
 VALID_TRANSITIONS: dict[Mode, set[Mode]] = {
     Mode.NORMAL: {
-        Mode.INSERT,
         Mode.EDIT,
         Mode.COMMAND,
         Mode.SEARCH,
@@ -72,8 +66,7 @@ VALID_TRANSITIONS: dict[Mode, set[Mode]] = {
         Mode.VISUAL_LINE,
         Mode.VISUAL_BLOCK,
     },
-    Mode.INSERT: {Mode.NORMAL, Mode.EDIT},
-    Mode.EDIT: {Mode.NORMAL, Mode.INSERT},
+    Mode.EDIT: {Mode.NORMAL},
     Mode.COMMAND: {Mode.NORMAL},
     Mode.SEARCH: {Mode.NORMAL},
     Mode.VISUAL: {Mode.NORMAL, Mode.COMMAND},

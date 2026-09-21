@@ -48,7 +48,6 @@ class FormulaBar(Widget):
     def _mode_color(self) -> str:
         return {
             Mode.NORMAL: self._palette.mode_normal,
-            Mode.INSERT: self._palette.mode_insert,
             Mode.EDIT: self._palette.mode_edit,
             Mode.COMMAND: self._palette.mode_command,
             Mode.SEARCH: self._palette.mode_command,
@@ -110,7 +109,7 @@ class FormulaBar(Widget):
             at = display_text[display_pos] if display_pos < len(display_text) else " "
             after = display_text[display_pos + 1 :] if display_pos < len(display_text) else ""
             t.append(before, style="white")
-            if self.mode == Mode.INSERT or self.insert_submode:
+            if self.insert_submode:
                 t.append(at, style=f"underline white on {self._palette.formula_cursor_bg}")
             else:
                 t.append(at, style=f"bold white on {self._palette.formula_cursor_bg}")

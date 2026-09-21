@@ -11,7 +11,6 @@ from typing import Any
 from textual.app import App, ComposeResult
 
 from vimsheet.controller.edit_handler import EditHandler
-from vimsheet.controller.insert_handler import InsertHandler
 from vimsheet.controller.macro import MacroRecorder
 from vimsheet.controller.mode import Mode
 from vimsheet.controller.normal_handler import NormalHandler
@@ -71,9 +70,6 @@ class VimSheetApp(App[None]):
         # ---- Mode controller state ----
         self._key_buffer: str = ""
         self._command_buffer: str = ""
-        self._insert_buffer: str = ""
-        self._insert_cursor: int = 0
-        self._insert_align: str = "right"
         self._edit_buffer: str = ""
         self._edit_cursor: int = 0
         self._edit_chord: str = ""  # pending chord in Edit normal sub-mode
@@ -133,7 +129,6 @@ class VimSheetApp(App[None]):
 
         # ---- Handlers (created after super().__init__ so App attrs exist) ----
         self.normal_handler = NormalHandler(self)
-        self.insert_handler = InsertHandler(self)
         self.edit_handler = EditHandler(self)
         self.visual_handler = VisualHandler(self)
 
@@ -287,8 +282,6 @@ class VimSheetApp(App[None]):
         match self.mode:
             case Mode.NORMAL:
                 self.normal_handler.handle(key)
-            case Mode.INSERT:
-                self.insert_handler.handle(key)
             case Mode.EDIT:
                 self.edit_handler.handle(key)
             case Mode.VISUAL | Mode.VISUAL_LINE | Mode.VISUAL_BLOCK:
@@ -2860,8 +2853,6 @@ class VimSheetApp(App[None]):
             match self.mode:
                 case Mode.NORMAL:
                     self.normal_handler.handle(key)
-                case Mode.INSERT:
-                    self.insert_handler.handle(key)
                 case Mode.EDIT:
                     self.edit_handler.handle(key)
                 case Mode.VISUAL | Mode.VISUAL_LINE | Mode.VISUAL_BLOCK:
@@ -3152,9 +3143,6 @@ class VimSheetApp(App[None]):
             return
 
         match self.mode:
-            case Mode.INSERT:
-                content = self._insert_buffer
-                cursor_pos = self._insert_cursor
             case Mode.EDIT:
                 content = self._edit_buffer
                 cursor_pos = self._edit_cursor
@@ -3207,12 +3195,8 @@ class VimSheetApp(App[None]):
             self.status_bar.message = f"Recording @{reg}..."
 
     def _sync_grid_preview(self) -> None:
-        """Update grid live preview for insert/edit mode, or clear it otherwise."""
-        if self.mode == Mode.INSERT:
-            self.grid.set_preview(self.cursor_row, self.cursor_col, self._insert_buffer)
-            self.grid._rebuild_heights()
-            self.grid.refresh()
-        elif self.mode == Mode.EDIT:
+        """Update grid live preview for editor mode, or clear it otherwise."""
+        if self.mode == Mode.EDIT:
             self.grid.set_preview(self.cursor_row, self.cursor_col, self._edit_buffer)
             self.grid._rebuild_heights()
             self.grid.refresh()
