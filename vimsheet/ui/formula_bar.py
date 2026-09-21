@@ -109,9 +109,11 @@ class FormulaBar(Widget):
             display_pos = pos - (last_nl + 1)
             t.append(display_text[:display_pos], style="white")
             if self.insert_submode:
-                # Insert sub-mode: a bar glyph marks the caret position.
+                # Insert sub-mode: a bar glyph overlays the cursor cell so the
+                # line does not shift; past the end it sits in the trailing padding.
                 t.append(INSERT_CARET, style=f"bold {self._palette.mode_insert}")
-                t.append(display_text[display_pos:], style="white")
+                if display_pos < len(display_text):
+                    t.append(display_text[display_pos + 1 :], style="white")
             else:
                 # Normal sub-mode: a block over the character under the cursor.
                 at = display_text[display_pos] if display_pos < len(display_text) else " "
