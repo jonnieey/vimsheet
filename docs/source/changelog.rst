@@ -16,6 +16,11 @@ Features
   the same editor, which has insert and normal sub-modes.  ``Escape`` leaves
   the insert sub-mode so a mistyped formula can be fixed with vi motions;
   ``Enter`` commits.
+* The command line (``:``) and search prompts (``/``, ``?``) use the same
+  unified editor.  ``Escape`` opens a normal sub-mode for vi motions
+  (``h``/``l``/``w``/``x``/``dw`` …), ``Enter`` runs the command or search,
+  and ``Escape`` from normal cancels.  History is browsable with ``Up``/
+  ``Down`` in insert sub-mode and ``k``/``j`` in normal sub-mode.
 
 Changes
 ~~~~~~~

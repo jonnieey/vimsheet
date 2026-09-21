@@ -571,6 +571,23 @@ register_help(
 register_help("CMD", ":version", "Show application version", subgroup="Config", order=73)
 register_help("CMD", ":undodelsheet", "Restore last deleted sheet", subgroup="Config", order=74)
 
+# Command / search line editing (shared unified editor)
+register_help("CMD", ":", "Open command line", subgroup="Command line", order=80)
+register_help("CMD", "/ / ?", "Open search prompt", subgroup="Command line", order=81)
+register_help("CMD", "Enter", "Run command / search", subgroup="Command line", order=82)
+register_help("CMD", "Esc (insert)", "Move to normal sub-mode", subgroup="Command line", order=83)
+register_help("CMD", "Esc (normal)", "Cancel line", subgroup="Command line", order=84)
+register_help("CMD", "Tab", "Complete command", subgroup="Command line", order=85)
+register_help("CMD", "Up / Down", "History (insert sub-mode)", subgroup="Command line", order=86)
+register_help("CMD", "k / j", "History (normal sub-mode)", subgroup="Command line", order=87)
+register_help(
+    "CMD",
+    "h l w b 0 $  x dw D",
+    "Edit line (normal sub-mode)",
+    subgroup="Command line",
+    order=88,
+)
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MACROS
 # ═══════════════════════════════════════════════════════════════════════════

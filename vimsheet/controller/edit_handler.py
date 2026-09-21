@@ -2,7 +2,7 @@
 
 The editor owns the buffer, the insert/normal sub-modes and the vi motions.
 Mode-specific behaviour is delegated to an :class:`EditorContext`
-(see ``editor_context.py`):
+(see ``editor_context.py``):
 
 * cell content — ``\\``, ``=``, ``<``, ``>``, ``|``, ``A``, ``I``, ``C``,
   ``S``, ``r``, ``cw``, ``cc``, ``e``, ``E``,

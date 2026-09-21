@@ -258,6 +258,51 @@ Normal sub-mode:
    * - ``Enter`` / ``Escape``
      - Commit cell value and return to NORMAL mode
 
+Command / Search Line
+---------------------
+
+``:`` opens the command line and ``/`` / ``?`` open search.  They use the same
+editor as cells, with an insert sub-mode for typing and a normal sub-mode for
+vi motions.
+
+Insert sub-mode (default on entry):
+
+.. list-table::
+   :header-rows: 1
+
+   * - Key
+     - Action
+   * - ``Escape``
+     - Move to normal sub-mode (line preserved)
+   * - ``Enter``
+     - Run the command / search
+   * - ``Tab``
+     - Complete the command (command line only)
+   * - ``Up`` / ``Down``
+     - Previous / next history entry
+   * - ``Ctrl+u`` / ``Ctrl+w``
+     - Clear the line / delete the word before the cursor
+
+Normal sub-mode:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Key
+     - Action
+   * - ``h`` / ``l`` / ``w`` / ``b`` / ``e`` / ``0`` / ``$``
+     - Move within the line
+   * - ``x`` / ``dw`` / ``d$`` / ``D``
+     - Delete in the line
+   * - ``i`` / ``a`` / ``A`` / ``I``
+     - Return to the insert sub-mode
+   * - ``k`` / ``j``
+     - Previous / next history entry
+   * - ``Enter``
+     - Run the command / search
+   * - ``Escape``
+     - Cancel and return to NORMAL mode
+
 Visual Modes
 ------------
 

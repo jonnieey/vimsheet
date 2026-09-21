@@ -27,9 +27,12 @@ different set of keybindings for interacting with the spreadsheet.
    * - VISUAL BLOCK
      - Select rectangular block
      - ``Ctrl+v``
-   * - COMMAND
-     - Execute ``:commands``
-     - ``:``
+    * - COMMAND
+      - Execute ``:commands``
+      - ``:``
+    * - SEARCH
+      - Enter a search pattern
+      - ``/`` or ``?``
 
 Normal Mode
 -----------
@@ -74,9 +77,20 @@ Select ranges using keyboard motions:
 * ``d`` — delete selection
 * ``x`` — cut selection
 
-Command Mode
------------
+Command and Search Lines
+------------------------
 
-Press ``:`` to open the command line and type commands. Tab-completion
-is available for commands, file paths, sheet names, and theme names.
+``:`` opens the command line; ``/`` and ``?`` open a search prompt.  Both use
+the **same unified editor as cells**, so they also have insert and normal
+sub-modes:
+
+* Type immediately in the **insert** sub-mode.  ``Tab`` completes the command
+  (commands, file paths, sheet names, theme names); ``Up``/``Down`` browse
+  history.
+* ``Escape`` drops to the **normal** sub-mode, where ``h``/``l``/``w``/``b``,
+  ``x``, ``dw``, and friends edit the line — useful for fixing a long command.
+  ``k``/``j`` browse history.
+* ``Enter`` runs the command or search from either sub-mode.  ``Escape`` from
+  the normal sub-mode **cancels** the line and returns to NORMAL.
+
 See :ref:`reference/commands` for the full command reference.
