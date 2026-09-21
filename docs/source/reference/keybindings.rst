@@ -54,25 +54,25 @@ Normal Mode
      - Search forward / backward for word under cursor
 
    * - ``\``
-     - Enter INSERT mode — **string** value (left-aligned)
+     - Enter cell editor — **string** value (left-aligned)
    * - ``<``
-     - Enter INSERT mode — **string**, left-aligned
+     - Enter cell editor — **string**, left-aligned
    * - ``>``
-     - Enter INSERT mode — **string**, right-aligned
+     - Enter cell editor — **string**, right-aligned
    * - ``|``
-     - Enter INSERT mode — **string**, center-aligned
+     - Enter cell editor — **string**, center-aligned
    * - ``=``
-     - Enter INSERT mode — **number or formula** (``=100`` → number, ``=SUM(…)`` → formula)
+     - Enter cell editor — **number or formula** (``=100`` → number, ``=SUM(…)`` → formula)
    * - ``e`` / ``E``
-      - Enter EDIT mode (edit existing cell content)
+      - Enter cell editor in normal sub-mode (cursor at end / start)
    * - ``r``
-      - Replace cell value (opens formula bar)
+      - Clear cell and enter editor (replace)
    * - ``A``
-     - Enter INSERT mode at end of cell content
+     - Enter cell editor at end of content (insert sub-mode)
    * - ``I``
-     - Enter INSERT mode at start of cell content
+     - Enter cell editor at start of content (insert sub-mode)
    * - ``S``
-     - Clear cell and enter INSERT mode (string, left-aligned)
+     - Clear cell and enter editor (string, left-aligned)
 
    * - ``v`` / ``V`` / ``Ctrl+v``
      - Enter VISUAL / VISUAL LINE / VISUAL BLOCK mode
@@ -84,7 +84,7 @@ Normal Mode
      - Repeat last change
 
    * - ``cw`` / ``cc``
-     - Clear cell and enter INSERT mode
+     - Clear cell and enter editor (insert sub-mode)
    * - ``dw``
      - Delete (cut) current cell content
    * - ``d$``
@@ -104,7 +104,7 @@ Normal Mode
    * - ``D``
      - Delete cell content (leaves formula)
    * - ``C``
-     - Clear cell and enter INSERT mode
+     - Clear cell and enter editor (insert sub-mode)
    * - ``X``
      - Delete character before cursor (in cell)
 
@@ -188,8 +188,11 @@ Normal Mode
     * - ``U``
       - Restore previous cell value from history
 
-Insert Mode
------------
+Cell Editor — Insert Sub-mode
+-----------------------------
+
+All cell entry keys (``\``, ``=``, ``<``, ``>``, ``|``, ``A``, ``I``, ``C``,
+``S``, ``r``, ``cw``, ``cc``) open this editor ready to type.
 
 .. list-table::
    :header-rows: 1
@@ -197,9 +200,9 @@ Insert Mode
    * - Key
      - Action
    * - ``Escape``
-     - Return to NORMAL mode (confirm cell value)
+     - Leave insert sub-mode for normal sub-mode (buffer preserved)
    * - ``Enter``
-     - Confirm cell value, move down
+     - Commit cell value, move down
    * - ``Tab``
      - Confirm cell value, move right
    * - ``Backspace``
@@ -217,12 +220,13 @@ Insert Mode
     * - ``Alt+Enter``
       - Insert newline within cell content
 
-Edit Mode
----------
+Cell Editor — Normal Sub-mode
+-----------------------------
 
-Edit mode has a vi-like sub-mode for navigating within the cell text.
+Opened directly by ``e`` / ``E``, or reached by pressing ``Escape`` while in
+the insert sub-mode.  Provides vi motions and operators over the cell text.
 
-Normal sub-mode (default on entry):
+Normal sub-mode:
 
 .. list-table::
    :header-rows: 1
@@ -251,6 +255,8 @@ Normal sub-mode (default on entry):
      - Undo within edit
    * - ``r{char}``
      - Replace character at cursor
+   * - ``Enter`` / ``Escape``
+     - Commit cell value and return to NORMAL mode
 
 Visual Modes
 ------------

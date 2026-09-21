@@ -20,10 +20,10 @@ You will see an empty spreadsheet grid with a status bar at the bottom.
 Your First Spreadsheet
 ----------------------
 
-1. Press ``\`` to enter INSERT mode.
+1. Press ``\`` to enter the cell editor (string insert sub-mode).
 2. Type ``20`` in cell A1 and press ``Enter``.
 3. Press ``\``, type ``30``, and press ``Enter``.
-5. Move to cell A3. Press ``=`` (enters INSERT mode with ``=`` prepended),
+5. Move to cell A3. Press ``=`` (opens the editor with ``=`` prepended),
    then type ``SUM(A1:A2)``.
 6. Press ``Enter`` — the cell shows the sum.
 

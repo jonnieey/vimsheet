@@ -12,7 +12,7 @@ to know to use VimSheet effectively.
    * - Topic
      - Description
    * - :ref:`user-guide/modes`
-     - NORMAL, INSERT, EDIT, VISUAL, COMMAND modes explained
+     - NORMAL, EDIT (cell editor), VISUAL, COMMAND modes explained
    * - :ref:`user-guide/navigation`
      - Move around the spreadsheet with Vim-style keys
    * - :ref:`user-guide/editing`

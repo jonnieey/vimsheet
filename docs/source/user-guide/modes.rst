@@ -15,13 +15,10 @@ different set of keybindings for interacting with the spreadsheet.
    * - NORMAL
      - Navigate, select cells, copy/paste
      - ``Escape`` (from any mode)
-    * - INSERT
-      - Type values and formulas into cells
-      - ``\`` or ``=``
-   * - EDIT
-     - Edit an existing cell's content
-     - ``e``
-   * - VISUAL
+    * - EDIT
+      - Enter and edit cell content (insert / normal sub-modes)
+      - ``\``, ``=``, ``e``, ``E``, ``A``, ``I``, ``S``
+    * - VISUAL
      - Select ranges with keyboard
      - ``v``
    * - VISUAL LINE
@@ -41,20 +38,25 @@ Default mode on startup. Use Vim-style keys to move the cursor around the
 grid. Press ``:`` to enter a command, ``\`` or ``=`` to insert, ``v`` for visual
 selection.
 
-Insert Mode
------------
+Cell Editor (EDIT)
+------------------
 
-Type directly into the active cell. Press ``Escape`` to return to NORMAL
-mode. Tab moves to the next cell to the right. Press ``Alt+Enter`` to
-insert a newline within the cell content — the grid row expands
-vertically to show all lines.
+The unified editor handles every kind of cell entry — new values, formulas,
+and edits to existing content. It has two sub-modes:
 
-Edit Mode
----------
+* **insert** — type directly into the cell. The formula bar shows ``INSERT``.
+  Tab moves to the next cell to the right. Press ``Alt+Enter`` to insert a
+  newline within the cell content; the grid row expands vertically to show
+  all lines.
+* **normal** — vi motions and operators over the cell text (``h``/``l``,
+  ``w``/``b``, ``dw``, ``cw``, ``x``, ``r`` …). The formula bar shows
+  ``EDIT``.
 
-Edit the contents of the current cell without overwriting it. The cursor
-appears inside the cell's formula bar at the top. Press ``Escape`` or
- ``Enter`` to confirm changes and return to NORMAL mode.
+Entry keys such as ``\`` and ``=`` open the editor in insert sub-mode so you
+can type immediately. From insert sub-mode, ``Escape`` drops to normal
+sub-mode (keeping your text) so you can fix a typo with vi motions; ``Enter``
+commits from either sub-mode. ``e`` / ``E`` open the editor directly in
+normal sub-mode.
 
 Visual Modes
 ------------

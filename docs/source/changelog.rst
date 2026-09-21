@@ -5,6 +5,28 @@ Changelog
 
 Release notes for VimSheet.
 
+Unreleased
+----------
+
+Features
+~~~~~~~~
+
+* Unified cell editor: every entry key (``\``, ``=``, ``<``, ``>``, ``|``,
+  ``A``, ``I``, ``C``, ``S``, ``r``, ``cw``, ``cc``, ``e``, ``E``) now opens
+  the same editor, which has insert and normal sub-modes.  ``Escape`` leaves
+  the insert sub-mode so a mistyped formula can be fixed with vi motions;
+  ``Enter`` commits.
+
+Changes
+~~~~~~~
+
+* Retired the separate INSERT mode.  The formula and status bars show
+  ``INSERT`` while typing and ``EDIT`` in the editor's normal sub-mode.
+* Cell entry now validates on every commit, and ``\`` is a strict string
+  entry (numeric text is not coerced).
+* Editing a stored pure-literal formula (e.g. ``=42``) re-valueizes it on
+  commit.
+
 0.2.0 — 2026-05-14
 ------------------
 

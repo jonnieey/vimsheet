@@ -10,19 +10,22 @@ Entering Data
 
 VimSheet distinguishes **strings** from **numbers and formulas** at entry time:
 
-* ``\`` — enter INSERT mode for a **string** (stored as text, left-aligned by default).
-  Use ``<``, ``>``, or ``|`` for left-, right-, or center-aligned string insert.
-* ``=`` — enter INSERT mode for a **number or formula**.
+* ``\`` — open the cell editor for a **string** (stored as text, left-aligned by
+  default).  Use ``<``, ``>``, or ``|`` for left-, right-, or center-aligned
+  string insert.
+* ``=`` — open the cell editor for a **number or formula**.
   Typing ``=100`` stores the number 100; ``=SUM(A1:A5)`` stores a live formula.
-  All content entered after ``=`` is evaluated — pure numbers are stored as numbers,
+  Content after ``=`` is evaluated — pure literals are stored as values,
   expressions as formulas.
 
-To confirm, press ``Enter``; to cancel, press ``Escape``.
+To confirm, press ``Enter``.  ``Escape`` leaves the insert sub-mode for the
+normal sub-mode (your text is preserved); press ``Enter`` (or ``Escape`` again)
+to commit, or use vi motions to fix the entry first.
 
 Multi-line Cell Content
 -----------------------
 
-Cells can hold multiple lines of text. While in INSERT or EDIT mode:
+Cells can hold multiple lines of text. While in the cell editor:
 
 * Press ``Alt+Enter`` to insert a newline at the cursor position.
 * The grid row automatically expands to show all lines.
@@ -48,10 +51,15 @@ Editing Existing Cells
 ----------------------
 
 #. Navigate to a cell you want to edit.
-#. Press ``e`` to enter EDIT mode.
-#. Formula bar is in visual mode. Press ``i`` to start editing.
-#. Modify the content using terminal editing keys.
+#. Press ``e`` to open the editor at the end of the content (``E`` for the
+   start).  The editor opens in normal sub-mode.
+#. Use vi motions (``h``, ``w``, ``dw`` …) or press ``i`` / ``a`` to type.
 #. Press ``Enter`` to confirm your changes.
+
+``A`` and ``I`` open the editor in insert sub-mode at the end / start of the
+content, pre-filled with the existing value.  All of these keys share the same
+editor, so ``Escape`` always drops you into normal sub-mode to fix the entry
+with vi motions before committing.
 
 Copy, Cut, and Paste
 --------------------
@@ -82,7 +90,7 @@ Copy, Cut, and Paste
    * - ``D``
       - Delete cell content (keeps formula)
    * - ``C``
-      - Clear cell and enter INSERT mode
+      - Clear cell and enter the editor (insert sub-mode)
 
 Registers
 ---------

@@ -296,18 +296,21 @@ def lesson_02() -> dict:
         cells.append(c(row_idx, 1, name, align="left", fg_color=WHITE))
 
     steps = [
-        (3, "1. Press e — EDIT mode. h/l moves inside the text.\nEsc exits without saving."),
+        (
+            3,
+            "1. Press e — cell editor (normal mode). h/l moves inside the text.\nEnter saves; Esc returns to normal mode.",  # noqa: E501
+        ),
         (
             4,
             "2. Go to B5. Press e — edit Bob Kumar.\nMove to the extra space. x deletes it. Enter saves.",  # noqa: E501
         ),
-        (5, "3. Go to B6. Press A — append to end.\nType ' Smith', then Esc."),
+        (5, "3. Go to B6. Press A — open editor at end.\nType ' Smith', then Enter."),
         (
             6,
-            "4. Go to B7. Press I — insert at beginning.\nType 'Sr. ', then Esc. Reads 'Sr. Engineer'.",  # noqa: E501
+            "4. Go to B7. Press I — open editor at start.\nType 'Sr. ', then Enter. Reads 'Sr. Engineer'.",  # noqa: E501
         ),
         (7, "5. Go to B8. Press r — replace mode.\nType new content, then Enter."),
-        (8, "6. Go to B9. Press S — clear cell and enter INSERT.\nType new text, then Esc."),
+        (8, "6. Go to B9. Press S — clear and enter editor.\nType new text, then Enter."),
         (9, "7. Go to B10. Press x — cut the cell to the register."),
         (10, "8. Go to B12 (empty). Press p — paste the cut value."),
         (11, "9. Go to B11. Press dd — delete the entire row.\nRows below shift up."),
@@ -321,7 +324,7 @@ def lesson_02() -> dict:
         15,
         "x cuts one cell. dd deletes the whole row.\nBoth go to the register and can be pasted with p.",  # noqa: E501
     )
-    cells += note_row(16, "e — EDIT (cursor at start).  E — EDIT (cursor at end).")
+    cells += note_row(16, "e — editor, cursor at end.  E — editor, cursor at start.")
 
     return build_sheet("CellEditing", cells, cursor_row=3, cursor_col=1)
 
@@ -498,8 +501,8 @@ def lesson_06() -> dict:
     ]
     modes = [
         (3, "NORMAL  --NORMAL--", "Esc  (from any mode)", "Navigate, copy, paste, delete, undo"),
-        (4, "INSERT  --INSERT--", "\\ = < > A I S", "Type new content into a cell"),
-        (5, "EDIT    --EDIT--", "e  E", "Modify existing cell content"),
+        (4, "INSERT  --INSERT--", "\\ = < > A I S", "Cell editor — insert sub-mode: type content"),
+        (5, "EDIT    --EDIT--", "e  E", "Cell editor — normal sub-mode: vi motions"),
         (6, "COMMAND  --CMD--", ":", "Run colon commands (:w, :sort, :help)"),
         (7, "VISUAL  --VISUAL--", "v  V  Ctrl+v", "Select a range for operations"),
     ]
@@ -516,7 +519,7 @@ def lesson_06() -> dict:
         ),
         (
             11,
-            "\\ = left-align INSERT.  = = right-align (formula prefix).\n< = left,  > = right,  A = append,  I = insert at start.",  # noqa: E501
+            "\\ = left-align string.  = = number/formula (right).\n< = left,  > = right,  A = append,  I = insert at start.",  # noqa: E501
         ),
         (
             12,
@@ -526,7 +529,7 @@ def lesson_06() -> dict:
             13,
             "v = cell selection.  V = whole rows.\nCtrl+v = rectangular block. Move cursor to extend.",  # noqa: E501
         ),
-        (14, "e = EDIT (cursor at start of cell text).\nE = EDIT with cursor at the END."),
+        (14, "e = editor, cursor at end of cell text.\nE = editor, cursor at the start."),
     ]
     for row_idx, text in notes:
         cells.append(c(row_idx, 0, wrap_text(text), align="left", fg_color=YELLOW))
@@ -570,32 +573,35 @@ def lesson_07() -> dict:
     steps = [
         (
             3,
-            "1. Go to B9 (empty, below the list).\nPress \\ — INSERT mode. Type a new name, Enter.",
+            "1. Go to B9 (empty). Press \\ — insert sub-mode.\nType a new name, Enter.",
         ),
         (
             4,
-            "2. Cursor moved to B10. Type another name, Enter.\nThis is the natural multi-entry INSERT flow.",  # noqa: E501
+            "2. Cursor moved to B10. Type another name, Enter.\nThis is the natural multi-entry flow.",  # noqa: E501
         ),
-        (5, "3. Go to C9. Press = — INSERT (right-aligned).\nType a score, e.g. 77, then Enter."),
+        (
+            5,
+            "3. Go to C9. Press = — number/formula (right-aligned).\nType a score, e.g. 77, then Enter.",  # noqa: E501
+        ),
         (
             6,
-            "4. Go to B4 (Alice Johnson). Press e — EDIT mode.\nUse h and l to move inside the text.",  # noqa: E501
+            "4. Go to B4 (Alice Johnson). Press e — cell editor.\nUse h and l to move inside the text.",  # noqa: E501
         ),
-        (7, "5. In EDIT mode on B4: press w — jump word forward.\nPress b — jump word backward."),
+        (7, "5. In the editor on B4: press w — jump word forward.\nPress b — jump word backward."),
         (8, "6. Press 0 — go to start of cell text.\nPress $ — go to end of cell text."),
         (9, "7. Position cursor on 'Johnson'. Press dw — delete word.\nPress Enter to save."),
         (
             10,
-            "8. Go to B5. Press E — EDIT with cursor at the END.\nPress A — switch to INSERT at end.\nType ' Jr.', then Esc.",  # noqa: E501
+            "8. Go to B5. Press E — editor, cursor at the start.\nPress A — switch to insert at end.\nType ' Jr.', then Enter.",  # noqa: E501
         ),
-        (11, "9. Go to B6. Press I — INSERT at the beginning.\nType 'Dr. ', then Esc."),
+        (11, "9. Go to B6. Press I — editor at start (insert).\nType 'Dr. ', then Enter."),
         (
             12,
-            "10. Go to C6 (score 61). Press S — clear and INSERT.\nType the corrected score, then Esc.",  # noqa: E501
+            "10. Go to C6 (score 61). Press S — clear and enter editor.\nType the corrected score, then Enter.",  # noqa: E501
         ),
         (
             13,
-            "11. In INSERT or EDIT mode: Alt+Enter inserts a\nnewline within the cell (multi-line content).",  # noqa: E501
+            "11. In the cell editor: Alt+Enter inserts a\nnewline within the cell (multi-line content).",  # noqa: E501
         ),
     ]
     for row_idx, instr in steps:
@@ -603,11 +609,11 @@ def lesson_07() -> dict:
 
     cells += note_row(
         15,
-        "EDIT mode motions: h l w b 0 $ move cursor.\nx deletes one char.  dw deletes a word.  d$ deletes to end.",  # noqa: E501
+        "Editor normal-mode motions: h l w b 0 $ move cursor.\nx deletes one char.  dw deletes a word.  d$ deletes to end.",  # noqa: E501
     )
     cells += note_row(
         16,
-        "Tab in INSERT mode triggers formula auto-complete.\nType =SUM and press Tab to cycle through functions.",  # noqa: E501
+        "Tab in the editor triggers formula auto-complete.\nType =SUM and press Tab to cycle through functions.",  # noqa: E501
     )
 
     return build_sheet("InsertEdit", cells, cursor_row=3, cursor_col=1)
@@ -708,7 +714,7 @@ def lesson_09() -> dict:
         ),
         (
             4,
-            "2. Press iR — insert a blank row BELOW Charlie.\nType 'Temp' in B5, Esc. Press dr — delete the row.",  # noqa: E501
+            "2. Press iR — insert a blank row BELOW Charlie.\nType 'Temp' in B5, Enter. Press dr — delete the row.",  # noqa: E501
         ),
         (
             5,

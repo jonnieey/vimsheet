@@ -52,11 +52,17 @@ register_help("NAV", "gt / gT / g<digit>", "Next / prev / Nth sheet", subgroup="
 register_help(
     "EDIT",
     "= / \\ / > / <",
-    "Insert mode (right / left / right / default align)",
+    "Enter cell editor (number/formula, string left / right / left)",
     subgroup="Sheet",
     order=10,
 )
-register_help("EDIT", "e / E", "Edit cell (cursor at end / start)", subgroup="Sheet", order=11)
+register_help(
+    "EDIT",
+    "e / E",
+    "Enter cell editor, normal sub-mode (cursor at end / start)",
+    subgroup="Sheet",
+    order=11,
+)
 register_help(
     "EDIT", "gx / gX", "Swap cell with target address (X keeps cursor)", subgroup="Sheet", order=11
 )
@@ -64,14 +70,32 @@ register_help("EDIT", "grx / grX", "Swap row with target row number", subgroup="
 register_help(
     "EDIT", "gcx / gcX", "Swap column with target column letter", subgroup="Sheet", order=11
 )
-register_help("EDIT", "cw / cc / C", "Clear cell and enter INSERT mode", subgroup="Sheet", order=11)
+register_help(
+    "EDIT",
+    "cw / cc / C",
+    "Clear cell and enter editor (insert sub-mode)",
+    subgroup="Sheet",
+    order=11,
+)
 register_help("EDIT", "dw", "Clear cell content", subgroup="Sheet", order=11)
 register_help(
     "EDIT", "d$ / D", "Delete cell content to end of formula bar", subgroup="Sheet", order=11
 )
 register_help("EDIT", "gw", "Open cell in $EDITOR / $VISUAL", subgroup="Sheet", order=12)
-register_help("EDIT", "A / I", "Insert mode at end / start of cell", subgroup="Sheet", order=12)
-register_help("EDIT", "S", "Clear cell and enter insert (left-aligned)", subgroup="Sheet", order=13)
+register_help(
+    "EDIT",
+    "A / I",
+    "Enter editor at end / start of cell (insert sub-mode)",
+    subgroup="Sheet",
+    order=12,
+)
+register_help(
+    "EDIT",
+    "S",
+    "Clear cell and enter editor (insert, left-aligned)",
+    subgroup="Sheet",
+    order=13,
+)
 register_help("EDIT", "x / X", "Clear cell / clear and move left", subgroup="Sheet", order=14)
 register_help(
     "EDIT", "gv", "Replace formula with current computed value", subgroup="Sheet", order=15
@@ -98,7 +122,13 @@ register_help("EDIT", "D", "Delete to end of line in formula bar", subgroup="For
 register_help(
     "EDIT", "x", "Delete char under cursor in formula bar", subgroup="Formula Bar", order=24
 )
-register_help("EDIT", "Enter / Esc", "Confirm / cancel edit", subgroup="Formula Bar", order=25)
+register_help(
+    "EDIT",
+    "Enter / Esc",
+    "Enter commits; Esc: leave insert sub-mode (Esc/Enter again commits)",
+    subgroup="Formula Bar",
+    order=25,
+)
 register_help("EDIT", "yy / YY", "Yank cell formula / value", subgroup="Yank/Paste", order=30)
 register_help("EDIT", "p", "Paste with formula adjustment", subgroup="Yank/Paste", order=31)
 register_help("EDIT", "P", "Paste exact formula (no adjustment)", subgroup="Yank/Paste", order=32)

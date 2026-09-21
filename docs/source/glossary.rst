@@ -18,17 +18,16 @@ Glossary
       which other cells. Used for efficient recalculation when values
       change.
 
-   Edit Mode
-      A mode for editing existing cell content with vi-style line-editing
-      keybindings (``h``/``l``/``w``/``b``, ``x``, ``u``, etc.).
+   Cell Editor (EDIT Mode)
+      The unified editor for entering and editing cell content. It has an
+      insert sub-mode (type content directly) and a normal sub-mode with
+      vi-style line-editing keybindings (``h``/``l``/``w``/``b``, ``x``,
+      ``u``, etc.). Entered with ``\``, ``=``, ``e``, ``E``, ``A``, ``I``,
+      ``S``, and related keys.
 
    Formula
       An expression starting with ``=`` that computes a value from
       other cells, functions, and operators.
-
-   Insert Mode
-      A mode where typed characters are entered directly into the active
-      cell.
 
    Macro
       A recorded sequence of keystrokes that can be replayed to automate

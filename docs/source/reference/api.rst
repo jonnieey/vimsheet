@@ -15,7 +15,6 @@ API Reference
    vimsheet.help_registry
    vimsheet.controller
    vimsheet.controller.edit_handler
-   vimsheet.controller.insert_handler
    vimsheet.controller.macro
    vimsheet.controller.mode
    vimsheet.controller.normal_handler

@@ -306,10 +306,10 @@ Mode Indicator Colours
      - NORMAL mode label
    * - ``mode_insert``
      - ``$warning``
-     - INSERT mode label
+     - Cell editor insert sub-mode label
    * - ``mode_edit``
      - ``$error``
-     - EDIT mode label
+     - Cell editor normal sub-mode label
    * - ``mode_command``
      - ``$primary``
      - COMMAND mode label
