@@ -13,9 +13,6 @@ from textual.widgets import Static
 from vimsheet.controller.mode import Mode
 from vimsheet.ui.grid_palette import GridPalette
 
-#: Glyph drawn at the cursor in the editor's insert sub-mode.
-INSERT_CARET = "▏"
-
 
 class FormulaBar(Widget):
     """One-line bar: [address] [content …] [mode]"""
@@ -107,19 +104,17 @@ class FormulaBar(Widget):
             last_nl = text.rfind("\n", 0, pos)
             display_text = text[last_nl + 1 :]
             display_pos = pos - (last_nl + 1)
+            at = display_text[display_pos] if display_pos < len(display_text) else " "
+            after = display_text[display_pos + 1 :] if display_pos < len(display_text) else ""
             t.append(display_text[:display_pos], style="white")
             if self.insert_submode:
-                # Insert sub-mode: a bar glyph overlays the cursor cell so the
-                # line does not shift; past the end it sits in the trailing padding.
-                t.append(INSERT_CARET, style=f"bold {self._palette.mode_insert}")
-                if display_pos < len(display_text):
-                    t.append(display_text[display_pos + 1 :], style="white")
+                # Insert sub-mode: underline the character at the cursor so the
+                # caret adds no cell and the character stays visible.
+                t.append(at, style=f"underline {self._palette.mode_insert}")
             else:
                 # Normal sub-mode: a block over the character under the cursor.
-                at = display_text[display_pos] if display_pos < len(display_text) else " "
                 t.append(at, style=f"bold white on {self._palette.formula_cursor_bg}")
-                after = display_text[display_pos + 1 :] if display_pos < len(display_text) else ""
-                t.append(after, style="white")
+            t.append(after, style="white")
         else:
             # Show only last line when no cursor
             last_nl = text.rfind("\n")

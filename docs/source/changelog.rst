@@ -22,9 +22,8 @@ Changes
 
 * Retired the separate INSERT mode.  The formula and status bars show
   ``INSERT`` while typing and ``EDIT`` in the editor's normal sub-mode.
-  The insert sub-mode caret is drawn as a distinct bar glyph (``▏``) that
-  overlays the character at the cursor, so editing mid-text does not shift
-  the line.
+  The insert sub-mode caret underlines the character at the cursor, so the
+  character stays visible and the line does not shift while editing.
 * Cell entry now validates on every commit, and ``\`` is a strict string
   entry (numeric text is not coerced).
 * Editing a stored pure-literal formula (e.g. ``=42``) re-valueizes it on
