@@ -555,9 +555,9 @@ class NormalHandler:
             case "|":
                 app._enter_insert("center")
             case "e":
-                app.edit_handler.enter(at_end=True)
+                app.edit_handler.enter(start_sub="normal", cursor="end")
             case "E":
-                app.edit_handler.enter(at_end=False)
+                app.edit_handler.enter(start_sub="normal", cursor="start")
             case "C":
                 self._clear_cell()
                 app._enter_insert("right")
