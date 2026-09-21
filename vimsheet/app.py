@@ -3129,11 +3129,16 @@ class VimSheetApp(App[None]):
             f"{path}  —  {sheet.max_row + 1} rows × {sheet.max_col + 1} cols"
         )
 
+    def _editor_insert_submode(self) -> bool:
+        """True when the unified editor is in its insert sub-mode."""
+        return self.mode == Mode.EDIT and self.edit_handler._sub == "insert"
+
     def _sync_formula_bar(self) -> None:
         r, c = self.cursor_row, self.cursor_col
         address = rowcol_to_a1(r, c)
         cell = self.workbook.active_sheet.get_cell(r, c)
         cursor_pos = -1
+        self.formula_bar.insert_submode = self._editor_insert_submode()
 
         # Show confirm prompt in formula bar when pending
         if self._pending_confirm is not None:
@@ -3170,6 +3175,7 @@ class VimSheetApp(App[None]):
         r, c = self.cursor_row, self.cursor_col
         self.status_bar.update_cursor(r, c, rowcol_to_a1(r, c))
         self.status_bar.mode = self.mode
+        self.status_bar.insert_submode = self._editor_insert_submode()
         self.status_bar.sheet_name = self.workbook.active_sheet.name
         self.status_bar.used_rows = self.workbook.active_sheet.max_row + 1
         self.status_bar.filename = self.workbook.filepath.name if self.workbook.filepath else ""

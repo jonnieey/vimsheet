@@ -33,6 +33,7 @@ class FormulaBar(Widget):
     formula_text: reactive[str] = reactive("")
     cursor_pos: reactive[int] = reactive(-1)  # -1 = no cursor shown
     mode: reactive[Mode] = reactive(Mode.NORMAL)
+    insert_submode: reactive[bool] = reactive(False)
     is_modified: reactive[bool] = reactive(False)
     is_locked: reactive[bool] = reactive(False)
 
@@ -72,6 +73,9 @@ class FormulaBar(Widget):
     def watch_mode(self, _v: Mode) -> None:
         self._redraw()
 
+    def watch_insert_submode(self, _v: bool) -> None:
+        self._redraw()
+
     def watch_is_modified(self, _v: bool) -> None:
         self._redraw()
 
@@ -87,6 +91,9 @@ class FormulaBar(Widget):
         dirty = " ●" if self.is_modified else ""
         mode_label = self.mode.label()
         color = self._mode_color()
+        if self.insert_submode:
+            mode_label = "INSERT"
+            color = self._palette.mode_insert
 
         t = Text(no_wrap=True, overflow="ellipsis")
         t.append(f" {addr} ", style="bold yellow on default")
@@ -103,7 +110,7 @@ class FormulaBar(Widget):
             at = display_text[display_pos] if display_pos < len(display_text) else " "
             after = display_text[display_pos + 1 :] if display_pos < len(display_text) else ""
             t.append(before, style="white")
-            if self.mode == Mode.INSERT:
+            if self.mode == Mode.INSERT or self.insert_submode:
                 t.append(at, style=f"underline white on {self._palette.formula_cursor_bg}")
             else:
                 t.append(at, style=f"bold white on {self._palette.formula_cursor_bg}")

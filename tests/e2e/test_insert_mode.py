@@ -381,3 +381,21 @@ async def test_typing_mid_buffer_inserts_at_cursor(app: VimSheetApp) -> None:
         await pilot.press("left")
         await pilot.press("b")
         assert app._edit_buffer == "abc"
+
+
+# ---------------------------------------------------------------------------
+# Sub-mode is reflected in the bars
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_submode_indicator_follows_editor(app: VimSheetApp) -> None:
+    async with app.run_test() as pilot:
+        await pilot.press("=")
+        assert app.formula_bar.insert_submode is True
+        assert app.status_bar.insert_submode is True
+
+        await pilot.press("escape")
+        assert app.edit_handler._sub == "normal"
+        assert app.formula_bar.insert_submode is False
+        assert app.status_bar.insert_submode is False

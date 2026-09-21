@@ -75,6 +75,7 @@ class StatusBar(Widget):
     """
 
     mode: reactive[Mode] = reactive(Mode.NORMAL)
+    insert_submode: reactive[bool] = reactive(False)
     sheet_name: reactive[str] = reactive("")
     cell_address: reactive[str] = reactive("A1")
     row: reactive[int] = reactive(0)
@@ -124,7 +125,16 @@ class StatusBar(Widget):
 
     def watch_mode(self, value: Mode) -> None:
         """Update mode label."""
-        self.query_one("#status-mode", Static).update(value.label())
+        self._update_mode_label()
+
+    def watch_insert_submode(self, _value: bool) -> None:
+        """Update mode label when the editor sub-mode changes."""
+        self._update_mode_label()
+
+    def _update_mode_label(self) -> None:
+        """Show INSERT while in the editor's insert sub-mode."""
+        label = "INSERT" if self.insert_submode else self.mode.label()
+        self.query_one("#status-mode", Static).update(label)
 
     def watch_sheet_name(self, value: str) -> None:
         self.query_one("#status-sheet", Static).update(value)
