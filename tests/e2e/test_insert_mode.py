@@ -384,6 +384,60 @@ async def test_typing_mid_buffer_inserts_at_cursor(app: VimSheetApp) -> None:
 
 
 # ---------------------------------------------------------------------------
+# A / I open the editor pre-filled with existing content
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_A_opens_editor_at_end(app_with_data: VimSheetApp) -> None:
+    async with app_with_data.run_test() as pilot:
+        await pilot.press("A")
+        assert app_with_data.mode == Mode.EDIT
+        assert app_with_data.edit_handler._sub == "insert"
+        assert app_with_data._edit_buffer == "Hello"
+        assert app_with_data._edit_cursor == len("Hello")
+
+        await pilot.press("!")
+        assert app_with_data._edit_buffer == "Hello!"
+        await pilot.press("enter")
+        await pilot.pause()
+
+        assert app_with_data.workbook.active_sheet.get_cell(0, 0).value == "Hello!"
+
+
+@pytest.mark.asyncio
+async def test_I_opens_editor_at_start(app_with_data: VimSheetApp) -> None:
+    async with app_with_data.run_test() as pilot:
+        await pilot.press("I")
+        assert app_with_data.mode == Mode.EDIT
+        assert app_with_data.edit_handler._sub == "insert"
+        assert app_with_data._edit_buffer == "Hello"
+        assert app_with_data._edit_cursor == 0
+
+        await pilot.press("X")
+        assert app_with_data._edit_buffer == "XHello"
+        await pilot.press("enter")
+        await pilot.pause()
+
+        assert app_with_data.workbook.active_sheet.get_cell(0, 0).value == "XHello"
+
+
+@pytest.mark.asyncio
+async def test_formula_with_reference_kept_as_formula(app_with_data: VimSheetApp) -> None:
+    async with app_with_data.run_test() as pilot:
+        await pilot.press("=")
+        for ch in "B1":
+            await pilot.press(ch)
+        await pilot.press("enter")
+        await pilot.pause()
+
+        cell = app_with_data.workbook.active_sheet.get_cell(0, 0)
+        assert cell is not None
+        assert cell.formula == "=B1"
+        assert cell.value == 42
+
+
+# ---------------------------------------------------------------------------
 # Sub-mode is reflected in the bars
 # ---------------------------------------------------------------------------
 
