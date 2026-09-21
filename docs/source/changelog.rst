@@ -24,6 +24,9 @@ Changes
   ``INSERT`` while typing and ``EDIT`` in the editor's normal sub-mode.
   The insert sub-mode caret underlines the character at the cursor, so the
   character stays visible and the line does not shift while editing.
+  The formula bar caret now uses the mode-insert colour (default yellow,
+  ``formula_cursor_bg``) with contrasting text for the normal-sub-mode block,
+  replacing the low-contrast blue block.
 * Cell entry now validates on every commit, and ``\`` is a strict string
   entry (numeric text is not coerced).
 * Editing a stored pure-literal formula (e.g. ``=42``) re-valueizes it on

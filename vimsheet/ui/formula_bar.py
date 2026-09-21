@@ -110,10 +110,16 @@ class FormulaBar(Widget):
             if self.insert_submode:
                 # Insert sub-mode: underline the character at the cursor so the
                 # caret adds no cell and the character stays visible.
-                t.append(at, style=f"underline {self._palette.mode_insert}")
+                t.append(at, style=f"underline {self._palette.formula_cursor_bg}")
             else:
                 # Normal sub-mode: a block over the character under the cursor.
-                t.append(at, style=f"bold white on {self._palette.formula_cursor_bg}")
+                t.append(
+                    at,
+                    style=(
+                        f"bold {self._palette.formula_cursor_fg} "
+                        f"on {self._palette.formula_cursor_bg}"
+                    ),
+                )
             t.append(after, style="white")
         else:
             # Show only last line when no cursor

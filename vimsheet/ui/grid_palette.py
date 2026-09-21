@@ -67,7 +67,8 @@ class GridPalette:
     tab_add_fg: str = "#ffffff"
 
     # ── Formula bar ────────────────────────────────────────────────────
-    formula_cursor_bg: str = "steel_blue1"
+    formula_cursor_bg: str = "yellow"
+    formula_cursor_fg: str = "black"
 
     # ── Mode indicator colours ─────────────────────────────────────────
     mode_normal: str = "bright_green"
@@ -163,7 +164,10 @@ class GridPalette:
         p.tab_add_bg = _lighten(surface, 0.10)
         p.tab_add_fg = text
 
-        p.formula_cursor_bg = primary
+        # Formula bar cursor matches the mode-insert colour (also used for the
+        # insert caret underline) so the two sub-modes read consistently.
+        p.formula_cursor_bg = warning
+        p.formula_cursor_fg = _contrast_text(warning)
 
         p.mode_normal = success
         p.mode_insert = warning

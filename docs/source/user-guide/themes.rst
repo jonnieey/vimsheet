@@ -289,8 +289,11 @@ Formula Bar
      - Default derivation
      - Used for
    * - ``formula_cursor_bg``
-     - ``$primary``
-     - Edit cursor highlight in formula bar
+     - ``$warning``
+     - Formula bar caret colour (insert underline and EDIT block)
+   * - ``formula_cursor_fg``
+     - contrasting text for ``formula_cursor_bg``
+     - Text colour on the EDIT block cursor
 
 Mode Indicator Colours
 ~~~~~~~~~~~~~~~~~~~~~~
