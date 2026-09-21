@@ -27,6 +27,13 @@ Changes
 * Editing a stored pure-literal formula (e.g. ``=42``) re-valueizes it on
   commit.
 
+Fixes
+~~~~~
+
+* ``r{char}`` in the editor's normal sub-mode now waits for the replacement
+  character instead of replacing the cell content with ``r`` immediately.
+  ``r`` followed by a non-printable key cancels the pending replace.
+
 0.2.0 — 2026-05-14
 ------------------
 

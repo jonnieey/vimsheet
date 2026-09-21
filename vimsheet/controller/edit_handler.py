@@ -126,6 +126,13 @@ class EditHandler:
         app = self._app
         buf, pos = app._edit_buffer, app._edit_cursor
 
+        # Pending r{char}: the next printable key is the replacement character
+        if app._edit_chord == "r":
+            app._edit_chord = ""
+            if len(key) == 1 and key.isprintable() and pos < len(buf):
+                app._edit_buffer = buf[:pos] + key + buf[pos + 1 :]
+            return
+
         # Two-char chords in edit normal sub-mode
         chord = app._edit_chord + key
         app._edit_chord = ""
@@ -203,12 +210,7 @@ class EditHandler:
                 app._edit_buffer = buf[:pos] + " " + buf[pos:]
                 app._edit_cursor = pos + 1
             case _ if len(key) == 1 and key.isprintable():
-                # r{char} — replace char under cursor
-                if chord and chord[0] == "r":
-                    if pos < len(buf):
-                        app._edit_buffer = buf[:pos] + key + buf[pos + 1 :]
-                    return
-                # Otherwise buffer single char for chord detection
+                # Buffer single char for chord detection (e.g. r{char})
                 app._edit_chord = key
 
     # -----------------------------------------------------------------------

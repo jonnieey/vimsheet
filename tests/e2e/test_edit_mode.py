@@ -118,3 +118,37 @@ async def test_edit_empty_cell(app: VimSheetApp) -> None:
         cell = app.workbook.active_sheet.get_cell(0, 0)
         assert cell is not None
         assert cell.value == "new"
+
+
+@pytest.mark.asyncio
+async def test_r_char_replaces_under_cursor(app_with_data: VimSheetApp) -> None:
+    async with app_with_data.run_test() as pilot:
+        await pilot.press("E")  # cursor at start, on "H"
+        await pilot.press("r")
+        await pilot.press("J")
+        assert app_with_data._edit_buffer == "Jello"
+
+        await pilot.press("enter")
+        await pilot.pause()
+        assert app_with_data.workbook.active_sheet.get_cell(0, 0).value == "Jello"
+
+
+@pytest.mark.asyncio
+async def test_r_r_replaces_with_r(app_with_data: VimSheetApp) -> None:
+    async with app_with_data.run_test() as pilot:
+        await pilot.press("E")
+        await pilot.press("r")
+        await pilot.press("r")
+        assert app_with_data._edit_buffer == "rello"
+
+
+@pytest.mark.asyncio
+async def test_r_escape_cancels_replace(app_with_data: VimSheetApp) -> None:
+    async with app_with_data.run_test() as pilot:
+        await pilot.press("E")
+        await pilot.press("r")
+        await pilot.press("escape")
+
+        # The pending replace is cancelled, not committed; editor stays open
+        assert app_with_data.mode == Mode.EDIT
+        assert app_with_data._edit_buffer == "Hello"
