@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 
+from rich.text import Text
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual.widget import Widget
@@ -11,6 +12,9 @@ from textual.widgets import Static
 
 from vimsheet.controller.mode import Mode
 from vimsheet.ui.grid_palette import GridPalette
+
+#: Glyph drawn at the cursor in the editor's insert sub-mode.
+INSERT_CARET = "▏"
 
 
 class FormulaBar(Widget):
@@ -81,10 +85,8 @@ class FormulaBar(Widget):
     def watch_is_locked(self, _v: bool) -> None:
         self._redraw()
 
-    def _redraw(self) -> None:
-        """Rebuild the single-line content string."""
-        from rich.text import Text
-
+    def _build_text(self) -> Text:
+        """Build the rendered formula-bar line as a rich Text object."""
         addr = self.cell_address.ljust(6)
         lock = " 🔒" if self.is_locked else ""
         dirty = " ●" if self.is_modified else ""
@@ -105,15 +107,17 @@ class FormulaBar(Widget):
             last_nl = text.rfind("\n", 0, pos)
             display_text = text[last_nl + 1 :]
             display_pos = pos - (last_nl + 1)
-            before = display_text[:display_pos]
-            at = display_text[display_pos] if display_pos < len(display_text) else " "
-            after = display_text[display_pos + 1 :] if display_pos < len(display_text) else ""
-            t.append(before, style="white")
+            t.append(display_text[:display_pos], style="white")
             if self.insert_submode:
-                t.append(at, style=f"underline white on {self._palette.formula_cursor_bg}")
+                # Insert sub-mode: a bar glyph marks the caret position.
+                t.append(INSERT_CARET, style=f"bold {self._palette.mode_insert}")
+                t.append(display_text[display_pos:], style="white")
             else:
+                # Normal sub-mode: a block over the character under the cursor.
+                at = display_text[display_pos] if display_pos < len(display_text) else " "
                 t.append(at, style=f"bold white on {self._palette.formula_cursor_bg}")
-            t.append(after, style="white")
+                after = display_text[display_pos + 1 :] if display_pos < len(display_text) else ""
+                t.append(after, style="white")
         else:
             # Show only last line when no cursor
             last_nl = text.rfind("\n")
@@ -124,8 +128,12 @@ class FormulaBar(Widget):
         t.append(dirty, style="red")
         t.append(" │ ", style="dim")
         t.append(f" {mode_label} ", style=f"bold {color}")
+        return t
+
+    def _redraw(self) -> None:
+        """Rebuild the single-line content string."""
         with contextlib.suppress(Exception):
-            self.query_one("#fbar-content", Static).update(t)  # not yet mounted
+            self.query_one("#fbar-content", Static).update(self._build_text())  # not yet mounted
 
     def update_cell(
         self,
