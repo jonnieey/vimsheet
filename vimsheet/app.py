@@ -11,6 +11,7 @@ from typing import Any
 from textual.app import App, ComposeResult
 
 from vimsheet.controller.edit_handler import EditHandler
+from vimsheet.controller.editor_context import CommandEditContext
 from vimsheet.controller.macro import MacroRecorder
 from vimsheet.controller.mode import Mode
 from vimsheet.controller.normal_handler import NormalHandler
@@ -70,6 +71,7 @@ class VimSheetApp(App[None]):
         # ---- Mode controller state ----
         self._key_buffer: str = ""
         self._command_buffer: str = ""
+        self._editor_prefix: str = ""  # ":" / "/" / "?" shown before the buffer
         self._edit_buffer: str = ""
         self._edit_cursor: int = 0
         self._edit_chord: str = ""  # pending chord in Edit normal sub-mode
@@ -287,7 +289,7 @@ class VimSheetApp(App[None]):
             case Mode.VISUAL | Mode.VISUAL_LINE | Mode.VISUAL_BLOCK:
                 self.visual_handler.handle(key)
             case Mode.COMMAND:
-                self._handle_command_key(key)
+                self.edit_handler.handle(key)
             case Mode.SEARCH:
                 self._handle_search_key(key)
 
@@ -299,27 +301,10 @@ class VimSheetApp(App[None]):
         if self.mode.is_visual():
             self._pre_command_mode = self.mode
             self.grid.show_visual = True
-        self._command_buffer = prefix
-        self.mode = Mode.COMMAND
-        self._show_command_prompt()
-
-    def _show_command_prompt(self) -> None:
-        """Write the current command buffer to both the formula bar and status bar."""
-        prompt = f":{self._command_buffer}"
-        self.status_bar.set_persistent_message(prompt)
-        with contextlib.suppress(Exception):
-            self.formula_bar.update_cell(
-                self.formula_bar.cell_address,
-                prompt,
-                self.formula_bar.is_locked,
-                cursor_pos=len(prompt),
-            )
-
-    def _current_history(self) -> HistoryStack:
-        """Return the history stack relevant to the current command buffer."""
-        if self._command_buffer.startswith("/") or self._command_buffer.startswith("?"):
-            return self._search_history
-        return self._cmd_history
+        self._editor_prefix = ":"
+        self.edit_handler.enter_context(
+            CommandEditContext(self, prefix), start_sub="insert", cursor="end"
+        )
 
     def _history_path(self) -> Path:
         return _user_data_dir() / "vimsheet" / "history.json"
@@ -348,75 +333,6 @@ class VimSheetApp(App[None]):
         path.parent.mkdir(parents=True, exist_ok=True)
         data = {"cmd": self._cmd_history.items, "search": self._search_history.items}
         path.write_text(_json.dumps(data), encoding="utf-8")
-
-    def _handle_command_key(self, key: str) -> None:
-        match key:
-            case "escape":
-                self._cmd_completer.reset()
-                self._cmd_history.reset_browse()
-                self._search_history.reset_browse()
-                if self._pre_command_mode is not None:
-                    self.mode = self._pre_command_mode
-                    self._pre_command_mode = None
-                else:
-                    self.grid.show_visual = False
-                    self.mode = Mode.NORMAL
-                self._command_buffer = ""
-                self.status_bar.set_persistent_message("")
-            case "enter":
-                self._cmd_completer.reset()
-                self._cmd_history.reset_browse()
-                self._search_history.reset_browse()
-                cmd = self._command_buffer.strip()
-                if cmd:
-                    if cmd.startswith("/") or cmd.startswith("?"):
-                        self._search_history.push(cmd[1:])
-                    else:
-                        self._cmd_history.push(cmd)
-                    self._save_history()
-                self._command_buffer = ""
-                self._pre_command_mode = None
-                self.grid.show_visual = False
-                self.mode = Mode.NORMAL
-                self._dispatch_command(cmd)
-            case "up":
-                hist = self._current_history()
-                prev = hist.prev()
-                if prev is not None:
-                    prefix = ""
-                    if self._command_buffer.startswith("/"):
-                        prefix = "/"
-                    elif self._command_buffer.startswith("?"):
-                        prefix = "?"
-                    self._command_buffer = prefix + prev
-                    self._show_command_prompt()
-            case "down":
-                hist = self._current_history()
-                nxt = hist.next()
-                prefix = ""
-                if self._command_buffer.startswith("/"):
-                    prefix = "/"
-                elif self._command_buffer.startswith("?"):
-                    prefix = "?"
-                if nxt is not None:
-                    self._command_buffer = prefix + nxt
-                else:
-                    self._command_buffer = prefix
-                self._show_command_prompt()
-            case "tab":
-                completed = self._cmd_completer.tab(self._command_buffer)
-                self._command_buffer = completed
-                self._show_command_prompt()
-            case "backspace":
-                self._cmd_completer.reset()
-                self._command_buffer = self._command_buffer[:-1]
-                self._show_command_prompt()
-            case _ if len(key) == 1 and key.isprintable():
-                self._cmd_completer.reset()
-                self._command_buffer += key
-                self._show_command_prompt()
-        self._sync_formula_bar()
-        self._sync_status_bar()
 
     # -------------------------------------------------------------------
     # Swap mode  (gx / grx / gcx address collection)
@@ -3122,7 +3038,9 @@ class VimSheetApp(App[None]):
 
     def _editor_insert_submode(self) -> bool:
         """True when the unified editor is in its insert sub-mode."""
-        return self.mode == Mode.EDIT and self.edit_handler._sub == "insert"
+        if self.mode == Mode.EDIT or self.mode == Mode.COMMAND:
+            return self.edit_handler._sub == "insert"
+        return False
 
     def _sync_formula_bar(self) -> None:
         r, c = self.cursor_row, self.cursor_col
@@ -3147,8 +3065,8 @@ class VimSheetApp(App[None]):
                 content = self._edit_buffer
                 cursor_pos = self._edit_cursor
             case Mode.COMMAND:
-                content = f":{self._command_buffer}"
-                cursor_pos = len(content)  # block cursor at end of command buffer
+                content = self._editor_prefix + self._edit_buffer
+                cursor_pos = len(self._editor_prefix) + self._edit_cursor
             case Mode.SEARCH:
                 content = self._command_buffer
                 cursor_pos = len(content)
@@ -3163,7 +3081,9 @@ class VimSheetApp(App[None]):
         r, c = self.cursor_row, self.cursor_col
         self.status_bar.update_cursor(r, c, rowcol_to_a1(r, c))
         self.status_bar.mode = self.mode
-        self.status_bar.insert_submode = self._editor_insert_submode()
+        self.status_bar.insert_submode = (
+            self.mode == Mode.EDIT and self.edit_handler._sub == "insert"
+        )
         self.status_bar.sheet_name = self.workbook.active_sheet.name
         self.status_bar.used_rows = self.workbook.active_sheet.max_row + 1
         self.status_bar.filename = self.workbook.filepath.name if self.workbook.filepath else ""
@@ -3180,7 +3100,9 @@ class VimSheetApp(App[None]):
             )
             return
         if self.mode == Mode.COMMAND:
-            self.status_bar.set_persistent_message(f":{self._command_buffer}", priority=2)
+            self.status_bar.set_persistent_message(
+                f"{self._editor_prefix}{self._edit_buffer}", priority=2
+            )
             return
         if self.mode == Mode.SEARCH:
             self.status_bar.set_persistent_message(self._command_buffer, priority=2)

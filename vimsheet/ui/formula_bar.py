@@ -89,7 +89,7 @@ class FormulaBar(Widget):
         dirty = " ●" if self.is_modified else ""
         mode_label = self.mode.label()
         color = self._mode_color()
-        if self.insert_submode:
+        if self.insert_submode and self.mode == Mode.EDIT:
             mode_label = "INSERT"
             color = self._palette.mode_insert
 

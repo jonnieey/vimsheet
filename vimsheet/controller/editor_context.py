@@ -304,3 +304,62 @@ class CellEditContext(EditorContext):
             peek = min(5, total)
             rest = [self._fn_completions[(self._fn_idx + i) % total] for i in range(1, peek)]
             self._app.status_bar.show_message(f"{name}  →  {'  '.join(rest)}")
+
+
+class CommandEditContext(EditorContext):
+    """Editor context for colon commands (``:``)."""
+
+    mode = Mode.COMMAND
+    prompt_prefix = ":"
+
+    def __init__(self, app: VimSheetApp, initial: str = "") -> None:
+        super().__init__(app)
+        self._initial = initial
+
+    def load(self) -> str:
+        return self._initial
+
+    def normal_escape(self) -> str:
+        return "cancel"
+
+    def commit(self, text: str, move: tuple[int, int] | None = None) -> None:
+        app = self._app
+        app._cmd_completer.reset()
+        app._cmd_history.reset_browse()
+        app._search_history.reset_browse()
+        cmd = text.strip()
+        if cmd:
+            app._cmd_history.push(cmd)
+            app._save_history()
+        app._pre_command_mode = None
+        app.grid.show_visual = False
+        app.mode = Mode.NORMAL
+        if cmd:
+            app._dispatch_command(cmd)
+
+    def cancel(self) -> None:
+        app = self._app
+        app._cmd_completer.reset()
+        app._cmd_history.reset_browse()
+        app._search_history.reset_browse()
+        if app._pre_command_mode is not None:
+            app.mode = app._pre_command_mode
+            app._pre_command_mode = None
+        else:
+            app.grid.show_visual = False
+            app.mode = Mode.NORMAL
+        app.status_bar.set_persistent_message("")
+
+    def complete(self, text: str, cursor: int) -> tuple[str, int] | None:
+        completed = self._app._cmd_completer.tab(text)
+        return (completed, len(completed))
+
+    def reset_completion(self) -> None:
+        self._app._cmd_completer.reset()
+
+    def history(self, direction: str) -> str | None:
+        hist = self._app._cmd_history
+        if direction == "prev":
+            return hist.prev()
+        nxt = hist.next()
+        return nxt if nxt is not None else ""

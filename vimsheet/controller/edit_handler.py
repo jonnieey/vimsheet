@@ -91,6 +91,7 @@ class EditHandler:
         context.reset_completion()
         app.mode = context.mode
         app._sync_formula_bar()
+        app._sync_status_bar()
 
     # -----------------------------------------------------------------------
     # Key dispatch
