@@ -11,7 +11,7 @@ from typing import Any
 from textual.app import App, ComposeResult
 
 from vimsheet.controller.edit_handler import EditHandler
-from vimsheet.controller.editor_context import CommandEditContext
+from vimsheet.controller.editor_context import CommandEditContext, SearchEditContext
 from vimsheet.controller.macro import MacroRecorder
 from vimsheet.controller.mode import Mode
 from vimsheet.controller.normal_handler import NormalHandler
@@ -70,7 +70,6 @@ class VimSheetApp(App[None]):
 
         # ---- Mode controller state ----
         self._key_buffer: str = ""
-        self._command_buffer: str = ""
         self._editor_prefix: str = ""  # ":" / "/" / "?" shown before the buffer
         self._edit_buffer: str = ""
         self._edit_cursor: int = 0
@@ -288,10 +287,8 @@ class VimSheetApp(App[None]):
                 self.edit_handler.handle(key)
             case Mode.VISUAL | Mode.VISUAL_LINE | Mode.VISUAL_BLOCK:
                 self.visual_handler.handle(key)
-            case Mode.COMMAND:
+            case Mode.COMMAND | Mode.SEARCH:
                 self.edit_handler.handle(key)
-            case Mode.SEARCH:
-                self._handle_search_key(key)
 
     # -----------------------------------------------------------------------
     # Command mode
@@ -449,60 +446,10 @@ class VimSheetApp(App[None]):
     def _enter_search_mode(self, prefix: str = "/") -> None:
         if prefix not in ("/", "?"):
             prefix = "/"
-        self._command_buffer = prefix
-        self.mode = Mode.SEARCH
-        self._show_search_prompt()
-
-    def _show_search_prompt(self) -> None:
-        prompt = self._command_buffer
-        self.status_bar.set_persistent_message(prompt)
-        with contextlib.suppress(Exception):
-            self.formula_bar.update_cell(
-                self.formula_bar.cell_address,
-                prompt,
-                self.formula_bar.is_locked,
-                cursor_pos=len(prompt),
-            )
-
-    def _handle_search_key(self, key: str) -> None:
-        match key:
-            case "escape":
-                self._command_buffer = ""
-                self.mode = Mode.NORMAL
-                self.status_bar.set_persistent_message("")
-            case "enter":
-                cmd = self._command_buffer.strip()
-                if cmd:
-                    self._search_history.push(cmd[1:])
-                    self._save_history()
-                    self._search_history.reset_browse()
-                self._command_buffer = ""
-                self.mode = Mode.NORMAL
-                if cmd:
-                    self._dispatch_command(cmd)
-            case "up":
-                prev = self._search_history.prev()
-                if prev is not None:
-                    prefix = self._command_buffer[0] if self._command_buffer else "/"
-                    self._command_buffer = prefix + prev
-                    self._show_search_prompt()
-            case "down":
-                nxt = self._search_history.next()
-                prefix = self._command_buffer[0] if self._command_buffer else "/"
-                if nxt is not None:
-                    self._command_buffer = prefix + nxt
-                else:
-                    self._command_buffer = prefix
-                self._show_search_prompt()
-            case "backspace":
-                if len(self._command_buffer) > 1:
-                    self._command_buffer = self._command_buffer[:-1]
-                    self._show_search_prompt()
-            case _ if len(key) == 1 and key.isprintable():
-                self._command_buffer += key
-                self._show_search_prompt()
-        self._sync_formula_bar()
-        self._sync_status_bar()
+        self._editor_prefix = prefix
+        self.edit_handler.enter_context(
+            SearchEditContext(self, prefix), start_sub="insert", cursor="end"
+        )
 
     # Functions that produce a single aggregate over a range (yank, not element-wise apply)
     _AGGREGATE_FUNCS = frozenset(
@@ -3038,7 +2985,7 @@ class VimSheetApp(App[None]):
 
     def _editor_insert_submode(self) -> bool:
         """True when the unified editor is in its insert sub-mode."""
-        if self.mode == Mode.EDIT or self.mode == Mode.COMMAND:
+        if self.mode in (Mode.EDIT, Mode.COMMAND, Mode.SEARCH):
             return self.edit_handler._sub == "insert"
         return False
 
@@ -3064,12 +3011,9 @@ class VimSheetApp(App[None]):
             case Mode.EDIT:
                 content = self._edit_buffer
                 cursor_pos = self._edit_cursor
-            case Mode.COMMAND:
+            case Mode.COMMAND | Mode.SEARCH:
                 content = self._editor_prefix + self._edit_buffer
                 cursor_pos = len(self._editor_prefix) + self._edit_cursor
-            case Mode.SEARCH:
-                content = self._command_buffer
-                cursor_pos = len(content)
             case _:
                 content = (cell.formula or cell.display or "") if cell else ""
         locked = cell.locked if cell else False
@@ -3099,13 +3043,10 @@ class VimSheetApp(App[None]):
                 f"{self._swap_mode_prefix()}: {self._swap_buf}", priority=2
             )
             return
-        if self.mode == Mode.COMMAND:
+        if self.mode in (Mode.COMMAND, Mode.SEARCH):
             self.status_bar.set_persistent_message(
                 f"{self._editor_prefix}{self._edit_buffer}", priority=2
             )
-            return
-        if self.mode == Mode.SEARCH:
-            self.status_bar.set_persistent_message(self._command_buffer, priority=2)
             return
 
         if self.mode.is_visual():

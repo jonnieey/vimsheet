@@ -363,3 +363,44 @@ class CommandEditContext(EditorContext):
             return hist.prev()
         nxt = hist.next()
         return nxt if nxt is not None else ""
+
+
+class SearchEditContext(EditorContext):
+    """Editor context for search prompts (``/`` and ``?``)."""
+
+    mode = Mode.SEARCH
+
+    def __init__(self, app: VimSheetApp, prefix: str = "/") -> None:
+        super().__init__(app)
+        self.prompt_prefix = prefix if prefix in ("/", "?") else "/"
+
+    def load(self) -> str:
+        return ""
+
+    def normal_escape(self) -> str:
+        return "cancel"
+
+    def commit(self, text: str, move: tuple[int, int] | None = None) -> None:
+        app = self._app
+        cmd = text.strip()
+        prefix = self.prompt_prefix
+        if cmd:
+            app._search_history.push(cmd)
+            app._save_history()
+            app._search_history.reset_browse()
+        app.mode = Mode.NORMAL
+        app.status_bar.set_persistent_message("")
+        if cmd:
+            app._dispatch_command(prefix + cmd)
+
+    def cancel(self) -> None:
+        app = self._app
+        app.mode = Mode.NORMAL
+        app.status_bar.set_persistent_message("")
+
+    def history(self, direction: str) -> str | None:
+        hist = self._app._search_history
+        if direction == "prev":
+            return hist.prev()
+        nxt = hist.next()
+        return nxt if nxt is not None else ""
