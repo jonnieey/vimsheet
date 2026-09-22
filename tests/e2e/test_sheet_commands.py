@@ -69,6 +69,23 @@ async def test_sheet_copy_two_args_duplicates(app: VimSheetApp) -> None:
 
 
 @pytest.mark.asyncio
+async def test_sheet_list_opens_modal(app: VimSheetApp) -> None:
+    from vimsheet.ui.sheets_screen import SheetsScreen
+
+    async with app.run_test() as pilot:
+        app._dispatch_command("sl")
+        await pilot.pause()
+        assert isinstance(app.screen, SheetsScreen)
+
+        app.screen.dismiss()
+        await pilot.pause()
+
+        app._dispatch_command("sheet list")
+        await pilot.pause()
+        assert isinstance(app.screen, SheetsScreen)
+
+
+@pytest.mark.asyncio
 async def test_sdup_no_args_duplicates_active_with_suffix(app: VimSheetApp) -> None:
     async with app.run_test():
         orig = app.workbook.active_sheet.name

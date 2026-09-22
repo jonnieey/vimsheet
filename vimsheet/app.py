@@ -564,10 +564,9 @@ class VimSheetApp(App[None]):
         self.status_bar.show_message(f"Duplicated sheet: {new_sheet.name}")
 
     def _sheet_list(self) -> None:
-        names = [s.name for s in self.workbook.sheets]
-        active = self.workbook.active_sheet.name
-        msg = "  ".join(f"[{n}]" if n == active else n for n in names)
-        self.status_bar.show_message(f"Sheets ({len(names)}): {msg}")
+        from vimsheet.ui.sheets_screen import SheetsScreen
+
+        self.push_screen(SheetsScreen(self.workbook, self.workbook.active_sheet_idx))
 
     def _dispatch_command(self, cmd: str) -> None:
         """Dispatch a colon command string (without the leading colon)."""
