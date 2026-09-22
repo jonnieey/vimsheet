@@ -1334,15 +1334,10 @@ class VimSheetApp(App[None]):
                 else:
                     r, c = self.cursor_row, self.cursor_col
                 from vimsheet.model.range import rowcol_to_a1 as _r2a
+                from vimsheet.ui.history_screen import HistoryScreen
 
                 addr = _r2a(r, c)
-                cell = self.workbook.active_sheet.get_cell(r, c)
-                if cell:
-                    entries = [f"{t.strftime('%H:%M:%S')}={v}" for t, v in cell.history[-5:]]
-                    entries.append(f"current={cell.value}")
-                    self.status_bar.show_message(f"{addr} history: {'; '.join(entries)}")
-                else:
-                    self.status_bar.show_message(f"No history for {addr}")
+                self.push_screen(HistoryScreen(self.workbook.active_sheet, addr))
 
             # ---- Filter ----
             case "filter":
