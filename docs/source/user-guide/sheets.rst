@@ -22,10 +22,17 @@ Sheet Management
      - Rename a sheet by name
    * - ``:sd Name`` / ``:sheet delete Name``
      - Delete a sheet
-   * - ``:sdup Name`` / ``:sc Name`` / ``:sheet copy Name``
-     - Duplicate a sheet (appends " (copy)" suffix)
+   * - ``:sdup`` / ``:sc`` / ``:sheet copy``
+     - Duplicate the current sheet (appends " (copy)")
+   * - ``:sdup <newname>`` / ``:sc <newname>`` / ``:sheet copy <newname>``
+     - Rename the current sheet
+   * - ``:sdup <src> <newname>`` / ``:sc <src> <newname>`` / ``:sheet copy <src> <newname>``
+     - Duplicate sheet ``src`` as a new sheet named ``newname``
    * - ``:sl`` / ``:sheet list``
-     - List all sheets
+     - List all sheets (modal screen)
+
+Sheet names may contain spaces if quoted, e.g. ``:sr "Q1 Sales"``,
+``:sa "Q1 Sales"`` or ``:sc "Q1 Sales" Q1_2024``.
 
 Tab Navigation
 --------------

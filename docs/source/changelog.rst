@@ -21,6 +21,8 @@ Features
   (``h``/``l``/``w``/``x``/``dw`` …), ``Enter`` runs the command or search,
   and ``Escape`` from normal cancels.  History is browsable with ``Up``/
   ``Down`` in insert sub-mode and ``k``/``j`` in normal sub-mode.
+* ``:sl`` / ``:sheet list`` and ``:history`` open modal screens instead of
+  writing a cramped summary to the status bar.
 
 Changes
 ~~~~~~~
@@ -43,6 +45,13 @@ Fixes
 * ``r{char}`` in the editor's normal sub-mode now waits for the replacement
   character instead of replacing the cell content with ``r`` immediately.
   ``r`` followed by a non-printable key cancels the pending replace.
+* ``.`` (dot-repeat) now repeats cell edits entered through the editor
+  (``r``, ``=``, ``\``, ``C`` …) instead of clearing the cell.
+* Sheet commands accept quoted names containing spaces, e.g.
+  ``:sheet rename "Q1 Sales"``.
+* ``:sdup`` / ``:sc`` / ``:sheet copy``: one argument renames the current
+  sheet, two arguments duplicate the source sheet into a new named sheet;
+  no argument duplicates the current sheet with a ``" (copy)"`` suffix.
 
 0.2.0 — 2026-05-14
 ------------------

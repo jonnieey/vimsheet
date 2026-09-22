@@ -277,13 +277,20 @@ register_help(
     subgroup="Sheets",
     order=23,
 )
-register_help("CMD", ":sl / :sheet list", "List all sheets", subgroup="Sheets", order=24)
+register_help("CMD", ":sl / :sheet list", "List all sheets (modal)", subgroup="Sheets", order=24)
 register_help(
     "CMD",
-    ':sdup "Name" / :sc "Name" / :sheet copy "Name"',
-    "Duplicate a sheet",
+    ':sdup / :sc / :sheet copy "New"',
+    "Rename current sheet (or duplicate as New)",
     subgroup="Sheets",
     order=25,
+)
+register_help(
+    "CMD",
+    ':sc "Src" "New" / :sheet copy "Src" "New"',
+    "Duplicate sheet Src as New",
+    subgroup="Sheets",
+    order=26,
 )
 register_help(
     "CMD", ":nextsheet / :prevsheet", "Switch between sheets", subgroup="Sheets", order=23
@@ -445,7 +452,9 @@ register_help(
 )
 register_help("CMD", ":cond <range> …", "Conditional format", subgroup="Format", order=51)
 register_help("CMD", ':comment "text"', "Add comment to cell", subgroup="Format", order=52)
-register_help("CMD", ":history <cell>", "Show cell change history", subgroup="Format", order=53)
+register_help(
+    "CMD", ":history [cell]", "Show cell change history (modal)", subgroup="Format", order=53
+)
 register_help(
     "CMD", ":theme <name>", "Change theme (dracula/light/gruvbox/nord)", subgroup="Format", order=54
 )

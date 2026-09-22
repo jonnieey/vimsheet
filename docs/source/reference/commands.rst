@@ -82,8 +82,8 @@ Cell Operations
    * - ``:comment``
      - Show comment on current cell
    * - ``:history [addr]``
-      - Show value history for a cell
-   * - ``:<range> history``
+      - Show value history for a cell (modal screen)
+    * - ``:<range> history``
       - Show cell change history for range (modal screen)
    * - ``:validate <type> [args]``
      - Set data validation rule on current cell
@@ -151,10 +151,14 @@ Sheet Operations
      - Rename current sheet
    * - ``:sr <oldname> <newname>`` / ``:sheetrename``
      - Rename a sheet by name
-   * - ``:sdup [name]`` / ``:sc [name]`` / ``:sheet copy [name]``
-     - Duplicate a sheet (appends " (copy)" suffix)
-   * - ``:sl`` / ``:sheets`` / ``:sheetlist``
-     - List all sheets
+   * - ``:sdup`` / ``:sc`` / ``:sheet copy``
+      - Duplicate the current sheet (appends " (copy)" suffix)
+    * - ``:sdup <newname>`` / ``:sc <newname>`` / ``:sheet copy <newname>``
+      - Rename the current sheet
+    * - ``:sdup <src> <newname>`` / ``:sc <src> <newname>`` / ``:sheet copy <src> <newname>``
+      - Duplicate sheet ``src`` into a new sheet named ``newname``
+    * - ``:sl`` / ``:sheets`` / ``:sheetlist``
+      - List all sheets (modal screen)
    * - ``:sheet <name>``
      - Switch to named sheet
    * - ``:nextsheet``
@@ -162,7 +166,10 @@ Sheet Operations
    * - ``:prevsheet``
      - Go to previous sheet
    * - ``:undodelsheet``
-     - Restore the last deleted sheet
+      - Restore the last deleted sheet
+
+Sheet names containing spaces must be quoted, e.g.
+``:sheet rename "Q1 Sales"`` or ``:sc "Q1 Sales" Q1_2024``.
 
 Sort and Filter
 ---------------
