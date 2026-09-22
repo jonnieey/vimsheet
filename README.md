@@ -27,6 +27,27 @@ A vim-like TUI spreadsheet for the terminal.
 ```
 ---
 
+## Demo
+
+Recorded with [tui-test](https://github.com/microsoft/tui-test).
+
+| Live formulas & autofill | Visual-mode sort |
+| :---: | :---: |
+| ![SUM formulas typed and filled down a column with a grand total](demo/01-formulas.gif) | ![Rows sorted in visual mode](demo/02-visual-sort.gif) |
+| Type `=SUM(B2:E2)`, fill it down with `yy`/`p`, then a grand total with `=SUM(F2:F5)` | Select rows with `V`, then `ss` to sort by the first column |
+
+| Macros | Regex substitution |
+| :---: | :---: |
+| ![Recording and replaying a macro](demo/03-macro.gif) | ![Substitution applied across the sheet](demo/04-substitute.gif) |
+| Record with `qa` (increment `Ctrl+a`, move `j`), stop with `q`, replay with `@a` | `:%s/North/NORTH/g` – Vim-style substitution across the sheet |
+
+| Inline charts |
+| :---: |
+| ![A bar chart rendered inside the terminal](demo/05-chart.gif) |
+| `:plot bar E2:E5` renders a chart straight in the terminal |
+
+---
+
 ## Why VimSheet?
 
 If you live in the terminal and think in vim motions, a GUI spreadsheet is friction.
@@ -52,7 +73,7 @@ VimSheet puts a full-featured spreadsheet in your terminal with a keymap you alr
 ```bash
 git clone https://github.com/jonnieey/vimsheet.git
 cd vimsheet
-`uv tool install . --force --no-cache` or `pip install`  or `pipx https://github.com/jonnieey/vimsheet.git`. 
+`uv tool install . --force --no-cache` or `pip install`  or `pipx https://github.com/jonnieey/vimsheet.git`.
 ```
 
 Requires Python 3.11+ and a terminal that supports 256 colours.

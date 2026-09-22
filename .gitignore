@@ -12,3 +12,6 @@ egg-info/
 dcs/build/
 docs/source/reference/_autosummary/
 vimsheet/tutorials/originals
+demo/out/
+demo/vimsheet_demo.py
+demo/sales.csv
