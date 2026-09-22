@@ -81,8 +81,12 @@ class Workbook:
         sheet.name = new_name
         self.modified = True
 
-    def duplicate_sheet(self, name: str | None = None) -> Sheet:
-        """Duplicate a sheet by name (or active sheet if None). Appends with suffix."""
+    def duplicate_sheet(self, name: str | None = None, new_name: str | None = None) -> Sheet:
+        """Duplicate a sheet by name (or active sheet if None).
+
+        By default the copy is named ``"<name> (copy)"``.  Pass *new_name* to
+        give the copy an explicit name.
+        """
         import copy as _copy
 
         from vimsheet.model.sheet import CondFormatRule, Sheet
@@ -92,12 +96,16 @@ class Workbook:
         if src is None:
             raise KeyError(f"Sheet {name!r} not found")
 
-        base = src.name
-        new_name = f"{base} (copy)"
-        counter = 2
-        while self.get_sheet(new_name) is not None:
-            new_name = f"{base} (copy {counter})"
-            counter += 1
+        if new_name is not None:
+            if self.get_sheet(new_name) is not None:
+                raise ValueError(f"Sheet {new_name!r} already exists")
+        else:
+            base = src.name
+            new_name = f"{base} (copy)"
+            counter = 2
+            while self.get_sheet(new_name) is not None:
+                new_name = f"{base} (copy {counter})"
+                counter += 1
 
         new_sheet = Sheet(name=new_name)
         new_sheet.cells = {pos: cell.copy() for pos, cell in src.cells.items()}

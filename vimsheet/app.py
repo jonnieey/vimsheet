@@ -45,6 +45,21 @@ def _char(event: Any) -> str:
     return event.key
 
 
+def _split_quoted(cmd: str) -> list[str]:
+    """Split a command string into tokens, honouring single/double quotes.
+
+    Used by commands that take names which may contain spaces (e.g.
+    ``:sheet rename "Q1 Sales"``).  Falls back to a plain split if the
+    string is not shell-parseable.
+    """
+    import shlex
+
+    try:
+        return shlex.split(cmd)
+    except ValueError:
+        return cmd.split()
+
+
 class VimSheetApp(App[None]):
     """Main VimSheet application."""
 
@@ -478,6 +493,82 @@ class VimSheetApp(App[None]):
         }
     )
 
+    # -----------------------------------------------------------------------
+    # Sheet command helpers (quote-aware names)
+    # -----------------------------------------------------------------------
+
+    def _sheet_add(self, name: str | None) -> None:
+        try:
+            self.workbook.add_sheet(name)
+        except ValueError as e:
+            self.status_bar.show_message(str(e))
+            return
+        self.workbook.active_sheet_idx = len(self.workbook.sheets) - 1
+        self._on_sheet_changed()
+        self.workbook.modified = True
+        self.status_bar.show_message(f"Added sheet: {self.workbook.active_sheet.name}")
+
+    def _sheet_delete(self, name: str | None) -> None:
+        if len(self.workbook.sheets) <= 1:
+            self.status_bar.show_message("Cannot delete the only sheet")
+            return
+        if name:
+            try:
+                self.workbook.delete_sheet(name)
+            except (ValueError, KeyError) as e:
+                self.status_bar.show_message(str(e))
+                return
+            self._on_sheet_changed()
+            self.status_bar.show_message(f"Deleted sheet: {name}")
+        else:
+            idx = self.workbook.active_sheet_idx
+            deleted_sheet = self.workbook.sheets[idx]
+            self._deleted_sheets.append((idx, deleted_sheet))
+            self.workbook.sheets.pop(idx)
+            self.workbook.active_sheet_idx = max(0, idx - 1)
+            self._on_sheet_changed()
+            self.workbook.modified = True
+            self.status_bar.show_message(
+                f"Deleted sheet: {deleted_sheet.name}  (undo with :undodelsheet)"
+            )
+
+    def _sheet_rename(self, names: list[str]) -> None:
+        if len(names) >= 2:
+            old_name, new_name = names[0], names[1]
+        elif len(names) == 1:
+            old_name = self.workbook.active_sheet.name
+            new_name = names[0]
+        else:
+            self.status_bar.show_message("Usage: :sr <newname>   or   :sr <oldname> <newname>")
+            return
+        try:
+            self.workbook.rename_sheet(old_name, new_name)
+            self._sync_sheet_tabs()
+            self.status_bar.show_message(f"Sheet renamed: {old_name} → {new_name}")
+        except (KeyError, ValueError) as e:
+            self.status_bar.show_message(str(e))
+
+    def _sheet_duplicate(self, names: list[str]) -> None:
+        try:
+            if len(names) >= 2:
+                new_sheet = self.workbook.duplicate_sheet(names[0], new_name=names[1])
+            elif len(names) == 1:
+                self._sheet_rename(names)
+                return
+            else:
+                new_sheet = self.workbook.duplicate_sheet()
+        except (ValueError, KeyError) as e:
+            self.status_bar.show_message(str(e))
+            return
+        self._on_sheet_changed()
+        self.status_bar.show_message(f"Duplicated sheet: {new_sheet.name}")
+
+    def _sheet_list(self) -> None:
+        names = [s.name for s in self.workbook.sheets]
+        active = self.workbook.active_sheet.name
+        msg = "  ".join(f"[{n}]" if n == active else n for n in names)
+        self.status_bar.show_message(f"Sheets ({len(names)}): {msg}")
+
     def _dispatch_command(self, cmd: str) -> None:
         """Dispatch a colon command string (without the leading colon)."""
         parts = cmd.split()
@@ -549,76 +640,19 @@ class VimSheetApp(App[None]):
 
             # ---- Sheet management ----
             case "sa" | "sheetadd":
-                name = parts[1].strip("\"'") if len(parts) > 1 else None
-                try:
-                    self.workbook.add_sheet(name)
-                except ValueError as e:
-                    self.status_bar.show_message(str(e))
-                    return
-                self.workbook.active_sheet_idx = len(self.workbook.sheets) - 1
-                self._on_sheet_changed()
-                self.workbook.modified = True
-                self.status_bar.show_message(f"Added sheet: {self.workbook.active_sheet.name}")
+                args = _split_quoted(cmd)
+                self._sheet_add(args[1] if len(args) > 1 else None)
             case "sd" | "sheetdel":
-                if len(self.workbook.sheets) <= 1:
-                    self.status_bar.show_message("Cannot delete the only sheet")
-                else:
-                    target_name = parts[1].strip("\"'") if len(parts) > 1 else None
-                    if target_name:
-                        try:
-                            self.workbook.delete_sheet(target_name)
-                        except (ValueError, KeyError) as e:
-                            self.status_bar.show_message(str(e))
-                            return
-                        self._on_sheet_changed()
-                        self.status_bar.show_message(f"Deleted sheet: {target_name}")
-                    else:
-                        idx = self.workbook.active_sheet_idx
-                        deleted_sheet = self.workbook.sheets[idx]
-                        self._deleted_sheets.append((idx, deleted_sheet))
-                        self.workbook.sheets.pop(idx)
-                        self.workbook.active_sheet_idx = max(0, idx - 1)
-                        self._on_sheet_changed()
-                        self.workbook.modified = True
-                        self.status_bar.show_message(
-                            f"Deleted sheet: {deleted_sheet.name}  (undo with :undodelsheet)"
-                        )
+                args = _split_quoted(cmd)
+                self._sheet_delete(args[1] if len(args) > 1 else None)
             case "sr" | "sheetrename":
-                if len(parts) >= 3:
-                    old_name = parts[1].strip("\"'")
-                    new_name = parts[2].strip("\"'")
-                    try:
-                        self.workbook.rename_sheet(old_name, new_name)
-                        self._sync_sheet_tabs()
-                        self.status_bar.show_message(f"Sheet renamed: {old_name} → {new_name}")
-                    except (KeyError, ValueError) as e:
-                        self.status_bar.show_message(str(e))
-                elif len(parts) == 2:
-                    new_name = parts[1].strip("\"'")
-                    old_name = self.workbook.active_sheet.name
-                    try:
-                        self.workbook.rename_sheet(old_name, new_name)
-                        self._sync_sheet_tabs()
-                        self.status_bar.show_message(f"Sheet renamed: {old_name} → {new_name}")
-                    except ValueError as e:
-                        self.status_bar.show_message(str(e))
-                else:
-                    self.status_bar.show_message(
-                        "Usage: :sr <newname>   or   :sr <oldname> <newname>"
-                    )
+                args = _split_quoted(cmd)
+                self._sheet_rename(args[1:])
             case "sl" | "sheets" | "sheetlist":
-                names = [s.name for s in self.workbook.sheets]
-                active = self.workbook.active_sheet.name
-                msg = "  ".join(f"[{n}]" if n == active else n for n in names)
-                self.status_bar.show_message(f"Sheets ({len(names)}): {msg}")
+                self._sheet_list()
             case "sdup" | "sc" | "sheetdupe":
-                name = parts[1].strip("\"'") if len(parts) > 1 else None
-                try:
-                    new_sheet = self.workbook.duplicate_sheet(name)
-                    self._on_sheet_changed()
-                    self.status_bar.show_message(f"Duplicated sheet: {new_sheet.name}")
-                except (ValueError, KeyError) as e:
-                    self.status_bar.show_message(str(e))
+                args = _split_quoted(cmd)
+                self._sheet_duplicate(args[1:])
             case "nextsheet":
                 self.workbook.go_to_next_sheet()
                 self._on_sheet_changed()
@@ -626,52 +660,30 @@ class VimSheetApp(App[None]):
                 self.workbook.go_to_prev_sheet()
                 self._on_sheet_changed()
             case "sheet":
-                if len(parts) > 1:
-                    sub = parts[1].lower()
-                    if sub == "add":
-                        name = parts[2].strip("\"'") if len(parts) > 2 else None
-                        try:
-                            self.workbook.add_sheet(name)
-                        except ValueError as e:
-                            self.status_bar.show_message(str(e))
-                            return
-                        self.workbook.active_sheet_idx = len(self.workbook.sheets) - 1
-                        self._on_sheet_changed()
-                        self.workbook.modified = True
-                        self.status_bar.show_message(
-                            f"Added sheet: {self.workbook.active_sheet.name}"
-                        )
-                    elif sub in ("delete", "del"):
-                        target_name = parts[2].strip("\"'") if len(parts) > 2 else None
-                        self._dispatch_command(f"sd {target_name}" if target_name else "sd")
-                    elif sub in ("rename", "ren"):
-                        if len(parts) >= 4:
-                            old_name = parts[2].strip("\"'")
-                            new_name = parts[3].strip("\"'")
-                            self._dispatch_command(f"sr {old_name} {new_name}")
-                        elif len(parts) >= 3:
-                            new_name = parts[2].strip("\"'")
-                            self._dispatch_command(f"sr {new_name}")
-                        else:
-                            self.status_bar.show_message(
-                                "Usage: :sheet rename [<oldname>] <newname>"
-                            )
-                    elif sub in ("dup", "duplicate", "copy"):
-                        name = parts[2].strip("\"'") if len(parts) > 2 else None
-                        self._dispatch_command(f"sdup {name}" if name else "sdup")
-                    elif sub in ("list", "ls", "l"):
-                        self._dispatch_command("sl")
-                    else:
-                        for i, s in enumerate(self.workbook.sheets):
-                            if s.name == parts[1]:
-                                self.workbook.go_to_sheet(i)
-                                self._on_sheet_changed()
-                                return
-                        self.status_bar.show_message(f"Sheet not found: {parts[1]!r}")
-                else:
+                args = _split_quoted(cmd)
+                if len(args) <= 1:
                     self.status_bar.show_message(
                         f"Current sheet: {self.workbook.active_sheet.name}"
                     )
+                else:
+                    sub = args[1].lower()
+                    if sub == "add":
+                        self._sheet_add(args[2] if len(args) > 2 else None)
+                    elif sub in ("delete", "del"):
+                        self._sheet_delete(args[2] if len(args) > 2 else None)
+                    elif sub in ("rename", "ren"):
+                        self._sheet_rename(args[2:])
+                    elif sub in ("dup", "duplicate", "copy"):
+                        self._sheet_duplicate(args[2:])
+                    elif sub in ("list", "ls", "l"):
+                        self._sheet_list()
+                    else:
+                        idx = self.workbook.get_sheet_index(args[1])
+                        if idx is not None:
+                            self.workbook.go_to_sheet(idx)
+                            self._on_sheet_changed()
+                        else:
+                            self.status_bar.show_message(f"Sheet not found: {args[1]!r}")
 
             # ---- Column width ----
             case "colwidth" | "cw":
