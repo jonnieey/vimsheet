@@ -2735,6 +2735,15 @@ class VimSheetApp(App[None]):
             return
         action = self._last_action
         match action[0]:
+            case "set_cell":
+                _, value, formula = action
+                from vimsheet.model.undo import SetCellCommand
+
+                r, c = self.cursor_row, self.cursor_col
+                cmd = SetCellCommand(self.workbook.active_sheet, r, c, value, new_formula=formula)
+                self.undo_stack.push(cmd)
+                self.workbook.modified = True
+                self.grid.refresh_grid()
             case "clear_cell":
                 from vimsheet.model.undo import ClearCellCommand
 

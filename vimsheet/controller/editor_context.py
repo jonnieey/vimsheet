@@ -162,6 +162,7 @@ class CellEditContext(EditorContext):
         from vimsheet.model.undo import SetCellCommand
 
         val: Any
+        new_formula: str | None
         if raw.startswith("="):
             from vimsheet.formula.evaluator import Evaluator
 
@@ -169,14 +170,14 @@ class CellEditContext(EditorContext):
             deps = ev.collect_deps(raw)
             has_func = "(" in raw[1:]
             if deps or has_func:
-                cmd = SetCellCommand(sheet, r, c, raw, new_formula=raw)
+                val, new_formula = raw, raw
             else:
                 val = ev.eval_formula(raw, r, c)
                 valid, msg = sheet.validation.validate(r, c, val)
                 if not valid:
                     self._abort(msg)
                     return
-                cmd = SetCellCommand(sheet, r, c, val)
+                new_formula = None
         else:
             if self._intent == "text":
                 val = raw
@@ -189,9 +190,11 @@ class CellEditContext(EditorContext):
             if not valid:
                 self._abort(msg)
                 return
-            cmd = SetCellCommand(sheet, r, c, val)
+            new_formula = None
 
+        cmd = SetCellCommand(sheet, r, c, val, new_formula=new_formula)
         app.undo_stack.push(cmd)
+        app._last_action = ("set_cell", val, new_formula)
         # Apply alignment hint
         cell = sheet.get_cell(r, c)
         if cell is not None and self._align is not None:
